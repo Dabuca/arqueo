@@ -67,7 +67,7 @@ describe("employeeSelectedSigner", () => {
 		const selected = employeeSelectedSigner(verifier, employee.publicKey())
 
 		expect(selected.type).toBe("ed25519")
-		const expectedHex = Array.from(employee.rawPublicKey(), (b) =>
+		const expectedHex = Array.from(employee.rawPublicKey(), (b: number) =>
 			b.toString(16).padStart(2, "0"),
 		).join("")
 		expect(selected.ed25519PublicKey).toBe(expectedHex)
