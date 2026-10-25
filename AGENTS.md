@@ -135,7 +135,7 @@ P0 bloquea la demo · P1 completa el MVP · P2 solo si sobra tiempo. **Marcad la
 ### P0 — bloqueantes, en orden de dependencia
 
 - [ ] **R1 [D]** Matriz de controles cerrada (§3, con los proveedores rellenos). *Antes de las 10:30.*
-- [ ] **R2 [B]** Testnet listo: kit configurado con las direcciones de `demo/.env.example` (incluido el verificador Ed25519), cuentas con fondos de Friendbot y token = XLM. *Hecho = la app lee un saldo de testnet.*
+- [x] **R2 [B]** Testnet listo: kit configurado con las direcciones de `demo/.env.example` (incluido el verificador Ed25519), cuentas con fondos de Friendbot y token = XLM. *Hecho = la app lee un saldo de testnet.*
 - [ ] **R3 [B]** Cuenta de empresa creada con la passkey del admin, firmantes employee (Ed25519) y manager (passkey), y con saldo. *Hecho = dirección C… visible en stellar.expert.*
 - [ ] **R4 [B]** Regla `ordinary` (umbral 1 + `spending_limit`) y primer pago firmado solo por employee (ruta `multiSigners` del kit). *Hecho = hash en testnet.* **Control de las 14:00.**
 - [ ] **R5 [A]** `control-policy` con tests (pasa · proveedor desconocido · importe excesivo) y desplegada en testnet. *Hecho = ID del contrato y `cargo test` en verde.*
