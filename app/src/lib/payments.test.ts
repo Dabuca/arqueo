@@ -2,6 +2,8 @@ import { Keypair, StrKey, scValToNative } from "@stellar/stellar-sdk"
 import { describe, expect, it } from "vitest"
 import {
 	controlPolicyParams,
+	decodeControlParams,
+	decodeSpendState,
 	employeeSelectedSigner,
 	largeRuleParams,
 	managerSelectedSigner,
@@ -54,14 +56,8 @@ describe("ruleFor", () => {
 })
 
 describe("ordinaryRuleParams", () => {
-	it("follows the control matrix: threshold 1, 1,000 XLM every 30 days", () => {
-		expect(ordinaryRuleParams()).toEqual({
-			threshold: { threshold: 1 },
-			spendingLimit: {
-				spending_limit: 10_000_000_000n,
-				period_ledgers: 30 * 17_280,
-			},
-		})
+	it("is a threshold of 1: the cap lives in control-policy", () => {
+		expect(ordinaryRuleParams()).toEqual({ threshold: { threshold: 1 } })
 	})
 })
 
@@ -104,9 +100,7 @@ describe("managerSigner", () => {
 
 	it("rejects a key that is not an uncompressed secp256r1 key", () => {
 		const short = btoa(String.fromCharCode(0x04, 0x01, 0x02))
-		expect(() => managerSigner(verifier, short, "cred-id")).toThrow(
-			/65 bytes/,
-		)
+		expect(() => managerSigner(verifier, short, "cred-id")).toThrow(/65 bytes/)
 	})
 })
 
@@ -205,26 +199,75 @@ describe("paymentLog", () => {
 describe("controlPolicyParams", () => {
 	const supplier = StrKey.encodeEd25519PublicKey(new Uint8Array(32).fill(0x07))
 
-	it("encodes ControlParams with the maximum converted to stroops", () => {
-		const native = scValToNative(controlPolicyParams([supplier], 500n))
+	const ordinary = {
+		allowlist: [supplier],
+		capPerPeriod: 10_000_000_000n,
+		maxPerPayment: 5_000_000_000n,
+		periodLedgers: 30 * 17_280,
+	}
+	const large = {
+		allowlist: [supplier],
+		capPerPeriod: null,
+		maxPerPayment: null,
+		periodLedgers: 0,
+	}
 
-		expect(native).toEqual({
+	it("encodes ControlParams with amounts in stroops and the period in ledgers", () => {
+		expect(scValToNative(controlPolicyParams(ordinary))).toEqual({
 			allowlist: [supplier],
+			cap_per_period: 10_000_000_000n,
 			max_per_payment: 5_000_000_000n,
+			period_ledgers: 30 * 17_280,
 		})
 	})
 
-	it("encodes no maximum as void", () => {
-		const native = scValToNative(controlPolicyParams([supplier]))
+	it("encodes no maximum and no cap as void", () => {
+		const native = scValToNative(controlPolicyParams(large))
 
 		expect(native.max_per_payment).toBeNull()
+		expect(native.cap_per_period).toBeNull()
+		expect(native.period_ledgers).toBe(0)
 	})
 
 	it("keeps the struct keys in alphabetical order, as Soroban requires", () => {
-		const native = scValToNative(controlPolicyParams([supplier], 1n))
-		const keys = Object.keys(native)
+		const keys = Object.keys(scValToNative(controlPolicyParams(ordinary)))
 
-		expect(keys).toEqual(["allowlist", "max_per_payment"])
+		expect(keys).toEqual([
+			"allowlist",
+			"cap_per_period",
+			"max_per_payment",
+			"period_ledgers",
+		])
+	})
+})
+
+describe("decodeControlParams", () => {
+	const supplier = StrKey.encodeEd25519PublicKey(new Uint8Array(32).fill(0x07))
+
+	it("reads back what controlPolicyParams wrote", () => {
+		const values = {
+			allowlist: [supplier],
+			capPerPeriod: 10_000_000_000n,
+			maxPerPayment: null,
+			periodLedgers: 518_400,
+		}
+
+		expect(
+			decodeControlParams(scValToNative(controlPolicyParams(values))),
+		).toEqual(values)
+	})
+
+	it("returns null when nothing is installed", () => {
+		expect(decodeControlParams(null)).toBeNull()
+		expect(decodeControlParams(undefined)).toBeNull()
+	})
+})
+
+describe("decodeSpendState", () => {
+	it("reads the spent amount and the period start", () => {
+		expect(
+			decodeSpendState({ spent: 5_000_000_000n, period_start: 120 }),
+		).toEqual({ spentStroops: 5_000_000_000n, periodStart: 120 })
 	})
 })
 
@@ -246,6 +289,15 @@ describe("rejectionReason", () => {
 			{
 				reason: "Operation not allowed by the account rules",
 			},
+		)
+	})
+
+	it("maps the cap codes 4 and 5", () => {
+		expect(rejectionReason("Error(Contract, #4)").reason).toBe(
+			"The 30-day cap cannot be set below the amount already spent",
+		)
+		expect(rejectionReason("Error(Contract, #5)").reason).toBe(
+			"Amount exceeds what is left of the 30-day cap: manager approval required",
 		)
 	})
 

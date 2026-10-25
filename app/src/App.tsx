@@ -8,6 +8,7 @@ import Auditor from "./pages/Auditor"
 import Debug from "./pages/Debug"
 import Home from "./pages/Home"
 import Landing from "./pages/Landing"
+import Settings from "./pages/Settings"
 
 function App() {
 	return (
@@ -16,6 +17,7 @@ function App() {
 			<Route element={<AppLayout />}>
 				<Route path="/app" element={<Home />} />
 				<Route path="/auditor" element={<Auditor />} />
+				<Route path="/settings" element={<Settings />} />
 				<Route path="/debug" element={<Debug />} />
 				<Route path="/debug/:contractName" element={<Debug />} />
 			</Route>

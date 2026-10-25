@@ -13,6 +13,9 @@ export function isSupplier(address: string, config: ControlsConfig): boolean {
 	return config.suppliers.some((supplier) => supplier.address === address)
 }
 
+/** Longest cap period the contract accepts (30 days). */
+export const MAX_PERIOD_DAYS = 30
+
 const isPositive = (value: number) => Number.isFinite(value) && value > 0
 
 // The contract takes amounts in stroops, so an amount finer than a stroop
@@ -54,6 +57,11 @@ export function validateLimitsChange(
 	}
 	if (!Number.isInteger(next.periodDays)) {
 		return rejected("The period must be a whole number of days")
+	}
+	// The account keeps what was spent for 30 days after its last use, so a
+	// longer period could forget it before the period ends.
+	if (next.periodDays > MAX_PERIOD_DAYS) {
+		return rejected(`The period cannot be longer than ${MAX_PERIOD_DAYS} days`)
 	}
 	// Without a valid spent amount the cap check below could not be trusted.
 	if (!Number.isFinite(spentInPeriod) || spentInPeriod < 0) {

@@ -144,6 +144,7 @@ describe("validateLimitsChange", () => {
 		["a zero period", { periodDays: 0 }, "period"],
 		["a negative period", { periodDays: -30 }, "period"],
 		["a fractional period", { periodDays: 30.5 }, "whole number of days"],
+		["a period longer than 30 days", { periodDays: 31 }, "longer than 30 days"],
 	])("rejects %s", (_label, over, mention) => {
 		const result = validateLimitsChange(limits(over), 0)
 		expect(result.ok).toBe(false)

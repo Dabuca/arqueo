@@ -13,9 +13,9 @@ import {
 import { useEffect, useState, type FormEvent } from "react"
 import { Link } from "react-router-dom"
 import { Spinner, useChanged } from "../components/Spinner"
-import { DEFAULT_LIMITS, DEMO_AMOUNTS } from "../controls/defaults"
+import { DEMO_AMOUNTS } from "../controls/defaults"
 import { ruleForSigners } from "../controls/rules"
-import { loadCompany, pay } from "../lib/stellar"
+import { loadCompany, loadControlsConfig, pay } from "../lib/stellar"
 import ui from "../styles/ui.module.css"
 import {
 	UNKNOWN_SUPPLIER_DEMO,
@@ -30,11 +30,6 @@ type CheckState = "pass" | "fail" | "idle"
 
 const testnetTx = (hash: string) =>
 	`https://stellar.expert/explorer/testnet/tx/${encodeURIComponent(hash)}`
-
-const configuredSuppliers: string[] = (import.meta.env.PUBLIC_SUPPLIERS ?? "")
-	.split(",")
-	.map((address: string) => address.trim())
-	.filter(Boolean)
 
 const shortAddress = (address: string) =>
 	`${address.slice(0, 6)}…${address.slice(-5)}`
@@ -58,6 +53,10 @@ function CheckIcon({ state }: { state: CheckState }) {
 }
 
 export default function PaymentScreen() {
+	// The limits and suppliers the admin set in Settings (R17).
+	const [controls, setControls] = useState(() => loadControlsConfig())
+	const limits = controls.limits
+	const configuredSuppliers = controls.suppliers.map((s) => s.address)
 	const [supplier, setSupplier] = useState(configuredSuppliers[0] ?? "")
 	const [customSupplier, setCustomSupplier] = useState(false)
 	const [amount, setAmount] = useState(String(DEMO_AMOUNTS.below))
@@ -71,7 +70,10 @@ export default function PaymentScreen() {
 
 	const [company, setCompany] = useState(() => loadCompany())
 	useEffect(() => {
-		const refreshCompany = () => setCompany(loadCompany())
+		const refreshCompany = () => {
+			setCompany(loadCompany())
+			setControls(loadControlsConfig())
+		}
 		window.addEventListener("arqueo:company-updated", refreshCompany)
 		return () =>
 			window.removeEventListener("arqueo:company-updated", refreshCompany)
@@ -143,7 +145,7 @@ export default function PaymentScreen() {
 			? configuredSuppliers.includes(trimmedRecipient)
 			: undefined
 	const underLimit = amountIsValid
-		? numericAmount <= DEFAULT_LIMITS.maxPerPayment
+		? numericAmount <= limits.maxPerPayment
 		: undefined
 	const stateOf = (ok: boolean | undefined): CheckState =>
 		ok === undefined ? "idle" : ok ? "pass" : "fail"
@@ -163,7 +165,7 @@ export default function PaymentScreen() {
 		signature === "manager"
 			? { label: "No per-payment limit on the large rule", state: "pass" }
 			: {
-					label: `Within ${DEFAULT_LIMITS.maxPerPayment} XLM per payment`,
+					label: `Within ${limits.maxPerPayment} XLM per payment`,
 					state: stateOf(underLimit),
 					detail:
 						underLimit === false
@@ -174,7 +176,7 @@ export default function PaymentScreen() {
 			? []
 			: [
 					{
-						label: `Within ${DEFAULT_LIMITS.cap30d.toLocaleString("en-US")} XLM every ${DEFAULT_LIMITS.periodDays} days`,
+						label: `Within ${limits.cap30d.toLocaleString("en-US")} XLM every ${limits.periodDays} days`,
 						state: "idle" as const,
 						detail: "Spending is checked on-chain.",
 					},
@@ -411,7 +413,10 @@ export default function PaymentScreen() {
 					</div>
 				</form>
 
-				<aside className={`${ui.card} ${styles.preview}`} aria-label="Rule preview">
+				<aside
+					className={`${ui.card} ${styles.preview}`}
+					aria-label="Rule preview"
+				>
 					<div className={styles.previewHead}>
 						<h3>Rule preview</h3>
 						<span
@@ -475,7 +480,9 @@ export default function PaymentScreen() {
 					{!company ? (
 						<div className={styles.resultEmpty}>
 							<strong>Awaiting company account</strong>
-							<span>Create the treasury above to prepare a signed instruction.</span>
+							<span>
+								Create the treasury above to prepare a signed instruction.
+							</span>
 						</div>
 					) : outcome ? (
 						<div
@@ -488,7 +495,11 @@ export default function PaymentScreen() {
 								) : outcome.kind === "rejected" ? (
 									<ShieldX size={18} strokeWidth={1.8} aria-hidden="true" />
 								) : (
-									<TriangleAlert size={18} strokeWidth={1.8} aria-hidden="true" />
+									<TriangleAlert
+										size={18}
+										strokeWidth={1.8}
+										aria-hidden="true"
+									/>
 								)}
 								{outcome.kind === "accepted"
 									? "Payment accepted"
@@ -504,7 +515,11 @@ export default function PaymentScreen() {
 									rel="noreferrer"
 								>
 									View transaction
-									<ExternalLink size={14} strokeWidth={1.8} aria-hidden="true" />
+									<ExternalLink
+										size={14}
+										strokeWidth={1.8}
+										aria-hidden="true"
+									/>
 								</a>
 							) : (
 								<>

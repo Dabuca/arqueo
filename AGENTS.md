@@ -40,7 +40,7 @@ Precisión para el pitch: el rechazo ocurre al simular la transacción contra la
 | Regla | Contexto | Firmantes | Políticas |
 |---|---|---|---|
 | `admin` | default | admin | ninguna (sin políticas se exige a todos los firmantes) |
-| `ordinary` | llamadas al contrato del token | employee | umbral 1 · `control-policy` {proveedores, máximo por pago (por defecto 500)} · tope de gasto cada 30 días (por defecto 1.000; ver §3.1) |
+| `ordinary` | llamadas al contrato del token | employee | umbral 1 · `control-policy` {proveedores, máximo por pago (por defecto 500), tope por periodo (por defecto 1.000 cada 30 días)}; ya no lleva la `spending_limit` de OpenZeppelin (ver §3.1) |
 | `large` | llamadas al contrato del token | employee + manager | umbral 2 · `control-policy` {proveedores, sin máximo} |
 
 - **Proveedores autorizados:** los fija el admin. Cada uno puede ser una cuenta de demo generada en testnet o la dirección real que introduzca el admin. Tiene que existir en testnet (con fondos de Friendbot); si no, el pago fallaría por otra causa y no por la regla. La cuenta desconocida de la escena 3 también tiene que existir, pero fuera de la lista. Los de la demo los crea `scripts/` (R14).
@@ -53,15 +53,15 @@ Precisión para el pitch: el rechazo ocurre al simular la transacción contra la
 
 - Solo el admin, en cualquier momento, desde la pantalla de ajustes (R17) y con su passkey. Los cambios de reglas solo los autoriza la regla `admin`: el employee y el manager no pueden tocar límites ni proveedores.
 - Nada se actualiza en sitio: cada cambio **da de baja** la regla o política vieja y **da de alta** la nueva.
-- Nunca puede haber un momento en que `ordinary` acepte pagos sin sus controles. Si hay que elegir, la cuenta queda cerrada (nadie paga) mientras dura el cambio, nunca abierta.
-- La app busca las reglas por nombre, no por ID: cada alta crea un ID nuevo.
+- Nunca puede haber un momento en que `ordinary` acepte pagos sin sus controles. La app da de alta la regla nueva **antes** de dar de baja la vieja: durante unos segundos conviven las dos, las dos con controles, y lo gastado se cuenta una sola vez porque pertenece a la cuenta. La cuenta nunca queda abierta.
+- La app busca las reglas por nombre, no por ID: cada alta crea un ID nuevo. Mientras dura un cambio hay dos reglas con el mismo nombre; la app guarda el ID de la nueva en cuanto se da de alta.
 - Ajustes **nunca** toca la regla `admin`: sin ella la cuenta queda bloqueada para siempre.
 - Todo cambio en Ajustes (máximo por pago, tope o proveedores) deja rastro para el auditor: qué cambió, valor anterior y nuevo, y hash de las transacciones.
 - **Tope de 30 días:**
   - Se puede cambiar, pero **conserva lo gastado y el inicio del periodo**. Ejemplo: llevas 500 gastados de 1.000 y lo subes a 1.500 → te quedan 1.000.
   - **Nunca puede fijarse por debajo de lo ya gastado**: ese cambio se rechaza.
   - Cada cambio deja rastro auditable: tope anterior, tope nuevo, gastado en ese momento, inicio del periodo y hash de las transacciones de baja y de alta. El auditor lo ve.
-- **Pendiente de acuerdo con A (Carlos) y B (DavidB):** la `spending_limit` de OpenZeppelin no cumple lo anterior (al reinstalarla empieza de cero), así que el tope tendría que pasar a `control-policy`, guardando lo gastado por cuenta y comprobando en la cadena que el tope nuevo no baje de lo gastado (error nuevo 4). Afecta a §6.2 y a R4. Falta decidir si entra en R5 (P0) o en R17 (P1, con el tope de OpenZeppelin fijo hasta entonces).
+- **Decidido (R17, 25-oct; A y B lo confirman al revisar el PR):** la `spending_limit` de OpenZeppelin no cumple lo anterior (al reinstalarla empieza de cero), así que el tope vive en `control-policy`. Lo gastado y el inicio del periodo se guardan **por cuenta** (no por regla) y sobreviven a dar de baja una regla. Un tope nuevo por debajo de lo gastado en el periodo en curso se rechaza en la cadena (error 4). Un pago que pasaría del tope se rechaza (error 5). Afecta a §6.2 y a R4: `ordinary` ya no lleva `spending_limit`.
 
 ## 4. Stack (versiones fijadas: no se actualiza nada durante el evento)
 
@@ -132,11 +132,15 @@ export function listPayments(): Promise<Payment[]>; // MVP: registro local + has
 
 ### 6.2 `control-policy` (A → B)
 
-- **Parámetros de instalación** (por cuenta y por regla): `ControlParams { allowlist: Vec<Address>, max_per_payment: Option<i128> }`. Importe en stroops; `None` = sin máximo.
-- **Errores:** `SupplierNotAllowed = 1` · `AmountOverLimit = 2` · `NotATransfer = 3`.
-- **`enforce`:** si la llamada es `transfer(from, to, amount)`, `to` tiene que estar en `allowlist` y `amount` no puede pasar de `max_per_payment` (si lo hay). Cualquier otra función → `NotATransfer`.
+- **Parámetros de instalación** (por cuenta y por regla): `ControlParams { allowlist: Vec<Address>, cap_per_period: Option<i128>, max_per_payment: Option<i128>, period_ledgers: u32 }`. Importes en stroops; `None` = sin máximo o sin tope; `period_ledgers` es la duración del periodo del tope (30 días = 518.400, y no puede pasar de 30 días) y se ignora sin tope. La lista de proveedores admite 50 como máximo (la app, 20). Como `ScVal` es un mapa con las claves en este orden alfabético.
+- **Errores:** `SupplierNotAllowed = 1` · `AmountOverLimit = 2` · `NotATransfer = 3` · `CapBelowSpent = 4` (en `install`) · `CapExceeded = 5` (en `enforce`).
+- **`enforce`:** si la llamada es `transfer(from, to, amount)`, `to` tiene que estar en `allowlist`, `amount` no puede pasar de `max_per_payment` (si lo hay) y, si hay tope, lo gastado en el periodo más `amount` no puede pasar de `cap_per_period`. El máximo por pago se comprueba antes que el tope, para que la escena 2 muestre «manager approval required». Cualquier otra función → `NotATransfer`.
+- **Lo gastado** (`spent`, `period_start`) se guarda **por cuenta**, no por regla. `uninstall` borra solo los parámetros de la regla, no lo gastado. Un periodo que termina se reinicia solo en el siguiente pago. `install` con un tope menor que lo gastado en el periodo en curso falla con el error 4.
+- **Eventos:** `PolicyInstalled` (con los parámetros), `PolicyUninstalled` y `PaymentApproved` (`to`, `amount`, `spent`). Un pago rechazado se revierte y no emite nada: su transacción fallida es el registro.
+- **Datos caducados:** lo guardado vive 30 días desde su último uso. Una tesorería parada más tiempo debe restaurarlo (`stellar contract restore`); mientras tanto la política falla cerrada.
+- **Lecturas** (sin firma): `get_params(smart_account, context_rule_id) -> Option<ControlParams>` y `spend_state(smart_account, period_ledgers) -> SpendState { spent, period_start }`. La pantalla de Ajustes lee de aquí lo que la cadena aplica de verdad.
 - **Normas de OpenZeppelin para políticas con estado:** guardar los datos por (smart account, id de regla) y llamar a `require_auth` de la cuenta en `install`, `enforce` y `uninstall`. Copiad el patrón de su `spending_limit`.
-- **A entrega a B:** ID del contrato en testnet, formato exacto de los parámetros como `xdr.ScVal` y esta tabla de errores.
+- **A entrega a B:** ID del contrato en testnet, formato exacto de los parámetros como `xdr.ScVal` y esta tabla de errores. Ver `contracts/control-policy/README.md`.
 
 ### 6.3 Mensajes de rechazo (B ↔ C)
 
@@ -145,6 +149,8 @@ export function listPayments(): Promise<Payment[]>; // MVP: registro local + has
 | 1 | Supplier not authorized |
 | 2 | Amount exceeds the per-payment limit: manager approval required |
 | 3 | Operation not allowed by the account rules |
+| 4 | The 30-day cap cannot be set below the amount already spent |
+| 5 | Amount exceeds what is left of the 30-day cap: manager approval required |
 | otro | Rejected by the account rules (error original en un desplegable «Details») |
 
 ### 6.4 `src/controls/` — la matriz de controles como código (D → B, C)
@@ -158,13 +164,14 @@ TypeScript puro y probado (`npm test --workspace app`). **No llama a la red**: l
 | `units.ts` | `xlmToStroops` (exacto, bigint), `stroopsToXlm`, `roundToStroops` (solo para comparar) | B al construir pagos y parámetros |
 | `rules.ts` | `signersFor(rule)`, `ruleForSigners(signers)`, `requiredRule(amount, limits, spentInPeriod)` | C (aviso «Needs manager approval»), B |
 | `validation.ts` | `looksLikeStellarAddress`, `isSupplier`, `validateLimitsChange(next, spentInPeriod)` | Ajustes (R17) |
-| `params.ts` | `toControlParams(config, rule)` → `{ allowlist, maxPerPayment: bigint \| null }`, que encaja con `ControlParams` de §6.2 | B, para convertirlo a `xdr.ScVal` (R6, R17) |
+| `params.ts` | `toControlParams(config, rule)` → `{ allowlist, capPerPeriod, maxPerPayment, periodLedgers }` (stroops y ledgers), que encaja con `ControlParams` de §6.2. `large` no lleva ni máximo ni tope | B, para convertirlo a `xdr.ScVal` (R6, R17) |
+| `settings.ts` | El cambio de Ajustes como datos: `changedFields`, `validateSettings`, `startChange` / `startMigration`, `nextStep` / `withAdded` / `withRemoved` (se puede reanudar), `changeRecords` (rastro para el auditor) | Ajustes (R17), `stellar.ts` |
 | `suppliers.ts` | `SupplierDeps`, `addRealSupplier`, `addDemoSupplier`, `removeSupplier`, `createOutsiderAccount` | Ajustes (R17), script de demo (R14) |
 | `changeLog.ts` | `createChangeLog(storage?)` → `record` / `list` / `clear`; `changesToCsv` | Ajustes (R17) escribe, auditor (R9, R13) lee |
 
 Reglas:
 - `requiredRule` es solo una pista para la interfaz. Quien decide es la cuenta en la cadena, y la app tiene que dejar intentar el pago solo con employee (escena 2).
-- **Pendiente para B (R17):** implementar `SupplierDeps` en `stellar.ts` (`isValidAddress`, `accountExists`, `createFundedAccount`). Es una ampliación de §6.1: se acuerda en el PR.
+- **Hecho en R17:** `supplierDeps` (`isValidAddress`, `accountExists`, `createFundedAccount`) y el motor de cambios (`applyControlChange`, `readControlState`, `resumePendingChange`, `migrateRules`) están en `stellar.ts`. Es una ampliación de §6.1: se acuerda en el PR.
 - Para el auditor, cada cambio de Ajustes se registra con `record(...)` **después** de tener los hashes de baja y alta. En los cambios del tope, con `spentAtChange` y `periodStart`.
 - No dupliques aquí lógica de `stellar.ts` ni al revés. Si necesitas algo nuevo en `src/controls/`, pídeselo a D.
 
@@ -193,7 +200,7 @@ P0 bloquea la demo · P1 completa el MVP · P2 solo si sobra tiempo. **Marcad la
 - [ ] **R14 [B]** Script de demo reproducible que crea cuenta, firmantes, reglas y proveedores de una vez. Cada ensayo gasta el tope mensual: cuenta nueva por ensayo.
 - [ ] **R15 [C]** App publicada en una URL con aviso «testnet only».
 - [ ] **R16 [D]** Diagrama de arquitectura para el README y el deck.
-- [ ] **R17 [B+C]** Pantalla de configuración: añadir o quitar proveedores y cambiar límites, con la firma del admin.
+- [ ] **R17 [B+C]** Pantalla de configuración: añadir o quitar proveedores y cambiar límites, con la firma del admin. Código y tests listos en `d/R17-settings` (ruta `/settings`); el `control-policy` nuevo ya está desplegado en testnet y probado en cadena con una cuenta clásica (ver §11); **falta** probar un cambio completo desde `/settings` con la passkey del admin antes de marcarla.
 - [ ] **R23 [B+C]** Pantalla de pago: muestra cuánto queda del tope de 30 días y por cuánto se supera cuando un rechazo es por tope. Necesita leer el gasto del periodo desde la cadena (depende de la decisión pendiente de §3.1 sobre dónde vive el tope). *Hecho = un rechazo por tope indica restante y exceso.*
 
 ### P2 — si sobra tiempo
@@ -255,6 +262,9 @@ P0 bloquea la demo · P1 completa el MVP · P2 solo si sobra tiempo. **Marcad la
 | 25-oct 14:35 | Jesús (D); **pendiente de A y B** | Mover el tope de 30 días a `control-policy` (cambia §6.2 y R4) y decidir si entra en R5 o en R17 | la `spending_limit` de OpenZeppelin se reinicia al reinstalarla |
 | 25-oct 15:41 | Jesús (D) | R1 programado en `src/controls/` (§6.4) y mezclado en `develop`. Tests unitarios con vitest en el workspace `app` (`npm test --workspace app`); los e2e siguen con Playwright en `e2e/` | una sola fuente de verdad para límites, proveedores, regla según importe y rastro de cambios, probada sin red |
 | 25-oct 15:41 | Jesús (D) | `Role` y `RuleName` se definen solo en `stellar.ts`; `src/controls/types.ts` los reexporta. `src/controls/units.ts` no exporta `STROOPS_PER_XLM` (ya lo exporta `stellar.ts`, como número) | evitar dos definiciones con el mismo nombre |
+| 25-oct 23:10 | Jesús (D); **A y B confirman en el PR de R17** | R17 con el tope de 30 días dentro de `control-policy` (lo propuesto a las 14:35). Lo gastado se guarda por cuenta; los errores nuevos son 4 y 5; `get_params` y `spend_state` son lecturas nuevas; `ControlParams` gana `cap_per_period` y `period_ledgers`. `ordinary` ya no lleva `spending_limit` | cambiar límites o proveedores no puede reiniciar el tope. Hay que **redesplegar** `control-policy` y actualizar `PUBLIC_CONTROL_POLICY_ADDRESS`; las reglas creadas con el contrato antiguo se migran desde Ajustes |
+| 25-oct 23:10 | Jesús (D) | Un cambio de Ajustes da de alta la regla nueva **antes** de dar de baja la vieja (no baja y alta). `setupOrdinaryRule` y `setupLargeRule` fallan sin `PUBLIC_CONTROL_POLICY_ADDRESS` en vez de crear una regla abierta | con baja y alta la regla `ordinary` quedaría sin proveedores ni tope entre las dos transacciones; así convive con la vieja y nunca queda abierta |
+| 25-oct 23:30 | Jesús (D); **A confirma al revisar** | `control-policy` desplegado en testnet: `CBPCC6AT3756K43DGTRKLIZFOY5TODHZXGBJS4X4KZ64TFWUQDPEWU4L` (wasm `46e95a0e…e9910`, tx `f72f8142…2c216`). Ya está en `app/.env.example`. Añade eventos, un máximo de 50 proveedores y un periodo de hasta 30 días | la versión anterior no tenía tope por periodo ni lecturas. Probado en cadena: instalar, pagar, rechazos 1, 2 y 5, error 4 al bajar el tope, y que lo gastado y el inicio del periodo sobreviven a reemplazar la regla. No probado: el flujo con la cuenta inteligente y su passkey |
 
 ## 12. Enlaces
 

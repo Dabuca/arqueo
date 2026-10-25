@@ -4,20 +4,48 @@ import {
 	BASE_FEE,
 	Contract,
 	Keypair,
+	StrKey,
 	TransactionBuilder,
 	nativeToScVal,
 	rpc,
 	scValToNative,
+	type xdr,
 } from "@stellar/stellar-sdk"
-import { SmartAccountKit, createCallContractContext } from "smart-account-kit"
+import {
+	SmartAccountKit,
+	createCallContractContext,
+	type ContractSigner,
+} from "smart-account-kit"
+import { createChangeLog } from "../controls/changeLog"
+import { DEFAULT_LIMITS } from "../controls/defaults"
+import { toControlParams } from "../controls/params"
+import {
+	SECONDS_PER_LEDGER,
+	canDiscard,
+	changeRecords,
+	configFromParams,
+	ledgerToDate,
+	nextStep,
+	startChange,
+	startMigration,
+	validateSettings,
+	withAdded,
+	withRemoved,
+	type PendingChange,
+} from "../controls/settings"
+import { type SupplierDeps } from "../controls/suppliers"
+import { type ControlsConfig } from "../controls/types"
+import { stroopsToXlm } from "../controls/units"
+import { controlsStore } from "./controlsStore"
 import {
 	employeeSelectedSigner,
 	employeeSigner,
 	largeRuleParams,
 	managerSelectedSigner,
 	managerSigner,
-	ORDINARY_MAX_PER_PAYMENT_XLM,
 	controlPolicyParams,
+	decodeControlParams,
+	decodeSpendState,
 	ordinaryRuleParams,
 	parseSuppliers,
 	paymentLog,
@@ -285,32 +313,129 @@ async function connectedKit(company: CompanyAccount): Promise<SmartAccountKit> {
 	return kit
 }
 
-/**
- * Adds `control-policy` to a rule's policies (AGENTS.md §6.2).
- * TODO(R6): A hands over PUBLIC_CONTROL_POLICY_ADDRESS (the deployed contract
- * id) and D closes R1 with the real suppliers for PUBLIC_SUPPLIERS (comma
- * separated G... addresses). Until both are set the rule is created without it
- * and scene 3 will not be rejected.
- */
-function addControlPolicy(
-	policies: Map<string, unknown>,
-	maxPerPaymentXlm?: bigint,
-): void {
-	const address = import.meta.env.PUBLIC_CONTROL_POLICY_ADDRESS
-	const suppliers = parseSuppliers(import.meta.env.PUBLIC_SUPPLIERS)
-	if (!address || suppliers.length === 0) {
-		console.warn(
-			"control-policy skipped: set PUBLIC_CONTROL_POLICY_ADDRESS and PUBLIC_SUPPLIERS",
-		)
-		return
+// ── Rules, limits and suppliers (R6, R7, R17: AGENTS.md §3 and §3.1) ──────────
+
+/** The settings before the admin changes anything: demo limits and PUBLIC_SUPPLIERS. */
+export function initialControls(): ControlsConfig {
+	return {
+		limits: DEFAULT_LIMITS,
+		suppliers: parseSuppliers(import.meta.env.PUBLIC_SUPPLIERS).map(
+			(address, index) => ({
+				address,
+				label: `Supplier ${index + 1}`,
+				kind: "real" as const,
+			}),
+		),
 	}
-	policies.set(address, controlPolicyParams(suppliers, maxPerPaymentXlm))
+}
+
+/** The settings last applied from this browser, with the supplier labels. */
+export function loadControlsConfig(): ControlsConfig {
+	return controlsStore(localStorage).loadConfig(initialControls())
+}
+
+const describeFailure = (error: unknown): string => {
+	const { reason, details } = rejectionReason(error)
+	return details ? `${reason} (${details})` : reason
+}
+
+/** The threshold and `control-policy` of a rule, ordered as Soroban requires. */
+function rulePolicies(
+	kit: SmartAccountKit,
+	rule: RuleName,
+	config: ControlsConfig,
+): Map<string, unknown> {
+	if (config.suppliers.length === 0) {
+		throw new Error("Add at least one supplier in Settings first")
+	}
+	const threshold =
+		rule === "ordinary"
+			? ordinaryRuleParams().threshold
+			: largeRuleParams().threshold
+	return sortedPolicies(
+		new Map<string, unknown>([
+			[
+				required("PUBLIC_THRESHOLD_POLICY_ADDRESS"),
+				kit.convertPolicyParams("threshold", threshold),
+			],
+			[
+				required("PUBLIC_CONTROL_POLICY_ADDRESS"),
+				controlPolicyParams(toControlParams(config, rule)),
+			],
+		]),
+	)
 }
 
 /**
- * Adds the `ordinary` rule (AGENTS.md §3): token calls signed by the employee,
- * threshold 1 and OpenZeppelin's spending limit of 1,000 XLM every 30 days.
- * The admin passkey signs it under the admin rule. control-policy joins it when configured (see addControlPolicy).
+ * Adds a rule to the account. The admin passkey signs it under the admin rule.
+ * `ordinary`: the employee's key, threshold 1. `large`: employee and manager,
+ * threshold 2. Both carry `control-policy` built from `config`: suppliers, and
+ * for `ordinary` also the per-payment maximum and the cap of the period.
+ */
+async function addRule(
+	kit: SmartAccountKit,
+	company: CompanyAccount,
+	rule: RuleName,
+	config: ControlsConfig,
+): Promise<{ ruleId: number; hash: string }> {
+	const signers: ContractSigner[] = [
+		employeeSigner(
+			required("PUBLIC_ED25519_VERIFIER_ADDRESS"),
+			company.employee.publicKey,
+		),
+	]
+	if (rule === "large") {
+		signers.push(
+			managerSigner(
+				required("PUBLIC_WEBAUTHN_VERIFIER_ADDRESS"),
+				company.manager.publicKey,
+				company.manager.credentialId,
+			),
+		)
+	}
+	const tx = await kit.rules.add(
+		createCallContractContext(required("PUBLIC_NATIVE_TOKEN_CONTRACT")),
+		rule,
+		signers,
+		rulePolicies(kit, rule, config),
+	)
+	// The simulated result is the rule the transaction creates.
+	const ruleId = tx.result.id
+	const result = await kit.signAndSubmit(tx, {
+		credentialId: company.adminCredentialId,
+		resolveContextRuleIds: () => [ADMIN_RULE_ID],
+	})
+	if (!result.success) {
+		throw new Error(
+			`Adding the ${rule} rule failed: ${describeFailure(result.error)}`,
+		)
+	}
+	return { ruleId, hash: result.hash }
+}
+
+/** Retires a rule. The account uninstalls its policies; what was spent stays. */
+async function removeRule(
+	kit: SmartAccountKit,
+	company: CompanyAccount,
+	ruleId: number,
+): Promise<string> {
+	const tx = await kit.rules.remove(ruleId)
+	const result = await kit.signAndSubmit(tx, {
+		credentialId: company.adminCredentialId,
+		resolveContextRuleIds: () => [ADMIN_RULE_ID],
+	})
+	if (!result.success) {
+		throw new Error(
+			`Retiring rule ${ruleId} failed: ${describeFailure(result.error)}`,
+		)
+	}
+	return result.hash
+}
+
+/**
+ * Adds the `ordinary` rule (AGENTS.md §3) from the saved settings. Without
+ * `control-policy` configured it fails: a rule with only a threshold would
+ * accept any payment, so it is never created open.
  */
 export async function setupOrdinaryRule(): Promise<{
 	ruleId: number
@@ -321,48 +446,18 @@ export async function setupOrdinaryRule(): Promise<{
 	if (existing !== undefined) return { ruleId: existing }
 
 	const kit = await connectedKit(company)
-	const params = ordinaryRuleParams()
-	const unsorted = new Map<string, unknown>([
-		[
-			required("PUBLIC_THRESHOLD_POLICY_ADDRESS"),
-			kit.convertPolicyParams("threshold", params.threshold),
-		],
-		[
-			required("PUBLIC_SPENDING_LIMIT_POLICY_ADDRESS"),
-			kit.convertPolicyParams("spending_limit", params.spendingLimit),
-		],
-	])
-	addControlPolicy(unsorted, ORDINARY_MAX_PER_PAYMENT_XLM)
-	const policies = sortedPolicies(unsorted)
-	const tx = await kit.rules.add(
-		createCallContractContext(required("PUBLIC_NATIVE_TOKEN_CONTRACT")),
-		"ordinary",
-		[
-			employeeSigner(
-				required("PUBLIC_ED25519_VERIFIER_ADDRESS"),
-				company.employee.publicKey,
-			),
-		],
-		policies,
-	)
-	// The simulated result is the rule the transaction creates.
-	const ruleId = tx.result.id
-	const result = await kit.signAndSubmit(tx, {
-		credentialId: company.adminCredentialId,
-		resolveContextRuleIds: () => [ADMIN_RULE_ID],
+	const config = loadControlsConfig()
+	const { ruleId, hash } = await addRule(kit, company, "ordinary", config)
+	saveCompany({
+		...company,
+		rules: { ...company.rules, ordinary: ruleId },
+		controlPolicy: { ruleId, hash },
 	})
-	if (!result.success) {
-		throw new Error(`Ordinary rule setup failed: ${result.error.message}`)
-	}
-	saveCompany({ ...company, rules: { ...company.rules, ordinary: ruleId } })
-	return { ruleId, hash: result.hash }
+	controlsStore(localStorage).saveConfig(config)
+	return { ruleId, hash }
 }
 
-/**
- * Adds the `large` rule (AGENTS.md §3): the employee's Ed25519 key and the
- * manager's passkey, threshold 2 of 2, and control-policy without a maximum.
- * No spending limit. The admin passkey signs it under the admin rule.
- */
+/** Adds the `large` rule (AGENTS.md §3): employee and manager, threshold 2, suppliers only. */
 export async function setupLargeRule(): Promise<{
 	ruleId: number
 	hash?: string
@@ -372,48 +467,16 @@ export async function setupLargeRule(): Promise<{
 	if (existing !== undefined) return { ruleId: existing }
 
 	const kit = await connectedKit(company)
-	const params = largeRuleParams()
-	const unsorted = new Map<string, unknown>([
-		[
-			required("PUBLIC_THRESHOLD_POLICY_ADDRESS"),
-			kit.convertPolicyParams("threshold", params.threshold),
-		],
-	])
-	addControlPolicy(unsorted)
-	const policies = sortedPolicies(unsorted)
-	const tx = await kit.rules.add(
-		createCallContractContext(required("PUBLIC_NATIVE_TOKEN_CONTRACT")),
-		"large",
-		[
-			employeeSigner(
-				required("PUBLIC_ED25519_VERIFIER_ADDRESS"),
-				company.employee.publicKey,
-			),
-			managerSigner(
-				required("PUBLIC_WEBAUTHN_VERIFIER_ADDRESS"),
-				company.manager.publicKey,
-				company.manager.credentialId,
-			),
-		],
-		policies,
-	)
-	// The simulated result is the rule the transaction creates.
-	const ruleId = tx.result.id
-	const result = await kit.signAndSubmit(tx, {
-		credentialId: company.adminCredentialId,
-		resolveContextRuleIds: () => [ADMIN_RULE_ID],
-	})
-	if (!result.success) {
-		throw new Error(`Large rule setup failed: ${result.error.message}`)
-	}
+	const config = loadControlsConfig()
+	const { ruleId, hash } = await addRule(kit, company, "large", config)
 	saveCompany({ ...company, rules: { ...company.rules, large: ruleId } })
-	return { ruleId, hash: result.hash }
+	controlsStore(localStorage).saveConfig(config)
+	return { ruleId, hash }
 }
 
 /**
- * Adds control-policy to the existing `ordinary` rule (R6, AGENTS.md §6.2). The
- * rule was created before the policy existed, so it cannot get it at creation.
- * The admin passkey signs the change under the admin rule.
+ * Moves an `ordinary` rule that has no `control-policy` of the current
+ * contract to a new rule that does (R6). Rules are never edited in place.
  */
 export async function installControlPolicy(): Promise<{ hash: string }> {
 	const company = requireCompany()
@@ -422,30 +485,310 @@ export async function installControlPolicy(): Promise<{ hash: string }> {
 	if (company.controlPolicy?.ruleId === ruleId) {
 		return { hash: company.controlPolicy.hash }
 	}
-
-	const address = import.meta.env.PUBLIC_CONTROL_POLICY_ADDRESS
-	const suppliers = parseSuppliers(import.meta.env.PUBLIC_SUPPLIERS)
-	if (!address || suppliers.length === 0) {
-		throw new Error(
-			"Set PUBLIC_CONTROL_POLICY_ADDRESS and PUBLIC_SUPPLIERS in app/.env.local",
-		)
-	}
-
-	const kit = await connectedKit(company)
-	const tx = await kit.policies.add(
-		ruleId,
-		address,
-		controlPolicyParams(suppliers, ORDINARY_MAX_PER_PAYMENT_XLM),
+	const done = await runPending(
+		startMigration({
+			config: loadControlsConfig(),
+			existingRules: company.rules ?? {},
+			rules: ["ordinary"],
+		}),
 	)
-	const result = await kit.signAndSubmit(tx, {
-		credentialId: company.adminCredentialId,
-		resolveContextRuleIds: () => [ADMIN_RULE_ID],
-	})
-	if (!result.success) {
-		throw new Error(`control-policy install failed: ${result.error.message}`)
+	const hash = done.swaps[0]?.addHash
+	if (!hash) throw new Error("control-policy install returned no hash")
+	return { hash }
+}
+
+// A change runs one transaction at a time and saves its progress after each,
+// so a cancelled passkey prompt or a lost connection can be resumed.
+let changeRunning = false
+
+async function runPending(
+	initial: PendingChange,
+	onProgress?: (pending: PendingChange) => void,
+): Promise<PendingChange> {
+	if (changeRunning) throw new Error("A settings change is already running")
+	changeRunning = true
+	const store = controlsStore(localStorage)
+	let pending = initial
+	try {
+		store.savePending(pending)
+		onProgress?.(pending)
+		const kit = await connectedKit(requireCompany())
+		for (let step = nextStep(pending); step; step = nextStep(pending)) {
+			const company = requireCompany()
+			if (step.action === "add") {
+				const { ruleId, hash } = await addRule(
+					kit,
+					company,
+					step.rule,
+					pending.next,
+				)
+				pending = withAdded(pending, step.rule, ruleId, hash)
+				store.savePending(pending)
+				// Payments follow the new rule at once; the old one is retired next.
+				saveCompany({
+					...company,
+					rules: { ...company.rules, [step.rule]: ruleId },
+					...(step.rule === "ordinary"
+						? { controlPolicy: { ruleId, hash } }
+						: {}),
+				})
+			} else {
+				const oldId = pending.swaps.find((s) => s.rule === step.rule)!.oldId
+				const hash = await removeRule(kit, company, oldId)
+				pending = withRemoved(pending, step.rule, hash)
+				store.savePending(pending)
+			}
+			window.dispatchEvent(new Event("arqueo:company-updated"))
+			onProgress?.(pending)
+		}
+		// Every rule is replaced: record the change for the auditor.
+		store.saveConfig(pending.next)
+		const log = createChangeLog()
+		for (const record of changeRecords(pending)) log.record(record)
+		store.clearPending()
+		window.dispatchEvent(new Event("arqueo:company-updated"))
+		return pending
+	} finally {
+		changeRunning = false
 	}
-	saveCompany({ ...company, controlPolicy: { ruleId, hash: result.hash } })
-	return { hash: result.hash }
+}
+
+/** What the chain enforces now, read from the `control-policy` of each rule. */
+export interface ControlState {
+	hasAccount: boolean
+	/** Limits and suppliers: from the chain when it could be read. */
+	config: ControlsConfig
+	source: "chain" | "saved"
+	/** Why the chain could not be read, when `source` is "saved". */
+	chainError?: string
+	rules: Partial<Record<RuleName, number>>
+	/** Rules not installed in the current `control-policy`: they need a migration. */
+	legacyRules: RuleName[]
+	spentXlm: number
+	/** Estimated, from the ledger the period started in. Only when something was spent. */
+	periodStart?: string
+	periodEnds?: string
+	warnings: string[]
+}
+
+const errorMessage = (error: unknown): string =>
+	error instanceof Error ? error.message : String(error)
+
+/** Reads a view function of a contract through simulation: no signature needed. */
+async function readContract(
+	address: string,
+	method: string,
+	...args: xdr.ScVal[]
+): Promise<unknown> {
+	const server = new rpc.Server(required("PUBLIC_RPC_URL"))
+	// Simulation does not check the source account, so a throwaway one is enough.
+	const source = new Account(Keypair.random().publicKey(), "0")
+	const tx = new TransactionBuilder(source, {
+		fee: BASE_FEE,
+		networkPassphrase: required("PUBLIC_NETWORK_PASSPHRASE"),
+	})
+		.addOperation(new Contract(address).call(method, ...args))
+		.setTimeout(30)
+		.build()
+	const sim = await server.simulateTransaction(tx)
+	if (rpc.Api.isSimulationError(sim)) {
+		throw new Error(`${method} read failed: ${sim.error}`)
+	}
+	return scValToNative(sim.result!.retval)
+}
+
+const sameAddresses = (a: string[], b: string[]) =>
+	a.length === b.length && a.every((address) => b.includes(address))
+
+export async function readControlState(): Promise<ControlState> {
+	const saved = loadControlsConfig()
+	const company = loadCompany()
+	const rules = company?.rules ?? {}
+	const base: ControlState = {
+		hasAccount: company !== undefined,
+		config: saved,
+		source: "saved",
+		rules,
+		legacyRules: [],
+		spentXlm: 0,
+		warnings: [],
+	}
+	if (!company || rules.ordinary === undefined) return base
+
+	try {
+		const policy = required("PUBLIC_CONTROL_POLICY_ADDRESS")
+		const account = Address.fromString(company.address).toScVal()
+		const paramsOf = async (ruleId: number) =>
+			decodeControlParams(
+				await readContract(
+					policy,
+					"get_params",
+					account,
+					nativeToScVal(ruleId, { type: "u32" }),
+				),
+			)
+
+		const ordinary = await paramsOf(rules.ordinary)
+		const large =
+			rules.large === undefined ? undefined : await paramsOf(rules.large)
+
+		const legacyRules: RuleName[] = []
+		if (!ordinary) legacyRules.push("ordinary")
+		if (rules.large !== undefined && !large) legacyRules.push("large")
+		if (!ordinary) {
+			return {
+				...base,
+				legacyRules,
+				warnings: [
+					"The ordinary rule was set up without the current control-policy. Migrate it to see and change the real limits.",
+				],
+			}
+		}
+
+		const server = new rpc.Server(required("PUBLIC_RPC_URL"))
+		const [spend, ledger] = await Promise.all([
+			readContract(
+				policy,
+				"spend_state",
+				account,
+				nativeToScVal(ordinary.periodLedgers, { type: "u32" }),
+			),
+			server.getLatestLedger(),
+		])
+		const { spentStroops, periodStart } = decodeSpendState(spend)
+		const spentXlm = Number(stroopsToXlm(spentStroops))
+		const start = ledgerToDate(periodStart, ledger.sequence)
+		const warnings: string[] = []
+		if (legacyRules.includes("large")) {
+			warnings.push(
+				"The large rule has no supplier list from the current control-policy.",
+			)
+		} else if (large && !sameAddresses(large.allowlist, ordinary.allowlist)) {
+			warnings.push(
+				"The large rule has a different supplier list than the ordinary rule.",
+			)
+		}
+		return {
+			...base,
+			config: configFromParams(ordinary, saved.suppliers),
+			source: "chain",
+			legacyRules,
+			spentXlm,
+			...(spentXlm > 0
+				? {
+						periodStart: start.toISOString(),
+						periodEnds: new Date(
+							start.getTime() +
+								ordinary.periodLedgers * SECONDS_PER_LEDGER * 1000,
+						).toISOString(),
+					}
+				: {}),
+			warnings,
+		}
+	} catch (error) {
+		return { ...base, chainError: errorMessage(error) }
+	}
+}
+
+/**
+ * Applies new limits and suppliers (R17). For each affected rule the new one is
+ * added and then the old one retired, so no moment leaves a rule open and what
+ * was spent in the cap period carries over. The admin passkey signs each step.
+ * Returns null when nothing changed.
+ */
+export async function applyControlChange(
+	next: ControlsConfig,
+	onProgress?: (pending: PendingChange) => void,
+): Promise<PendingChange | null> {
+	const store = controlsStore(localStorage)
+	if (store.loadPending()) {
+		throw new Error("Finish or discard the pending change first")
+	}
+	const state = await readControlState()
+	if (state.chainError) {
+		throw new Error(`Cannot read the rules from the chain: ${state.chainError}`)
+	}
+	if (state.legacyRules.length > 0) {
+		throw new Error("Migrate the rules to the current control-policy first")
+	}
+	const check = validateSettings(next, state.spentXlm)
+	if (!check.ok) throw new Error(check.reason)
+
+	const pending = startChange({
+		prev: state.config,
+		next,
+		existingRules: state.rules,
+		spentAtChange: state.spentXlm,
+		periodStart: state.periodStart,
+	})
+	if (!pending) return null
+	// No rule on chain yet: the new settings are used when the rules are created.
+	if (pending.swaps.length === 0) {
+		store.saveConfig(next)
+		return pending
+	}
+	return runPending(pending, onProgress)
+}
+
+/** Replaces rules that were set up without the current `control-policy`. */
+export async function migrateRules(
+	rules: RuleName[],
+	onProgress?: (pending: PendingChange) => void,
+): Promise<PendingChange> {
+	if (controlsStore(localStorage).loadPending()) {
+		throw new Error("Finish or discard the pending change first")
+	}
+	const company = requireCompany()
+	return runPending(
+		startMigration({
+			config: loadControlsConfig(),
+			existingRules: company.rules ?? {},
+			rules,
+		}),
+		onProgress,
+	)
+}
+
+/** A change that stopped half way (a cancelled prompt, a lost connection). */
+export function loadPendingChange(): PendingChange | null {
+	return controlsStore(localStorage).loadPending()
+}
+
+export async function resumePendingChange(
+	onProgress?: (pending: PendingChange) => void,
+): Promise<PendingChange> {
+	const pending = loadPendingChange()
+	if (!pending) throw new Error("There is no pending change")
+	return runPending(pending, onProgress)
+}
+
+/** Drops a change that sent nothing yet. Once a rule was added it must be finished. */
+export function discardPendingChange(): void {
+	const pending = loadPendingChange()
+	if (!pending) return
+	if (!canDiscard(pending)) {
+		throw new Error("A replacement rule was already added: finish the change")
+	}
+	controlsStore(localStorage).clearPending()
+}
+
+/** Network checks the supplier list needs (AGENTS.md §6.4). */
+export const supplierDeps: SupplierDeps = {
+	isValidAddress: (address) => StrKey.isValidEd25519PublicKey(address),
+	accountExists: async (address) => {
+		try {
+			await new rpc.Server(required("PUBLIC_RPC_URL")).getAccount(address)
+			return true
+		} catch {
+			return false
+		}
+	},
+	// The secret key is dropped: the account only has to exist and receive payments.
+	createFundedAccount: async () => {
+		const account = Keypair.random()
+		await fundWithFriendbot(account.publicKey())
+		return account.publicKey()
+	},
 }
 
 /**
@@ -506,6 +849,9 @@ if (import.meta.env.DEV) {
 			loadCompany,
 			setupOrdinaryRule,
 			setupLargeRule,
+			readControlState,
+			applyControlChange,
+			loadControlsConfig,
 			pay,
 			listPayments,
 		},
