@@ -1,0 +1,578 @@
+.screen {
+	--paper: #ede8df;
+	--stock: #fbfaf6;
+	--ink: #0f3b30;
+	--ink-deep: #0a2a22;
+	--muted: #46645a;
+	--rule: rgb(15 59 48 / 22%);
+	--reject: #8a2a1e;
+	max-width: 1120px;
+	margin: clamp(2rem, 5vw, 4rem) auto;
+	color: var(--ink);
+	font-family: Jost, Futura, system-ui, sans-serif;
+}
+
+.heading {
+	display: flex;
+	align-items: end;
+	justify-content: space-between;
+	gap: 1.5rem;
+	margin: 0 0 2rem;
+}
+
+.heading h2 {
+	margin: 0 0 0.55rem;
+	font-size: clamp(1.8rem, 3vw, 2.5rem);
+	font-weight: 500;
+	letter-spacing: -0.025em;
+	line-height: 1.12;
+}
+
+.network,
+.formTopline,
+.receiptHead,
+.slip dl dt,
+.quickAmounts > span {
+	font-family: "Spline Sans Mono", ui-monospace, monospace;
+	font-size: 0.72rem;
+	letter-spacing: 0.045em;
+	text-transform: uppercase;
+}
+
+.intro {
+	max-width: 62ch;
+	margin: 0;
+	color: var(--muted);
+	font-size: 1rem;
+}
+
+.network {
+	flex: 0 0 auto;
+	padding: 0.4rem 0.6rem;
+	border: 1px solid var(--rule);
+	border-radius: 4px;
+	color: var(--muted);
+	white-space: nowrap;
+}
+
+.workspace {
+	display: grid;
+	grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.75fr);
+	align-items: start;
+	gap: clamp(2rem, 5vw, 5rem);
+	border-top: 1px solid var(--ink);
+}
+
+.form {
+	min-width: 0;
+	padding: 1rem 0 1.75rem;
+}
+
+.formTopline {
+	display: flex;
+	justify-content: space-between;
+	padding-bottom: 1.25rem;
+	color: var(--muted);
+}
+
+.field {
+	min-width: 0;
+}
+
+.field > label,
+.signers legend {
+	display: block;
+	margin-bottom: 0.5rem;
+	font-size: 0.94rem;
+	font-weight: 500;
+}
+
+.field input,
+.field select {
+	width: 100%;
+	min-height: 48px;
+	padding: 0.7rem 0.8rem;
+	border: 1px solid rgb(15 59 48 / 35%);
+	border-radius: 6px;
+	background: var(--stock);
+	color: var(--ink);
+	font: inherit;
+	font-variant-numeric: tabular-nums;
+}
+
+.field input::placeholder {
+	color: #61766d;
+	opacity: 1;
+}
+
+.field input:focus-visible,
+.field select:focus-visible,
+.signers input:focus-visible + .signerSeal {
+	outline: 2px solid var(--ink);
+	outline-offset: 3px;
+}
+
+.supplierSelect,
+.addressInput,
+.amountInput {
+	position: relative;
+	display: flex;
+	align-items: center;
+}
+
+.supplierSelect select {
+	appearance: none;
+	padding-right: 2.6rem;
+}
+
+.selectMark {
+	position: absolute;
+	right: 1rem;
+	width: 0.5rem;
+	height: 0.5rem;
+	border-right: 1px solid var(--ink);
+	border-bottom: 1px solid var(--ink);
+	transform: translateY(-2px) rotate(45deg);
+	pointer-events: none;
+}
+
+.addressInput {
+	gap: 0.75rem;
+}
+
+.subtleButton {
+	flex: 0 0 auto;
+	padding: 0.55rem 0;
+	border: 0;
+	background: transparent;
+	color: var(--ink);
+	font: inherit;
+	font-size: 0.82rem;
+	text-decoration: underline;
+	text-underline-offset: 0.2em;
+	cursor: pointer;
+}
+
+.hint {
+	min-height: 1.4em;
+	margin: 0.45rem 0 0;
+	color: var(--muted);
+	font-size: 0.82rem;
+}
+
+.amountConcept {
+	display: grid;
+	grid-template-columns: minmax(120px, 0.65fr) minmax(0, 1.35fr);
+	gap: 1.25rem;
+	margin-top: 1.35rem;
+}
+
+.amountInput input {
+	padding-right: 4rem;
+}
+
+.amountInput > span {
+	position: absolute;
+	right: 0.8rem;
+	color: var(--muted);
+	font-family: "Spline Sans Mono", ui-monospace, monospace;
+	font-size: 0.78rem;
+}
+
+.signers {
+	min-width: 0;
+	margin: 1.6rem 0 0;
+	padding: 0;
+	border: 0;
+}
+
+.signers legend {
+	padding: 0;
+}
+
+.signers label {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 0.8rem;
+	min-height: 58px;
+	padding: 0.55rem 0.8rem;
+	border: 1px solid var(--rule);
+	background: rgb(251 250 246 / 48%);
+	cursor: pointer;
+	transition:
+		background-color 160ms ease-out,
+		border-color 160ms ease-out;
+}
+
+.signers label + label {
+	margin-top: 0.5rem;
+}
+
+.signers label:hover,
+.signers .signerActive {
+	border-color: var(--ink);
+	background: var(--stock);
+}
+
+.signers input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+.signerSeal {
+	display: grid;
+	flex: 0 0 30px;
+	width: 30px;
+	height: 30px;
+	place-items: center;
+	border: 1px solid rgb(15 59 48 / 55%);
+	border-radius: 50%;
+	font-family: "Spline Sans Mono", ui-monospace, monospace;
+	font-size: 0.73rem;
+}
+
+.managerSeal {
+	border-radius: 5px;
+	transform: rotate(45deg);
+}
+
+.managerSeal > span {
+	display: inline-block;
+	transform: rotate(-45deg);
+}
+
+.signerCopy {
+	display: grid;
+	gap: 0.12rem;
+}
+
+.signerCopy strong {
+	font-size: 0.92rem;
+	font-weight: 500;
+}
+
+.signerCopy small {
+	color: var(--muted);
+	font-size: 0.78rem;
+}
+
+.signerCheck {
+	width: 0.55rem;
+	height: 0.55rem;
+	margin-left: auto;
+	border: 1px solid var(--rule);
+	border-radius: 50%;
+}
+
+.signerActive .signerCheck {
+	border: 3px solid var(--ink);
+}
+
+.quickAmounts {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+	margin: 1.5rem 0 1.75rem;
+}
+
+.quickAmounts > span {
+	margin-right: 0.25rem;
+	color: var(--muted);
+}
+
+.quickAmounts button {
+	padding: 0.4rem 0.55rem;
+	border: 1px solid var(--rule);
+	border-radius: 4px;
+	background: transparent;
+	color: var(--ink);
+	font: inherit;
+	font-size: 0.78rem;
+	cursor: pointer;
+}
+
+.quickAmounts button:hover {
+	background: var(--stock);
+	border-color: var(--ink);
+}
+
+.quickAmounts b {
+	margin-left: 0.25rem;
+	font-family: "Spline Sans Mono", ui-monospace, monospace;
+	font-weight: 500;
+	font-variant-numeric: tabular-nums;
+}
+
+.actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 1rem;
+}
+
+.primary {
+	min-height: 46px;
+	padding: 0.75rem 1.15rem;
+	border: 0;
+	border-radius: 8px;
+	background: var(--ink);
+	color: var(--paper);
+	font: inherit;
+	font-weight: 500;
+	cursor: pointer;
+	transition: background-color 160ms ease-out;
+}
+
+.primary:hover:not(:disabled) {
+	background: var(--ink-deep);
+}
+
+.primary:focus-visible,
+.quickAmounts button:focus-visible,
+.subtleButton:focus-visible {
+	outline: 2px solid var(--ink);
+	outline-offset: 3px;
+}
+
+.primary:disabled {
+	cursor: not-allowed;
+	opacity: 0.55;
+}
+
+.actionNote {
+	max-width: 34ch;
+	color: var(--muted);
+	font-size: 0.82rem;
+}
+
+.inlineError {
+	margin: 1rem 0 0;
+	color: var(--reject);
+	font-size: 0.9rem;
+}
+
+.receipt {
+	position: relative;
+	margin: 1.25rem 0 0;
+}
+
+.receiptHead {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	min-height: 48px;
+	padding: 0.6rem 1rem;
+	border-radius: 12px 12px 4px 4px;
+	background: var(--ink);
+	color: var(--paper);
+	box-shadow: 0 10px 24px -12px rgb(15 59 48 / 55%);
+	font-size: 0.64rem;
+}
+
+.receiptLight {
+	width: 0.48rem;
+	height: 0.48rem;
+	border-radius: 50%;
+	background: #d9b56e;
+	box-shadow: 0 0 0 3px rgb(251 250 246 / 12%);
+}
+
+.slip {
+	position: relative;
+	margin: 0 0.55rem;
+	padding: 1.2rem 1.25rem 1.15rem;
+	background: var(--stock);
+	box-shadow: 0 18px 32px -20px rgb(15 59 48 / 45%);
+}
+
+.slip::before,
+.slip::after {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 4px;
+	background: radial-gradient(circle, var(--paper) 1.25px, transparent 1.5px)
+		center top / 4px 16px repeat-y;
+	content: "";
+}
+
+.slip::before {
+	left: 0;
+}
+
+.slip::after {
+	right: 0;
+}
+
+.slipTitle {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 0.75rem;
+	padding-bottom: 0.85rem;
+	border-bottom: 1px dashed var(--rule);
+	font-family: "Spline Sans Mono", ui-monospace, monospace;
+	font-size: 0.78rem;
+	text-transform: uppercase;
+}
+
+.slipTitle strong {
+	font-size: 0.93rem;
+	font-weight: 700;
+}
+
+.slip dl {
+	display: grid;
+	gap: 0.6rem;
+	margin: 1rem 0;
+	font-variant-numeric: tabular-nums;
+}
+
+.slip dl > div {
+	display: flex;
+	justify-content: space-between;
+	gap: 0.8rem;
+}
+
+.slip dl dt {
+	color: var(--muted);
+	font-size: 0.64rem;
+}
+
+.slip dl dd {
+	margin: 0;
+	font-family: "Spline Sans Mono", ui-monospace, monospace;
+	font-size: 0.72rem;
+	text-align: right;
+	text-transform: uppercase;
+}
+
+.ruleNote {
+	margin: 0;
+	padding-top: 0.75rem;
+	border-top: 1px solid var(--rule);
+	color: var(--muted);
+	font-size: 0.82rem;
+	line-height: 1.5;
+}
+
+.perforation {
+	height: 1px;
+	margin: 1.1rem 0 0.9rem;
+	border-top: 2px dotted var(--rule);
+}
+
+.resultEmpty,
+.result {
+	display: grid;
+	gap: 0.4rem;
+	padding: 0.8rem 0.65rem;
+	font-size: 0.83rem;
+}
+
+.resultEmpty strong,
+.result strong {
+	font-family: "Spline Sans Mono", ui-monospace, monospace;
+	font-size: 0.72rem;
+	letter-spacing: 0.035em;
+}
+
+.resultEmpty {
+	color: var(--muted);
+}
+
+.result a {
+	width: fit-content;
+	color: var(--ink);
+	text-underline-offset: 0.2em;
+}
+
+.rejected {
+	color: var(--reject);
+}
+
+.rejected strong {
+	color: var(--reject);
+}
+
+.error {
+	color: var(--muted);
+}
+
+.setupLink {
+	display: block;
+	margin-top: 0.5rem;
+	color: var(--ink);
+	font-size: 0.8rem;
+	text-underline-offset: 0.2em;
+}
+
+.receiptFoot {
+	margin: 0.85rem 0 0;
+	color: var(--muted);
+	font-size: 0.78rem;
+	text-align: center;
+}
+
+@media (max-width: 820px) {
+	.workspace {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 1.5rem;
+	}
+
+	.receipt {
+		max-width: 460px;
+		margin: 0 auto 1rem;
+	}
+}
+
+@media (max-width: 560px) {
+	.heading {
+		align-items: start;
+		flex-direction: column;
+		gap: 0.8rem;
+	}
+
+	.amountConcept {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 1rem;
+	}
+
+	.addressInput {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.subtleButton {
+		align-self: flex-start;
+	}
+
+	.actions {
+		align-items: flex-start;
+		flex-direction: column;
+		gap: 0.65rem;
+	}
+
+	.primary {
+		width: 100%;
+	}
+
+	.receiptHead {
+		font-size: 0.58rem;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.signers label,
+	.primary {
+		transition: none;
+	}
+}
