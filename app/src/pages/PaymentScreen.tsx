@@ -5,6 +5,7 @@ import {
 	installControlPolicy,
 	loadCompany,
 	pay,
+	setupLargeRule,
 	setupOrdinaryRule,
 } from "../lib/stellar"
 import { outcomeFromResult, type Outcome } from "./paymentOutcome"
@@ -53,6 +54,8 @@ export default function PaymentScreen() {
 		: "ordinary"
 	const recipient = supplier
 	const ordinaryReady = company?.rules?.ordinary !== undefined
+	const largeReady = company?.rules?.large !== undefined
+	const ruleReady = signature === "manager" ? largeReady : ordinaryReady
 
 	const pickScenario = (nextAmount: number, useUnknownSupplier = false) => {
 		setAmount(String(nextAmount))
@@ -67,11 +70,11 @@ export default function PaymentScreen() {
 		}
 	}
 
-	const prepareRule = async () => {
+	const prepareRule = async (setup: () => Promise<{ hash?: string }>) => {
 		setBusy(true)
 		setSetupError(undefined)
 		try {
-			const result = await setupOrdinaryRule()
+			const result = await setup()
 			setSetupHash(result.hash)
 			setCompany(loadCompany())
 		} catch (error) {
@@ -119,7 +122,7 @@ export default function PaymentScreen() {
 
 	const canSubmit =
 		Boolean(company) &&
-		ordinaryReady &&
+		ruleReady &&
 		Boolean(recipient.trim()) &&
 		amountIsValid &&
 		Boolean(concept.trim()) &&
@@ -307,7 +310,7 @@ export default function PaymentScreen() {
 							<button
 								className={styles.primary}
 								type="button"
-								onClick={() => void prepareRule()}
+								onClick={() => void prepareRule(setupOrdinaryRule)}
 								disabled={busy || !company}
 							>
 								{busy ? "Preparing account…" : "Set up payment rule"}
@@ -329,6 +332,20 @@ export default function PaymentScreen() {
 								: "Create a company account above to enable payments."}
 						</span>
 					</div>
+					{ordinaryReady && signature === "manager" && !largeReady && (
+						<p>
+							<button
+								className={styles.primary}
+								type="button"
+								onClick={() => void prepareRule(setupLargeRule)}
+								disabled={busy || !company}
+							>
+								{busy
+									? "Preparing manager rule…"
+									: "Set up manager rule (admin passkey)"}
+							</button>
+						</p>
+					)}
 					{ordinaryReady && company && !company.controlPolicy && (
 						<p>
 							<button
