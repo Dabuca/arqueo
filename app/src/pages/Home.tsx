@@ -7,25 +7,23 @@ import styles from "./Home.module.css"
 
 const Home: React.FC = () => (
 	<div className={styles.Home}>
-		<div>
-			<h1>Yay! You&apos;re on Stellar!</h1>
+		<div className={styles.intro}>
+			<h1>Your treasury, governed on Stellar.</h1>
 			<p>
-				A local development template designed to help you build dApps on the
-				Stellar network. This environment lets you easily test wallet
-				connections, smart contract interactions, transaction verifications,
-				etc.{" "}
+				Set up the company account and explore the smart contract tools behind
+				Arqueo. This demo runs on Stellar testnet.{" "}
 				<Link to="https://scaffoldstellar.org/docs/intro" target="_blank">
 					View docs
 				</Link>
 			</p>
 		</div>
 
-		<div className="card">
+		<div className={`card ${styles.treasury}`}>
 			<h2>Treasury</h2>
 			<CompanyBalance />
 		</div>
 
-		<div className="card">
+		<div className={`card ${styles.contracts}`}>
 			<h2>Sample Contracts</h2>
 			<p>
 				<strong>Guess The Number:</strong> Interact with the sample contract
@@ -58,7 +56,7 @@ const Home: React.FC = () => (
 			</nav>
 		</div>
 
-		<div className="card">
+		<div className={`card ${styles.build}`}>
 			<h2>Start Building</h2>
 			<ol>
 				<li>
@@ -90,14 +88,14 @@ const Home: React.FC = () => (
 			</p>
 		</div>
 
-		<section className={styles.cards}>
-			<div className="card">
+		<section className={styles.tools} aria-label="Development tools">
+			<div className={`card ${styles.tool}`}>
 				<p>
 					Invoke your smart contract using the{" "}
 					<Link to="/debug">Contract Explorer</Link>
 				</p>
 			</div>
-			<div className="card">
+			<div className={`card ${styles.tool}`}>
 				<p>
 					Browse your local transactions with the{" "}
 					<Link to={labPrefix()}>Transaction Explorer</Link>

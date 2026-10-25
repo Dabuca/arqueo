@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom"
 import { AuditTape } from "../components/AuditTape"
+import { BrandOrbit } from "../components/BrandOrbit"
+import { LedgerTrail } from "../components/LedgerTrail"
 // Logo assets derived from the brand files arqueo1.jpeg and arqueo2.jpeg:
 // the symbol recoloured to the page ground, the wordmark cut out to alpha.
 import symbol from "../images/arqueo-symbol.jpg"
@@ -53,6 +55,8 @@ const STEPS = [
 export default function Landing() {
 	return (
 		<div className={styles.landing}>
+			<BrandOrbit />
+			<LedgerTrail />
 			<a className={styles.skip} href="#main">
 				Skip to content
 			</a>
