@@ -171,9 +171,16 @@ jobs:
             echo "Expected $INDEX to exist and be non-empty after client generation."
             exit 1
           fi
-          # Count one client constructor per contract; the shared `options`
-          # export is not a client
-          EXPECTED=$(find contracts -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
+          # Count one client constructor per contract that scaffold.yml
+          # declares; the shared `options` export is not a client. A folder
+          # under contracts/ that scaffold.yml does not list (such as
+          # control-policy, deployed outside the scaffold) gets no client.
+          EXPECTED=0
+          for dir in contracts/*/; do
+            if grep -Eq "^  $(basename "$dir"):" scaffold.yml; then
+              EXPECTED=$((EXPECTED + 1))
+            fi
+          done
           ACTUAL=$(grep -c "^export const .* = new " "$INDEX" || true)
           if [ "$ACTUAL" -ne "$EXPECTED" ]; then
             echo "Expected $EXPECTED client(s) in $INDEX, found $ACTUAL."
