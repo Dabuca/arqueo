@@ -25,6 +25,17 @@ export async function setupOrdinaryRule(): Promise<{
 	return { ruleId: 1, hash: "mock-ordinary-rule" }
 }
 
+export async function setupLargeRule(): Promise<{
+	ruleId: number
+	hash?: string
+}> {
+	return { ruleId: 2, hash: "mock-large-rule" }
+}
+
+export async function installControlPolicy(): Promise<{ hash: string }> {
+	return { hash: "mock-control-policy" }
+}
+
 export async function pay(p: {
 	to: string
 	amount: number

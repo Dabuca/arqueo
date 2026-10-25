@@ -3,6 +3,9 @@ import { describe, expect, it } from "vitest"
 import {
 	controlPolicyParams,
 	employeeSelectedSigner,
+	largeRuleParams,
+	managerSelectedSigner,
+	managerSigner,
 	ordinaryRuleParams,
 	paymentLog,
 	parseSuppliers,
@@ -75,6 +78,51 @@ describe("employeeSelectedSigner", () => {
 		).join("")
 		expect(selected.ed25519PublicKey).toBe(expectedHex)
 		expect(selected.ed25519PublicKey).toHaveLength(64)
+		expect(selected.signer).toBeDefined()
+	})
+})
+
+describe("largeRuleParams", () => {
+	it("follows the control matrix: threshold 2 of 2, no spending limit", () => {
+		expect(largeRuleParams()).toEqual({ threshold: { threshold: 2 } })
+	})
+})
+
+// An uncompressed secp256r1 public key, as the kit stores passkeys: 0x04, then X and Y.
+const passkeyPublicKey = (): string => {
+	const key = new Uint8Array(65).fill(7)
+	key[0] = 0x04
+	return btoa(String.fromCharCode(...key))
+}
+
+describe("managerSigner", () => {
+	const verifier = "CAAVTMCBXEIBPR64EAASKFXERVPYFZA2JYP5A3BG6PESWEFUJX5IHKN4"
+
+	it("builds a WebAuthn signer from the stored base64 passkey", () => {
+		expect(managerSigner(verifier, passkeyPublicKey(), "cred-id")).toBeDefined()
+	})
+
+	it("rejects a key that is not an uncompressed secp256r1 key", () => {
+		const short = btoa(String.fromCharCode(0x04, 0x01, 0x02))
+		expect(() => managerSigner(verifier, short, "cred-id")).toThrow(
+			/65 bytes/,
+		)
+	})
+})
+
+describe("managerSelectedSigner", () => {
+	it("selects the manager's passkey by its credential id", () => {
+		const verifier = "CAAVTMCBXEIBPR64EAASKFXERVPYFZA2JYP5A3BG6PESWEFUJX5IHKN4"
+
+		const selected = managerSelectedSigner(
+			verifier,
+			passkeyPublicKey(),
+			"cred-id",
+		)
+
+		expect(selected.type).toBe("passkey")
+		expect(selected.credentialId).toBe("cred-id")
+		expect(selected.label).toBe("manager")
 		expect(selected.signer).toBeDefined()
 	})
 })
