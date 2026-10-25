@@ -1,0 +1,111 @@
+/* Flat orbit backgrounds in the brand greens, at the opacity of the hero orbit. */
+
+.field {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	overflow: hidden;
+	pointer-events: none;
+	opacity: 0.12;
+}
+
+.system {
+	position: absolute;
+	top: var(--y);
+	left: var(--x);
+	width: min(92vw, 780px);
+	height: auto;
+	transform: translate(-50%, -50%);
+}
+
+.backDisc {
+	fill: #0a2a22;
+}
+
+.frontDisc {
+	fill: #fbfaf6;
+	stroke: #0f3b30;
+	stroke-width: 2;
+}
+
+.track {
+	fill: none;
+	stroke: #0f3b30;
+	stroke-width: 2;
+}
+
+.planet {
+	fill: #0f3b30;
+}
+
+.spin {
+	transform-box: view-box;
+	transform-origin: 320px 320px;
+	animation: orbit linear infinite;
+}
+
+@keyframes orbit {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.rings {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	pointer-events: none;
+}
+
+.ringA,
+.ringB {
+	position: absolute;
+	border: 1px dashed rgb(251 249 246 / 22%);
+	border-radius: 50%;
+	animation: orbit linear infinite;
+}
+
+.ringA::after,
+.ringB::after {
+	content: "";
+	position: absolute;
+	top: -5px;
+	left: 50%;
+	width: 10px;
+	height: 10px;
+	margin-left: -5px;
+	border-radius: 50%;
+	background: rgb(251 249 246 / 55%);
+}
+
+.ringA {
+	width: 26rem;
+	height: 26rem;
+	right: -7rem;
+	bottom: -9rem;
+	animation-duration: 120s;
+}
+
+.ringB {
+	width: 18rem;
+	height: 18rem;
+	left: -5rem;
+	top: -6rem;
+	opacity: 0.7;
+	animation-duration: 90s;
+	animation-direction: reverse;
+}
+
+.field[data-paused="true"] .spin,
+.rings[data-paused="true"] .ringA,
+.rings[data-paused="true"] .ringB {
+	animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.spin,
+	.ringA,
+	.ringB {
+		animation: none;
+	}
+}

@@ -15,48 +15,6 @@
 	font-family: Jost, Futura, system-ui, sans-serif;
 }
 
-.header {
-	position: relative;
-	z-index: 1;
-	display: flex;
-	align-items: center;
-	gap: 2rem;
-	padding: 1rem max(24px, calc((100% - 1200px) / 2));
-	border-bottom: 1px solid var(--rule);
-}
-
-.logo {
-	font-weight: 600;
-	font-size: 1.1rem;
-	color: var(--ink);
-	text-decoration: none;
-	white-space: nowrap;
-}
-
-.headerNav {
-	display: flex;
-	gap: 0.5rem;
-	flex: 1;
-}
-
-.headerNav a {
-	color: var(--muted);
-	text-decoration: none;
-	padding: 0.25rem 0.5rem;
-	border-radius: 4px;
-	font-size: 0.9rem;
-}
-
-.headerNav a:hover {
-	color: var(--ink);
-	background: rgb(15 59 48 / 6%);
-}
-
-.headerNav a.active {
-	color: var(--ink);
-	font-weight: 500;
-}
-
 .main {
 	position: relative;
 	z-index: 1;
@@ -90,17 +48,12 @@
 	color: var(--ink);
 }
 
+.footerNav a.active {
+	color: var(--ink);
+	font-weight: 500;
+}
+
 @media (max-width: 760px) {
-	.header {
-		flex-wrap: wrap;
-		gap: 0.75rem 1rem;
-	}
-
-	.headerNav {
-		order: 3;
-		flex-basis: 100%;
-	}
-
 	.main {
 		padding-top: 1.5rem;
 	}

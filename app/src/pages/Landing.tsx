@@ -1,187 +1,247 @@
-import { useState } from "react"
+import {
+	ArrowLeftRight,
+	ArrowRight,
+	BadgeCheck,
+	Check,
+	CircleCheck,
+	ClipboardList,
+	Code,
+	ExternalLink,
+	FileSpreadsheet,
+	KeyRound,
+	ListChecks,
+	Menu,
+	Network,
+	ReceiptText,
+	Scale,
+	ShieldCheck,
+	ShieldUser,
+	ShieldX,
+	Store,
+	Timer,
+	TriangleAlert,
+	UserRound,
+	Users,
+	X,
+	type LucideIcon,
+} from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 import { Link } from "react-router-dom"
-// Logo assets derived from the brand files arqueo1.jpeg and arqueo2.jpeg:
-// the symbol with a cream ground, the wordmark cut out to alpha.
+// Logo asset derived from the brand file arqueo1.jpeg: the symbol with a cream ground.
+import { BrandOrbit } from "../components/BrandOrbit"
+import { OrbitRings, OrbitSystem } from "../components/OrbitField"
 import symbol from "../images/arqueo-symbol.jpg"
-import wordmark from "../images/arqueo-wordmark.png"
 import styles from "./Landing.module.css"
 
-// TODO(R10): set the public demo video URL (YouTube or Loom embed) when it is recorded.
-const VIDEO_EMBED_URL = ""
 const REPO_URL = "https://github.com/Dabuca/arqueo"
 
-// One illustrative payment, run through the ordinary rule in the account.
-const PAYMENT = {
-	amount: "2,000.00",
-	to: "Supplier 2",
-	signers: "employee",
-	rule: "Ordinary",
-	checks: [
-		{ label: "Supplier is on the allowlist", passed: true },
-		{ label: "2,000 is over the 500 per-payment maximum", passed: false },
-		{ label: "1 of 1 signatures", passed: true },
-	],
-	reason: "Over the per-payment limit: manager approval required",
-}
+// Illustrative figures for the dashboard preview, matching the four demo scenes.
+const STATS = [
+	["Balance", "4,820 XLM"],
+	["Spent, last 30 days", "1,000 / 1,000"],
+	["Refused attempts", "2"],
+	["Allowlisted suppliers", "3"],
+] as const
 
-const TODAY = [
-	["Who can move funds", "Whoever holds the key", "Only signers a rule allows"],
-	["Approvals", "A message in a group chat", "A second signature the account requires"],
-	["Evidence", "Screenshots for the auditor", "Every attempt logged, with its transaction"],
+const LEDGER = [
+	{ to: "Supplier 1", amount: "200", signers: "Employee", rule: "Ordinary", settled: true, status: "Settled" },
+	{ to: "Unknown account", amount: "100", signers: "Employee", rule: "Ordinary", settled: false, status: "Refused: not allowlisted" },
+	{ to: "Supplier 2", amount: "2,000", signers: "Employee", rule: "Ordinary", settled: false, status: "Refused: over 500 per payment" },
+	{ to: "Supplier 2", amount: "800", signers: "Employee + Manager", rule: "Large", settled: true, status: "Settled" },
 ]
 
-const ROLES = [
-	["Admin", "Passkey", "Creates the account, rules, signers and suppliers"],
-	["Employee", "Ed25519 key", "Makes ordinary payments"],
-	["Manager", "Passkey", "Adds the second signature on large payments"],
-	["Auditor", "Nothing, read only", "Sees every payment and exports a CSV"],
+const STATUS_QUO = [
+	"Whoever holds the key can move every balance in one transaction.",
+	"Approvals arrive as messages in a group chat.",
+	"The auditor receives screenshots weeks later.",
 ]
 
-const RULES = [
-	["Admin", "Admin", "None: every signer must sign"],
-	["Ordinary", "Employee", "Allowlisted suppliers, 500 XLM per payment, 1,000 XLM every 30 days"],
-	["Large", "Employee and manager", "Allowlisted suppliers, 2 of 2 signatures"],
+const WITH_ARQUEO = [
+	"The account refuses payments that break its rules, before they execute.",
+	"Larger payments need a second signature the account itself requires.",
+	"Every payment and every refused attempt is recorded with its transaction.",
 ]
 
-const STEPS = [
+const ROLES: { role: string; signs: string; icon: IconName; does: string }[] = [
+	{ role: "Admin", signs: "Passkey", icon: "admin", does: "Creates the account, rules, signers and suppliers. Sets the limits." },
+	{ role: "Employee", signs: "Ed25519 key", icon: "badge", does: "Makes ordinary payments within the per-payment limit." },
+	{ role: "Manager", signs: "Passkey", icon: "verified", does: "Adds the second signature on payments above the limit." },
+	{ role: "Auditor", signs: "Nothing, read only", icon: "policy", does: "Sees every payment and every refusal, and exports a CSV." },
+]
+
+const STEPS: { title: string; body: string; icon: IconName }[] = [
 	{
 		title: "Someone asks to pay",
-		body: "The employee enters supplier, amount and concept. Who signs decides the rule: the employee alone uses Ordinary, employee and manager use Large.",
+		icon: "stepRequest",
+		body: "The employee enters supplier, amount and concept.",
 	},
 	{
 		title: "The account checks its rules",
-		body: "The transaction is simulated against the smart account: supplier allowlist, per-payment limit, 30-day spending limit and signature threshold.",
+		icon: "stepRules",
+		body: "Simulated against the account: allowlist, limits and signature threshold.",
 	},
 	{
 		title: "A failed rule stops the payment",
-		body: "The attempt is logged with the reason. If someone sent it anyway, the Stellar network would reject it, because the rules live in the account.",
+		icon: "stepRefused",
+		body: "The attempt is logged with its reason. Sent anyway, the network rejects it too.",
 	},
 	{
-		title: "A passing payment settles on Stellar",
-		body: "It is signed and submitted to testnet, and the transaction hash links to stellar.expert.",
+		title: "A passing payment settles",
+		icon: "stepSettled",
+		body: "Signed and submitted to testnet, with a link to stellar.expert.",
 	},
 	{
 		title: "The auditor reads the journal",
-		body: "Every payment and every rejected attempt, with signers and rule, ready to download as CSV.",
+		icon: "stepJournal",
+		body: "Every payment and refusal, as CSV.",
 	},
 ]
 
-function Arrow({ className }: { className?: string }) {
+const ICONS = {
+	arrow: ArrowRight,
+	launch: ExternalLink,
+	code: Code,
+	warning: TriangleAlert,
+	shield: ShieldCheck,
+	check: Check,
+	cancel: X,
+	close: X,
+	menu: Menu,
+	admin: ShieldUser,
+	badge: UserRound,
+	verified: BadgeCheck,
+	policy: ClipboardList,
+	audit: ClipboardList,
+	hub: Network,
+	key: KeyRound,
+	receipt: ReceiptText,
+	payments: ArrowLeftRight,
+	rules: Scale,
+	suppliers: Store,
+	ruleDestinations: ListChecks,
+	ruleVolume: Timer,
+	ruleDualControl: Users,
+	ruleRefusals: ReceiptText,
+	stepRequest: UserRound,
+	stepRules: Scale,
+	stepRefused: ShieldX,
+	stepSettled: CircleCheck,
+	stepJournal: FileSpreadsheet,
+} satisfies Record<string, LucideIcon>
+
+type IconName = keyof typeof ICONS
+
+function Icon({ name, className }: { name: IconName; className?: string }) {
+	const Glyph = ICONS[name]
 	return (
-		<svg
-			className={className}
-			viewBox="0 0 16 16"
-			width="16"
-			height="16"
+		<Glyph
+			className={className ?? styles.icon}
+			size={24}
+			strokeWidth={1.8}
 			aria-hidden="true"
-		>
-			<path d="M3 8h10M9 4l4 4-4 4" />
-		</svg>
+			focusable="false"
+		/>
 	)
 }
 
-function Mark({ passed }: { passed: boolean }) {
-	return (
-		<svg
-			className={styles.mark}
-			viewBox="0 0 16 16"
-			width="16"
-			height="16"
-			aria-hidden="true"
-		>
-			{passed ? (
-				<path d="M3 8.5 6.5 12 13 4.5" />
-			) : (
-				<path d="M4 4l8 8M12 4l-8 8" />
-			)}
-		</svg>
-	)
-}
+// The four demo scenes, as the visitor will see them on testnet.
+const SCENES: { icon: IconName; title: string; body: string; tag: string; tone: "ok" | "no" | "dark" }[] = [
+	{ icon: "stepSettled", title: "Pay a listed supplier", body: "Below the limit, the employee signs alone.", tag: "Settled", tone: "ok" },
+	{ icon: "ruleDualControl", title: "Pay above the limit", body: "One signature is refused. The manager's makes it pass.", tag: "Needs manager", tone: "dark" },
+	{ icon: "stepRefused", title: "Pay an unknown account", body: "Stopped by the account rules.", tag: "Refused", tone: "no" },
+	{ icon: "stepJournal", title: "Read the journal", body: "Every attempt, ready as CSV.", tag: "CSV", tone: "dark" },
+]
 
-function MenuIcon({ open }: { open: boolean }) {
-	return (
-		<svg
-			className={styles.icon}
-			viewBox="0 0 24 24"
-			width="24"
-			height="24"
-			aria-hidden="true"
-		>
-			{open ? (
-				<path d="M18 6 6 18M6 6l12 12" />
-			) : (
-				<path d="M4 6h16M4 12h16M4 18h16" />
-			)}
-		</svg>
-	)
-}
+const NAV = [
+	["solution", "Solution"],
+	["safeguards", "Safeguards"],
+	["roles", "Roles"],
+	["architecture", "Docs"],
+] as const
 
 function Header() {
 	const [menuOpen, setMenuOpen] = useState(false)
+	const [active, setActive] = useState<string>("solution")
+	// A click owns the underline until its smooth scroll ends, so the sections it passes do not steal it.
+	const lockUntil = useRef(0)
 	const closeMenu = () => setMenuOpen(false)
+
+	useEffect(() => {
+		const sections = NAV.map(([id]) => document.getElementById(id)).filter(
+			(el): el is HTMLElement => el !== null,
+		)
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (performance.now() < lockUntil.current) return
+				for (const entry of entries) {
+					if (entry.isIntersecting) setActive(entry.target.id)
+				}
+			},
+			{ rootMargin: "-40% 0px -55% 0px" },
+		)
+		for (const section of sections) observer.observe(section)
+		return () => observer.disconnect()
+	}, [])
+
+	const choose = (id: string) => {
+		setActive(id)
+		lockUntil.current = performance.now() + 1000
+		closeMenu()
+	}
 
 	return (
 		<header className={styles.header}>
 			<div className={styles.headerBar}>
 				<Link to="/" className={styles.brand} aria-label="Arqueo home">
-					<img src={symbol} alt="" width={52} height={52} className={styles.symbol} />
-					<span
-						role="img"
-						aria-label="Arqueo"
-						className={styles.wordmark}
-						style={{
-							WebkitMaskImage: `url(${wordmark})`,
-							maskImage: `url(${wordmark})`,
-						}}
-					/>
+					<img src={symbol} alt="" width={36} height={36} className={styles.symbol} />
+					<span className={styles.brandName}>Arqueo</span>
 				</Link>
 
 				<nav className={styles.links} aria-label="Sections">
-					<a href="#controls" className={styles.link}>
-						Controls
-					</a>
-					<a href="#how" className={styles.link}>
-						How it works
-					</a>
-					<a href="#video" className={styles.link}>
-						Demo video
-					</a>
+					{NAV.map(([id, label]) => (
+						<a
+							key={id}
+							href={`#${id}`}
+							className={active === id ? `${styles.link} ${styles.linkActive}` : styles.link}
+							aria-current={active === id ? "location" : undefined}
+							onClick={() => choose(id)}
+						>
+							{label}
+						</a>
+					))}
 				</nav>
 
-				<div className={styles.headerActions}>
-					<Link to="/app" className={styles.solid}>
-						Open the testnet demo
-					</Link>
-				</div>
+				<div className={styles.end}>
+					<div className={styles.headerActions}>
+						<Link to="/app" className={styles.headerCta}>
+							Launch Demo
+							<Icon name="arrow" className={styles.inlineIcon} />
+						</Link>
+					</div>
 
-				<button
-					type="button"
-					className={styles.menuButton}
-					aria-expanded={menuOpen}
-					aria-controls="mobile-menu"
-					aria-label="Toggle menu"
-					onClick={() => setMenuOpen((open) => !open)}
-				>
-					<MenuIcon open={menuOpen} />
-				</button>
+					<button
+						type="button"
+						className={styles.menuButton}
+						aria-expanded={menuOpen}
+						aria-controls="mobile-menu"
+						aria-label="Toggle menu"
+						onClick={() => setMenuOpen((open) => !open)}
+					>
+						<Icon name={menuOpen ? "close" : "menu"} />
+					</button>
+				</div>
 			</div>
 
 			{menuOpen && (
 				<div id="mobile-menu" className={styles.mobilePanel}>
-					<a href="#controls" className={styles.mobileLink} onClick={closeMenu}>
-						Controls
-					</a>
-					<a href="#how" className={styles.mobileLink} onClick={closeMenu}>
-						How it works
-					</a>
-					<a href="#video" className={styles.mobileLink} onClick={closeMenu}>
-						Demo video
-					</a>
-					<div className={styles.mobileActions}>
-						<Link to="/app" className={styles.solid} onClick={closeMenu}>
-							Open the testnet demo
-						</Link>
-					</div>
+					{NAV.map(([id, label]) => (
+						<a key={id} href={`#${id}`} className={styles.mobileLink} onClick={() => choose(id)}>
+							{label}
+						</a>
+					))}
+					<Link to="/app" className={styles.headerCta} onClick={closeMenu}>
+						Launch Demo
+					</Link>
 				</div>
 			)}
 		</header>
@@ -198,189 +258,337 @@ export default function Landing() {
 
 			<main id="main">
 				<section className={styles.hero}>
-					<div className={styles.pitch}>
-						<a className={styles.badge} href="#how">
-							<span className={styles.badgeTag}>TESTNET</span>
-							<span>Built on Stellar, testnet only</span>
-							<span className={styles.badgeRule} />
-							<Arrow className={styles.badgeArrow} />
-						</a>
-						<h1>Payment rules the account enforces.</h1>
-						<p className={styles.lead}>
-							Arqueo turns your approval matrix into rules on a Stellar smart
-							account. A payment that breaks them cannot be made, and every
-							attempt leaves a record your auditor can check.
-						</p>
-						<div className={styles.actions}>
-							<a href="#video" className={styles.outline}>
-								Watch the demo video
-							</a>
-							<Link to="/app" className={styles.primary}>
-								Open the testnet demo
-								<Arrow className={styles.buttonArrow} />
-							</Link>
+					<BrandOrbit className={styles.heroOrbit} />
+					<div className={styles.heroInner}>
+						<div className={styles.pitch}>
+							<h1>Payment governance, programmed into your account.</h1>
+							<p className={styles.lead}>
+								Your approval matrix becomes rules on a Stellar smart account. A
+								payment that breaks them is refused before it executes, and every
+								attempt is recorded.
+							</p>
+							<div className={styles.actions}>
+								<Link to="/app" className={styles.primary}>
+									Launch Demo (Testnet)
+									<Icon name="launch" className={styles.inlineIcon} />
+								</Link>
+								<a href="#architecture" className={styles.outline}>
+									<Icon name="code" className={styles.inlineIcon} />
+									View how it is built
+								</a>
+							</div>
 						</div>
-					</div>
 
-					<div className={styles.stage}>
-						<div className={styles.glow} aria-hidden="true" />
-						<figure className={styles.payment} aria-label="Illustrative payment check">
-							<figcaption className={styles.paymentHead}>
-								<span>Pay {PAYMENT.amount} XLM</span>
-								<span>Illustrative</span>
-							</figcaption>
-							<p className={styles.paymentMeta}>
-								To {PAYMENT.to} · Signed by {PAYMENT.signers} · Rule {PAYMENT.rule}
-							</p>
-							<ul className={styles.checks}>
-								{PAYMENT.checks.map((check) => (
-									<li
-										key={check.label}
-										className={check.passed ? undefined : styles.failed}
-									>
-										<Mark passed={check.passed} />
-										<span>{check.label}</span>
-									</li>
-								))}
-							</ul>
-							<p className={styles.verdict}>
-								<strong>Refused</strong>
-								<span>{PAYMENT.reason}</span>
-							</p>
+						<figure className={styles.product} aria-label="Illustrative view of the Arqueo payments dashboard">
+							<div className={styles.chrome} aria-hidden="true">
+								<span />
+								<span />
+								<span />
+								<span className={styles.url}>arqueo · stellar testnet</span>
+							</div>
+							<div className={styles.appBody}>
+								<aside className={styles.sidebar} aria-hidden="true">
+									<div className={styles.sideBrand}>
+										<img src={symbol} alt="" width={22} height={22} className={styles.sideSymbol} />
+										Arqueo
+									</div>
+									<span className={styles.sideItemActive}><Icon name="payments" className={styles.sideIcon} />Payments</span>
+									<span className={styles.sideItem}><Icon name="rules" className={styles.sideIcon} />Rules</span>
+									<span className={styles.sideItem}><Icon name="suppliers" className={styles.sideIcon} />Suppliers</span>
+									<span className={styles.sideItem}><Icon name="audit" className={styles.sideIcon} />Audit log</span>
+								</aside>
+								<div className={styles.appMain}>
+									<div className={styles.appTop}>
+										<span className={styles.appTitle}>Payments</span>
+										<span className={styles.pillDark}>New payment</span>
+									</div>
+									<dl className={styles.stats}>
+										{STATS.map(([label, value]) => (
+											<div key={label} className={styles.stat}>
+												<dt>{label}</dt>
+												<dd>{value}</dd>
+											</div>
+										))}
+									</dl>
+									<div className={styles.tableWrap}>
+										<table className={styles.ledger}>
+											<caption className={styles.srOnly}>Recent payments</caption>
+											<thead>
+												<tr>
+													<th scope="col">Recipient</th>
+													<th scope="col">Amount</th>
+													<th scope="col">Signed by</th>
+													<th scope="col">Rule</th>
+													<th scope="col">Status</th>
+												</tr>
+											</thead>
+											<tbody>
+												{LEDGER.map((row) => (
+													<tr key={`${row.to}-${row.amount}`}>
+														<td>{row.to}</td>
+														<td className={styles.num}>{row.amount} XLM</td>
+														<td>{row.signers}</td>
+														<td>{row.rule}</td>
+														<td>
+															<span className={row.settled ? styles.pillOk : styles.pillError}>
+																{row.status}
+															</span>
+														</td>
+													</tr>
+												))}
+											</tbody>
+										</table>
+									</div>
+								</div>
+							</div>
 						</figure>
 					</div>
 				</section>
 
-				<section className={styles.problem} aria-labelledby="problem-title">
-					<h2 id="problem-title">One key should not move all the money.</h2>
-					<p>
-						In most small treasuries one person holds the key, approvals happen
-						in a chat and the auditor receives screenshots. Arqueo moves the
-						approval matrix into the account, where it is enforced.
-					</p>
-					<table className={styles.compare}>
-						<caption className={styles.srOnly}>
-							Treasury controls today and with Arqueo
-						</caption>
-						<thead>
-							<tr>
-								<th scope="col" />
-								<th scope="col">Today</th>
-								<th scope="col">With Arqueo</th>
-							</tr>
-						</thead>
-						<tbody>
-							{TODAY.map(([area, today, withArqueo]) => (
-								<tr key={area}>
-									<th scope="row">{area}</th>
-									<td>{today}</td>
-									<td>{withArqueo}</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
+				<section id="solution" className={styles.diagnostic} aria-labelledby="solution-title">
+					<OrbitSystem variant="single" className={styles.orbitBg} x="82%" y="26%" />
+					<div className={styles.sectionHead}>
+						<h2 id="solution-title">One key should not move all the money.</h2>
+					</div>
+					<div className={styles.twoCols}>
+						<article className={styles.card}>
+							<span className={styles.pillError}>Today</span>
+							<h3>Single key, chat approvals</h3>
+							<ul className={styles.bullets}>
+								{STATUS_QUO.map((line) => (
+									<li key={line}>
+										<Icon name="cancel" className={styles.iconError} />
+										<span>{line}</span>
+									</li>
+								))}
+							</ul>
+						</article>
+						<article className={`${styles.card} ${styles.cardStrong}`}>
+							<span className={styles.pillOk}>With Arqueo</span>
+							<h3>Rules the account enforces</h3>
+							<ul className={styles.bullets}>
+								{WITH_ARQUEO.map((line) => (
+									<li key={line}>
+										<Icon name="check" className={styles.iconOk} />
+										<span>{line}</span>
+									</li>
+								))}
+							</ul>
+						</article>
+					</div>
 				</section>
 
-				<section
-					id="controls"
-					className={styles.controls}
-					aria-labelledby="controls-title"
-				>
-					<h2 id="controls-title">The authorization matrix, as account rules</h2>
-					<div className={styles.tiles} aria-label="Roles">
-						{ROLES.map(([role, signs, does]) => (
-							<article key={role} className={styles.tile}>
+				<section id="safeguards" className={styles.safeguards} aria-labelledby="safeguards-title">
+					<div className={styles.sectionHead}>
+						<h2 id="safeguards-title">What the account checks</h2>
+						<p>Demo defaults. The admin can change every limit and supplier.</p>
+					</div>
+
+					<div className={styles.bento}>
+						<article className={`${styles.card} ${styles.span7}`}>
+							<h3 className={styles.ruleHead}>
+								<Icon name="ruleDestinations" className={styles.ruleIcon} />
+								Allowlisted suppliers only
+							</h3>
+							<p>Payments go only to suppliers the admin has added. Anything else is refused.</p>
+							<div className={styles.console}>
+								<div className={styles.consoleHead}>
+									<span>Destination</span>
+									<span>Check</span>
+								</div>
+								<div className={styles.consoleRow}>
+									<span className={styles.dotOk}>Supplier 1</span>
+									<span className={styles.okText}>ALLOWLISTED</span>
+								</div>
+								<div className={styles.consoleRow}>
+									<span className={styles.dotNo}>Unknown account</span>
+									<span className={styles.noText}>NOT IN LIST</span>
+								</div>
+							</div>
+						</article>
+
+						<article className={`${styles.card} ${styles.span5}`}>
+							<h3 className={styles.ruleHead}>
+								<Icon name="ruleVolume" className={styles.ruleIcon} />
+								Per-payment and 30-day limits
+							</h3>
+							<p>The ordinary rule refuses anything above these.</p>
+							<div className={styles.thresholds}>
+								<div>
+									<span>Per payment</span>
+									<span className={styles.pillDark}>500 XLM</span>
+								</div>
+								<div>
+									<span>Per 30 days</span>
+									<span className={styles.pillDark}>1,000 XLM</span>
+								</div>
+							</div>
+						</article>
+
+						<article className={`${styles.card} ${styles.span5}`}>
+							<h3 className={styles.ruleHead}>
+								<Icon name="ruleDualControl" className={styles.ruleIcon} />
+								Second signature above the limit
+							</h3>
+							<p>Larger payments use the large rule, which needs the manager as well.</p>
+							<div className={styles.thresholds}>
+								<div>
+									<span>Up to 500 XLM</span>
+									<span className={styles.pillOk}>1 signature · Ordinary</span>
+								</div>
+								<div>
+									<span>Above 500 XLM</span>
+									<span className={styles.pillDark}>2 of 2 · Large</span>
+								</div>
+							</div>
+						</article>
+
+						<article className={`${styles.card} ${styles.span7}`}>
+							<h3 className={styles.ruleHead}>
+								<Icon name="ruleRefusals" className={styles.ruleIcon} />
+								Refused attempts are on the record
+							</h3>
+							<p>Each refusal is logged with its reason, so the auditor sees what was stopped.</p>
+							<div className={styles.console}>
+								<div className={styles.consoleLine}>// Simulated against account rules</div>
+								<div className={styles.consoleLine}>RULE: ordinary</div>
+								<div className={styles.consoleLine}>
+									STATUS: <span className={styles.noText}>REFUSED BEFORE SUBMISSION</span>
+								</div>
+								<div className={styles.consoleLine}>
+									REASON: &quot;Amount exceeds the per-payment limit: manager approval required&quot;
+								</div>
+							</div>
+						</article>
+					</div>
+				</section>
+
+				<section id="roles" className={styles.roles} aria-labelledby="roles-title">
+					<OrbitSystem variant="roles" className={styles.orbitBg} x="80%" y="22%" />
+					<div className={styles.sectionHead}>
+						<h2 id="roles-title">Who does what</h2>
+					</div>
+					<div className={styles.roleGrid} aria-label="Roles">
+						{ROLES.map(({ role, signs, icon, does }) => (
+							<article key={role} className={styles.roleCard}>
+								<div className={styles.roleIcon}>
+									<Icon name={icon} />
+								</div>
 								<h3>{role}</h3>
 								<p className={styles.signs}>Signs with {signs}</p>
 								<p>{does}</p>
 							</article>
 						))}
 					</div>
-					<div className={styles.tiles} aria-label="Rules">
-						{RULES.map(([rule, signers, policies]) => (
-							<article key={rule} className={styles.tile}>
-								<h3>{rule} rule</h3>
-								<p className={styles.signs}>Signers: {signers}</p>
-								<p>{policies}</p>
-							</article>
-						))}
-					</div>
 				</section>
 
-				<section id="how" className={styles.how} aria-labelledby="how-title">
-					<h2 id="how-title">What happens when someone pays</h2>
-					<ol className={styles.steps}>
+				<section id="architecture" className={styles.architecture} aria-labelledby="arch-title">
+					<div className={styles.sectionHead}>
+						<h2 id="arch-title">What it is built on</h2>
+					</div>
+					<div className={styles.threeCols}>
+						<article className={styles.card}>
+							<Icon name="hub" className={styles.cardIcon} />
+							<h3>Stellar Soroban</h3>
+							<p>Rust contracts compiled to Wasm and run on Stellar testnet.</p>
+						</article>
+						<article className={styles.card}>
+							<Icon name="shield" className={styles.cardIcon} />
+							<h3>OpenZeppelin smart accounts</h3>
+							<p>
+								Context rules, signer thresholds and policies. Our{" "}
+								<code>control-policy</code> contract adds the allowlist and the
+								per-payment limit.
+							</p>
+						</article>
+						<article className={styles.card}>
+							<Icon name="key" className={styles.cardIcon} />
+							<h3>Passkeys and Ed25519</h3>
+							<p>
+								Admin and manager sign with passkeys. The employee&rsquo;s Ed25519
+								key lives in the browser, a shortcut for the demo only.
+							</p>
+						</article>
+					</div>
+
+					<ol className={styles.flow} aria-label="What happens when someone pays">
 						{STEPS.map((step) => (
 							<li key={step.title}>
+								<Icon name={step.icon} className={styles.flowIcon} />
 								<h3>{step.title}</h3>
 								<p>{step.body}</p>
 							</li>
 						))}
 					</ol>
-					<p className={styles.stack}>
-						Built with OpenZeppelin Stellar smart accounts and policies, a
-						custom <code>control-policy</code> contract, Stellar&rsquo;s
-						smart-account-kit and passkeys.
-					</p>
-				</section>
 
-				<section id="video" className={styles.video} aria-labelledby="video-title">
-					<h2 id="video-title">See the four scenes</h2>
-					{VIDEO_EMBED_URL ? (
-						<iframe
-							className={styles.player}
-							src={VIDEO_EMBED_URL}
-							title="Arqueo demo video"
-							allow="fullscreen; picture-in-picture"
-						/>
-					) : (
-						<div className={styles.pending}>
+						{/*<aside className={styles.testnet} aria-labelledby="testnet-title">
+						<Icon name="warning" className={styles.iconWarn} />
+						<div>
+							<h3 id="testnet-title">Testnet only</h3>
 							<p>
-								The demo video is on its way. Until then, run the four scenes
-								yourself on testnet.
+								This demo uses test XLM with no real value. In production every
+								person signs with a passkey on their own device.
 							</p>
-							<Link to="/app" className={styles.primary}>
-								Open the testnet demo
-								<Arrow className={styles.buttonArrow} />
-							</Link>
 						</div>
-					)}
+					</aside>*/}
 				</section>
 
-				<section className={styles.honest} aria-labelledby="honest-title">
-					<h2 id="honest-title">Testnet only</h2>
-					<p>
-						This demo uses test XLM with no real value. To keep it quick, the
-						employee&rsquo;s key lives in the browser. In production every
-						person signs with a passkey on their own device.
-					</p>
-				</section>
-
-				<section className={styles.close}>
+				<section className={styles.close} aria-labelledby="close-title">
+					<OrbitRings />
 					<div className={styles.closePanel}>
-						<img src={symbol} alt="" width={150} height={150} className={styles.closeSymbol} />
-						<span
-							role="img"
-							aria-label="Arqueo"
-							className={styles.closeWordmark}
-							style={{
-								WebkitMaskImage: `url(${wordmark})`,
-								maskImage: `url(${wordmark})`,
-							}}
-						/>
-						<Link to="/app" className={styles.closeAction}>
-							Open the testnet demo
-							<Arrow className={styles.buttonArrow} />
-						</Link>
+						<div className={styles.closeCopy}>
+							<h2 id="close-title">Try the rules yourself, on testnet.</h2>
+							<p>Four scenes, test XLM, no real funds.</p>
+							<div className={styles.closeActions}>
+								<Link to="/app" className={styles.closeAction}>
+									Launch Demo (Testnet)
+									<Icon name="arrow" className={styles.inlineIcon} />
+								</Link>
+								<a href={REPO_URL} target="_blank" rel="noreferrer" className={styles.closeGhost}>
+									Read the source
+									<Icon name="code" className={styles.inlineIcon} />
+								</a>
+							</div>
+						</div>
+
+						<ol className={styles.scenes} aria-label="The four demo scenes">
+							{SCENES.map((scene) => (
+								<li key={scene.title}>
+									<span className={styles.sceneIcon}>
+										<Icon name={scene.icon} />
+									</span>
+									<div className={styles.sceneText}>
+										<h3>{scene.title}</h3>
+										<p>{scene.body}</p>
+									</div>
+									<span
+										className={
+											scene.tone === "ok"
+												? styles.pillOk
+												: scene.tone === "no"
+													? styles.pillError
+													: styles.pillDark
+										}
+									>
+										{scene.tag}
+									</span>
+								</li>
+							))}
+						</ol>
 					</div>
 				</section>
 			</main>
 
 			<footer className={styles.footer}>
-				<p>Built for HackMeridian 2026 on Stellar testnet.</p>
-				<a href={REPO_URL} target="_blank" rel="noreferrer">
-					Source code on GitHub
-				</a>
+				<div className={styles.footerInner}>
+					<p>© 2026 Arqueo. Built by Maker-Checker for HackMeridian 2026.</p>
+					<nav className={styles.footerNav} aria-label="Footer">
+						<a href="#architecture">Docs</a>
+						<a href={REPO_URL} target="_blank" rel="noreferrer">
+							Source code
+						</a>
+					</nav>
+				</div>
 			</footer>
 		</div>
 	)

@@ -1,8 +1,8 @@
 import styles from "./BrandOrbit.module.css"
 
-export function BrandOrbit() {
+export function BrandOrbit({ className }: { className?: string }) {
 	return (
-		<div className={styles.orbit} aria-hidden="true">
+		<div className={className ? `${styles.orbit} ${className}` : styles.orbit} aria-hidden="true">
 			<svg className={styles.mark} viewBox="0 0 640 640" focusable="false">
 				<circle className={styles.backDisc} cx="370" cy="284" r="176" />
 				<circle className={styles.frontDisc} cx="270" cy="354" r="148" />
