@@ -1,5 +1,6 @@
+import { StrKey } from "@stellar/stellar-sdk"
 import { describe, expect, it } from "vitest"
-import { fieldErrors } from "./paymentFields"
+import { UNKNOWN_SUPPLIER_DEMO, fieldErrors } from "./paymentFields"
 
 const complete = {
 	supplier: "GDATKZ",
@@ -50,5 +51,11 @@ describe("fieldErrors", () => {
 			amount: "Enter an amount",
 			concept: "Enter a payment concept",
 		})
+	})
+})
+
+describe("unknown supplier demo address", () => {
+	it("is a valid Stellar account that is not an authorized supplier", () => {
+		expect(StrKey.isValidEd25519PublicKey(UNKNOWN_SUPPLIER_DEMO)).toBe(true)
 	})
 })
