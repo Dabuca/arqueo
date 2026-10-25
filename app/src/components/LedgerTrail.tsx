@@ -12,7 +12,10 @@ export function LedgerTrail() {
 
 	useEffect(() => {
 		const layer = layerRef.current
-		if (!layer || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+		if (
+			!layer ||
+			window.matchMedia("(prefers-reduced-motion: reduce)").matches
+		) {
 			return
 		}
 

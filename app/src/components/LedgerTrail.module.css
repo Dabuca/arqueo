@@ -24,7 +24,16 @@
 	border: 0;
 	border-radius: 0;
 	background: #0f3b30;
-	clip-path: polygon(50% 0, 63% 37%, 100% 50%, 63% 63%, 50% 100%, 37% 63%, 0 50%, 37% 37%);
+	clip-path: polygon(
+		50% 0,
+		63% 37%,
+		100% 50%,
+		63% 63%,
+		50% 100%,
+		37% 63%,
+		0 50%,
+		37% 37%
+	);
 }
 
 @keyframes ink-fade {

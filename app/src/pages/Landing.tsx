@@ -26,8 +26,16 @@ const PAYMENT = {
 
 const TODAY = [
 	["Who can move funds", "Whoever holds the key", "Only signers a rule allows"],
-	["Approvals", "A message in a group chat", "A second signature the account requires"],
-	["Evidence", "Screenshots for the auditor", "Every attempt logged, with its transaction"],
+	[
+		"Approvals",
+		"A message in a group chat",
+		"A second signature the account requires",
+	],
+	[
+		"Evidence",
+		"Screenshots for the auditor",
+		"Every attempt logged, with its transaction",
+	],
 ]
 
 const ROLES = [
@@ -39,7 +47,11 @@ const ROLES = [
 
 const RULES = [
 	["Admin", "Admin", "None: every signer must sign"],
-	["Ordinary", "Employee", "Allowlisted suppliers, 500 XLM per payment, 1,000 XLM every 30 days"],
+	[
+		"Ordinary",
+		"Employee",
+		"Allowlisted suppliers, 500 XLM per payment, 1,000 XLM every 30 days",
+	],
 	["Large", "Employee and manager", "Allowlisted suppliers, 2 of 2 signatures"],
 ]
 
@@ -124,7 +136,13 @@ function Header() {
 		<header className={styles.header}>
 			<div className={styles.headerBar}>
 				<Link to="/" className={styles.brand} aria-label="Arqueo home">
-					<img src={symbol} alt="" width={52} height={52} className={styles.symbol} />
+					<img
+						src={symbol}
+						alt=""
+						width={52}
+						height={52}
+						className={styles.symbol}
+					/>
 					<span
 						role="img"
 						aria-label="Arqueo"
@@ -224,13 +242,17 @@ export default function Landing() {
 
 					<div className={styles.stage}>
 						<div className={styles.glow} aria-hidden="true" />
-						<figure className={styles.payment} aria-label="Illustrative payment check">
+						<figure
+							className={styles.payment}
+							aria-label="Illustrative payment check"
+						>
 							<figcaption className={styles.paymentHead}>
 								<span>Pay {PAYMENT.amount} XLM</span>
 								<span>Illustrative</span>
 							</figcaption>
 							<p className={styles.paymentMeta}>
-								To {PAYMENT.to} · Signed by {PAYMENT.signers} · Rule {PAYMENT.rule}
+								To {PAYMENT.to} · Signed by {PAYMENT.signers} · Rule{" "}
+								{PAYMENT.rule}
 							</p>
 							<ul className={styles.checks}>
 								{PAYMENT.checks.map((check) => (
@@ -286,7 +308,9 @@ export default function Landing() {
 					className={styles.controls}
 					aria-labelledby="controls-title"
 				>
-					<h2 id="controls-title">The authorization matrix, as account rules</h2>
+					<h2 id="controls-title">
+						The authorization matrix, as account rules
+					</h2>
 					<div className={styles.tiles} aria-label="Roles">
 						{ROLES.map(([role, signs, does]) => (
 							<article key={role} className={styles.tile}>
@@ -324,7 +348,11 @@ export default function Landing() {
 					</p>
 				</section>
 
-				<section id="video" className={styles.video} aria-labelledby="video-title">
+				<section
+					id="video"
+					className={styles.video}
+					aria-labelledby="video-title"
+				>
 					<h2 id="video-title">See the four scenes</h2>
 					{VIDEO_EMBED_URL ? (
 						<iframe
@@ -358,7 +386,13 @@ export default function Landing() {
 
 				<section className={styles.close}>
 					<div className={styles.closePanel}>
-						<img src={symbol} alt="" width={150} height={150} className={styles.closeSymbol} />
+						<img
+							src={symbol}
+							alt=""
+							width={150}
+							height={150}
+							className={styles.closeSymbol}
+						/>
 						<span
 							role="img"
 							aria-label="Arqueo"

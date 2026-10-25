@@ -81,7 +81,9 @@ test("control-policy rejects unknown payees on the ordinary rule", async ({
 	await expect(page.getByRole("alert")).toContainText("Rejected", {
 		timeout: 120_000,
 	})
-	await expect(page.getByRole("alert")).toContainText(/Error\(Contract, #1\)|#1/)
+	await expect(page.getByRole("alert")).toContainText(
+		/Error\(Contract, #1\)|#1/,
+	)
 
 	// Scene 1: an allowed supplier.
 	await page.getByPlaceholder("G…").fill(supplier!)

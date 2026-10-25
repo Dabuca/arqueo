@@ -23,6 +23,10 @@ playwright-report
 .agents
 skills-lock.json
 
+# Vendored Claude Code skills, and the state the impeccable skill generates
+.claude
+app/.impeccable
+
 # Team planning docs, written by hand
 AGENTS.md
 REPARTO.md

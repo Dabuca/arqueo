@@ -41,7 +41,11 @@
 
 .treasury {
 	border-top-color: var(--ink, #0f3b30) !important;
-	background: linear-gradient(90deg, rgb(15 59 48 / 5%), transparent 72%) !important;
+	background: linear-gradient(
+		90deg,
+		rgb(15 59 48 / 5%),
+		transparent 72%
+	) !important;
 }
 
 .treasury::before {
@@ -52,13 +56,19 @@
 	height: 1.5rem;
 	border: 1px solid rgb(15 59 48 / 35%);
 	border-radius: 50%;
-	box-shadow: inset 0 0 0 4px var(--ground, #ede8df), inset 0 0 0 5px rgb(15 59 48 / 30%);
+	box-shadow:
+		inset 0 0 0 4px var(--ground, #ede8df),
+		inset 0 0 0 5px rgb(15 59 48 / 30%);
 	content: "";
 }
 
 .payment {
 	margin-top: 1rem !important;
-	background: linear-gradient(90deg, rgb(15 59 48 / 3%), transparent 72%) !important;
+	background: linear-gradient(
+		90deg,
+		rgb(15 59 48 / 3%),
+		transparent 72%
+	) !important;
 }
 
 .contracts {

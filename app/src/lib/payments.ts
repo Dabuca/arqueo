@@ -71,7 +71,9 @@ export function managerSigner(
 ): ContractSigner {
 	const raw = Uint8Array.from(atob(publicKeyBase64), (c) => c.charCodeAt(0))
 	if (raw.length !== 65 || raw[0] !== 0x04) {
-		throw new Error("Manager public key must be an uncompressed key of 65 bytes")
+		throw new Error(
+			"Manager public key must be an uncompressed key of 65 bytes",
+		)
 	}
 	return createWebAuthnSigner(webauthnVerifierAddress, raw, credentialId)
 }
@@ -85,7 +87,11 @@ export function managerSelectedSigner(
 	return {
 		type: "passkey",
 		credentialId,
-		signer: managerSigner(webauthnVerifierAddress, publicKeyBase64, credentialId),
+		signer: managerSigner(
+			webauthnVerifierAddress,
+			publicKeyBase64,
+			credentialId,
+		),
 		label: "manager",
 	}
 }

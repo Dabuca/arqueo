@@ -104,9 +104,7 @@ describe("managerSigner", () => {
 
 	it("rejects a key that is not an uncompressed secp256r1 key", () => {
 		const short = btoa(String.fromCharCode(0x04, 0x01, 0x02))
-		expect(() => managerSigner(verifier, short, "cred-id")).toThrow(
-			/65 bytes/,
-		)
+		expect(() => managerSigner(verifier, short, "cred-id")).toThrow(/65 bytes/)
 	})
 })
 
