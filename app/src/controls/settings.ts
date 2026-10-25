@@ -103,9 +103,6 @@ export function validateSettings(
 	return { ok: true }
 }
 
-const shortAddress = (address: string) =>
-	`${address.slice(0, 6)}…${address.slice(-6)}`
-
 /** A setting as the text the auditor sees in the change trail. */
 export function describeValue(
 	field: ControlField,
@@ -115,7 +112,7 @@ export function describeValue(
 	if (field === "cap30d") return String(config.limits.cap30d)
 	return (
 		config.suppliers
-			.map((s) => `${s.label || "Unnamed"} (${shortAddress(s.address)})`)
+			.map((s) => `${s.label || "Unnamed"} (${s.address})`)
 			.join("; ") || "none"
 	)
 }
