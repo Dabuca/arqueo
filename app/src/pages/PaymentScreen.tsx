@@ -1,15 +1,16 @@
 import { useEffect, useState, type FormEvent } from "react"
 import { DEFAULT_LIMITS, DEMO_AMOUNTS } from "../controls/defaults"
 import { requiredRule, ruleForSigners } from "../controls/rules"
-import { type PayResult } from "../lib/payments"
-import { loadCompany, pay, setupOrdinaryRule } from "../lib/stellar"
+import {
+	installControlPolicy,
+	loadCompany,
+	pay,
+	setupOrdinaryRule,
+} from "../lib/stellar"
+import { outcomeFromResult, type Outcome } from "./paymentOutcome"
 import styles from "./PaymentScreen.module.css"
 
 type SignatureChoice = "employee" | "manager"
-type Outcome =
-	| { kind: "accepted"; hash: string }
-	| { kind: "rejected"; reason: string }
-	| { kind: "error"; message: string }
 
 const testnetTx = (hash: string) =>
 	`https://stellar.expert/explorer/testnet/tx/${encodeURIComponent(hash)}`
@@ -80,22 +81,32 @@ export default function PaymentScreen() {
 		}
 	}
 
+	// Accounts created before the policy was configured need it added to their rule.
+	const addControlPolicy = async () => {
+		setBusy(true)
+		setSetupError(undefined)
+		try {
+			await installControlPolicy()
+			setCompany(loadCompany())
+		} catch (error) {
+			setSetupError(error instanceof Error ? error.message : String(error))
+		} finally {
+			setBusy(false)
+		}
+	}
+
 	const submitPayment = async (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault()
 		setOutcome(undefined)
 		setBusy(true)
 		try {
-			const result: PayResult = await pay({
+			const result = await pay({
 				to: recipient.trim(),
 				amount: numericAmount,
 				concept: concept.trim(),
 				signers: [...signers],
 			})
-			setOutcome(
-				result.ok
-					? { kind: "accepted", hash: result.hash }
-					: { kind: "rejected", reason: result.reason },
-			)
+			setOutcome(outcomeFromResult(result))
 		} catch (error) {
 			setOutcome({
 				kind: "error",
@@ -318,6 +329,20 @@ export default function PaymentScreen() {
 								: "Create a company account above to enable payments."}
 						</span>
 					</div>
+					{ordinaryReady && company && !company.controlPolicy && (
+						<p>
+							<button
+								className={styles.primary}
+								type="button"
+								onClick={() => void addControlPolicy()}
+								disabled={busy}
+							>
+								{busy
+									? "Adding supplier list…"
+									: "Add supplier list to ordinary rule (admin passkey)"}
+							</button>
+						</p>
+					)}
 					{setupError && (
 						<p className={styles.inlineError} role="alert">
 							{setupError}
@@ -405,11 +430,19 @@ export default function PaymentScreen() {
 										View transaction ↗
 									</a>
 								) : (
-									<span>
-										{outcome.kind === "rejected"
-											? outcome.reason
-											: outcome.message}
-									</span>
+									<>
+										<span>
+											{outcome.kind === "rejected"
+												? outcome.reason
+												: outcome.message}
+										</span>
+										{outcome.kind === "rejected" && outcome.details && (
+											<details>
+												<summary>Details</summary>
+												<code>{outcome.details}</code>
+											</details>
+										)}
+									</>
 								)}
 							</div>
 						) : (
