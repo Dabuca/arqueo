@@ -31,7 +31,12 @@ function makeConfig(): ControlsConfig {
 describe("addRealSupplier", () => {
 	it("appends the supplier as real when everything checks out", async () => {
 		const config = makeConfig()
-		const result = await addRealSupplier(config, ADDRESS_B, "Globex", makeDeps())
+		const result = await addRealSupplier(
+			config,
+			ADDRESS_B,
+			"Globex",
+			makeDeps(),
+		)
 		expect(result).toEqual({
 			ok: true,
 			config: {
@@ -53,7 +58,12 @@ describe("addRealSupplier", () => {
 
 	it("rejects a badly formatted address without touching the network", async () => {
 		const deps = makeDeps()
-		const result = await addRealSupplier(makeConfig(), "not-an-address", "X", deps)
+		const result = await addRealSupplier(
+			makeConfig(),
+			"not-an-address",
+			"X",
+			deps,
+		)
 		expect(result).toEqual({ ok: false, reason: "Invalid Stellar address" })
 		expect(deps.isValidAddress).not.toHaveBeenCalled()
 		expect(deps.accountExists).not.toHaveBeenCalled()
@@ -69,7 +79,10 @@ describe("addRealSupplier", () => {
 	it("rejects a duplicate before asking the network", async () => {
 		const deps = makeDeps()
 		const result = await addRealSupplier(makeConfig(), ADDRESS_A, "Again", deps)
-		expect(result).toEqual({ ok: false, reason: "Supplier already in the list" })
+		expect(result).toEqual({
+			ok: false,
+			reason: "Supplier already in the list",
+		})
 		expect(deps.accountExists).not.toHaveBeenCalled()
 	})
 
@@ -101,14 +114,22 @@ describe("addRealSupplier", () => {
 		// Duplicate AND missing on testnet: duplicate error wins.
 		const deps3 = makeDeps({ accountExists: vi.fn(async () => false) })
 		const result3 = await addRealSupplier(makeConfig(), ADDRESS_A, "X", deps3)
-		expect(result3).toEqual({ ok: false, reason: "Supplier already in the list" })
+		expect(result3).toEqual({
+			ok: false,
+			reason: "Supplier already in the list",
+		})
 	})
 
 	it("never adds the same address twice", async () => {
 		const deps = makeDeps()
 		const first = await addRealSupplier(makeConfig(), ADDRESS_B, "Globex", deps)
 		if (!first.ok) throw new Error("expected ok")
-		const second = await addRealSupplier(first.config, ADDRESS_B, "Globex", deps)
+		const second = await addRealSupplier(
+			first.config,
+			ADDRESS_B,
+			"Globex",
+			deps,
+		)
 		expect(second.ok).toBe(false)
 		expect(first.config.suppliers).toHaveLength(2)
 	})
@@ -200,6 +221,8 @@ describe("createOutsiderAccount", () => {
 				throw new Error("Friendbot unavailable")
 			}),
 		})
-		await expect(createOutsiderAccount(deps)).rejects.toThrow("Friendbot unavailable")
+		await expect(createOutsiderAccount(deps)).rejects.toThrow(
+			"Friendbot unavailable",
+		)
 	})
 })

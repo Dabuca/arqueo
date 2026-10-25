@@ -36,7 +36,9 @@ export async function addRealSupplier(
 	// A payment to an account that does not exist would fail for that reason
 	// and not because of the account rules.
 	if (!(await deps.accountExists(address))) {
-		return rejected("Account not found on testnet: fund it with Friendbot first")
+		return rejected(
+			"Account not found on testnet: fund it with Friendbot first",
+		)
 	}
 	return {
 		ok: true,
