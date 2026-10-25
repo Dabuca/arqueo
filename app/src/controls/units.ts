@@ -3,6 +3,16 @@ export const STROOPS_PER_XLM = 10_000_000n
 const DECIMALS = 7
 
 /**
+ * Rounds an XLM amount held as a float to whole stroops, so float noise
+ * (0.1 + 0.2) cannot flip a comparison at an exact limit. NaN stays NaN, so
+ * every comparison with it is false. For comparing amounts, not for payments:
+ * use `xlmToStroops` for those.
+ */
+export function roundToStroops(xlm: number): number {
+	return Math.round(xlm * Number(STROOPS_PER_XLM))
+}
+
+/**
  * Converts an XLM amount to stroops. The amount is parsed as text so no
  * precision is lost to floats. Plain decimal notation only (no exponents).
  * Throws if it is not a number, is negative or has more than 7 decimals.

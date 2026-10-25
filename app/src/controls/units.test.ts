@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest"
-import { STROOPS_PER_XLM, stroopsToXlm, xlmToStroops } from "./units"
+import {
+	roundToStroops,
+	STROOPS_PER_XLM,
+	stroopsToXlm,
+	xlmToStroops,
+} from "./units"
 
 describe("xlmToStroops", () => {
 	it.each<[string | number, bigint]>([
@@ -56,6 +61,23 @@ describe("stroopsToXlm", () => {
 			expect(stroopsToXlm(xlmToStroops(xlm))).toBe(xlm)
 		},
 	)
+})
+
+describe("roundToStroops", () => {
+	it.each<[number, number]>([
+		[0, 0],
+		[1, 10_000_000],
+		[500.0000001, 5_000_000_001],
+		[0.0000001, 1],
+		// 0.1 + 0.2 is 0.30000000000000004 in floats
+		[0.1 + 0.2, 3_000_000],
+	])("rounds %j XLM to %j stroops", (xlm, stroops) => {
+		expect(roundToStroops(xlm)).toBe(stroops)
+	})
+
+	it("keeps NaN as NaN so every comparison with it stays false", () => {
+		expect(roundToStroops(NaN)).toBeNaN()
+	})
 })
 
 describe("STROOPS_PER_XLM", () => {
