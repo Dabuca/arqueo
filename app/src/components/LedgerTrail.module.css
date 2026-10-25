@@ -1,0 +1,46 @@
+.layer {
+	position: fixed;
+	inset: 0;
+	z-index: 2;
+	overflow: hidden;
+	pointer-events: none;
+}
+
+.mark {
+	position: fixed;
+	width: 5px;
+	height: 5px;
+	border: 1px solid rgb(15 59 48 / 34%);
+	border-radius: 50%;
+	background: rgb(15 59 48 / 10%);
+	opacity: 0;
+	transform: translate(-50%, -50%) rotate(var(--turn)) scale(0.5);
+	animation: ink-fade 620ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.star {
+	width: 8px;
+	height: 8px;
+	border: 0;
+	border-radius: 0;
+	background: #0f3b30;
+	clip-path: polygon(50% 0, 63% 37%, 100% 50%, 63% 63%, 50% 100%, 37% 63%, 0 50%, 37% 37%);
+}
+
+@keyframes ink-fade {
+	12% {
+		opacity: 0.28;
+		transform: translate(-50%, -50%) rotate(var(--turn)) scale(1);
+	}
+
+	100% {
+		opacity: 0;
+		transform: translate(-50%, -50%) rotate(var(--turn)) scale(0.35);
+	}
+}
+
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+	.layer {
+		display: none;
+	}
+}

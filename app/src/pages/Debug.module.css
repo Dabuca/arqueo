@@ -1,0 +1,72 @@
+.explorer {
+	position: relative;
+	max-width: 740px;
+	min-height: 370px;
+	margin: clamp(1rem, 5vh, 3rem) auto;
+	padding: clamp(2rem, 6vw, 4rem);
+	border-top: 1px solid rgb(15 59 48 / 35%);
+	background: linear-gradient(135deg, rgb(15 59 48 / 4%), transparent 68%);
+}
+
+.label {
+	margin: 0 0 0.75rem;
+	color: #46645a;
+	font-family: "Spline Sans Mono", ui-monospace, monospace;
+	font-size: 0.78rem;
+	letter-spacing: 0.08em;
+}
+
+.explorer h1 {
+	max-width: 14ch;
+	margin: 0 0 1.25rem;
+	font-size: clamp(2.3rem, 5vw, 3.6rem);
+	font-weight: 500;
+	line-height: 1.05;
+	letter-spacing: -0.03em;
+}
+
+.explorer > p:not(.label) {
+	max-width: 62ch;
+	line-height: 1.65;
+}
+
+.mark {
+	position: absolute;
+	top: 2rem;
+	right: 2rem;
+	display: grid;
+	grid-template-columns: repeat(3, 8px);
+	gap: 5px;
+	transform: rotate(45deg);
+}
+
+.mark span {
+	width: 8px;
+	height: 8px;
+	border: 1px solid rgb(15 59 48 / 58%);
+}
+
+.mark span:nth-child(2) {
+	border-radius: 50%;
+	background: rgb(15 59 48 / 30%);
+}
+
+.labLink {
+	margin-top: 1.5rem;
+}
+
+.labLink a {
+	color: #0f3b30;
+	text-underline-offset: 0.22em;
+}
+
+@media (max-width: 560px) {
+	.explorer {
+		padding: 2rem 1rem;
+	}
+
+	.mark {
+		top: 1rem;
+		right: 1rem;
+	}
+}

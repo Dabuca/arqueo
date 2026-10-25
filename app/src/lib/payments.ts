@@ -1,4 +1,10 @@
-import { Address, Keypair, nativeToScVal, xdr } from "@stellar/stellar-sdk"
+import {
+	Address,
+	Keypair,
+	StrKey,
+	nativeToScVal,
+	xdr,
+} from "@stellar/stellar-sdk"
 import {
 	LEDGERS_PER_DAY,
 	createEd25519Signer,
@@ -159,7 +165,7 @@ export type PayInput = {
 
 export type PayResult =
 	| { ok: true; hash: string }
-	| { ok: false; reason: string }
+	| { ok: false; reason: string; details?: string }
 
 /** The audit record of a payment attempt, accepted or rejected. */
 export function paymentRecord(
@@ -190,4 +196,60 @@ export function paymentLog(storage: KeyValueStorage) {
 			storage.setItem(PAYMENTS_KEY, JSON.stringify([...list(), payment]))
 		},
 	}
+}
+
+// Messages from AGENTS.md §6.3. Codes 1-3 come from control-policy.
+const CONTROL_POLICY_MESSAGES: Record<number, string> = {
+	1: "Supplier not authorized",
+	2: "Amount exceeds the per-payment limit: manager approval required",
+	3: "Operation not allowed by the account rules",
+}
+const GENERIC_REJECTION = "Rejected by the account rules"
+const CONTRACT_CODE = /Error\(Contract,\s*#(\d+)\)/
+
+/**
+ * The reason to show for a rejected payment. The kit does not decode codes
+ * 1-3 (they are not in its registry), so the code is read from the error text.
+ * Any other failure keeps its original text in `details`.
+ */
+export function rejectionReason(error: unknown): {
+	reason: string
+	details?: string
+} {
+	const text = errorText(error)
+	const code = Number(CONTRACT_CODE.exec(text)?.[1])
+	const message = CONTROL_POLICY_MESSAGES[code]
+	if (message) return { reason: message }
+	return { reason: GENERIC_REJECTION, details: text }
+}
+
+// The kit may put the diagnostic in the message, the context or the cause.
+function errorText(error: unknown): string {
+	if (error instanceof Error) {
+		const cause = error.cause ? ` ${errorText(error.cause)}` : ""
+		return `${error.name}: ${error.message}${cause}`.trim()
+	}
+	if (typeof error === "string") return error
+	try {
+		return JSON.stringify(error) ?? String(error)
+	} catch {
+		return String(error)
+	}
+}
+
+/**
+ * Supplier addresses from PUBLIC_SUPPLIERS (comma separated). An invalid entry
+ * throws: a typo must not silently leave a supplier off the allowlist.
+ */
+export function parseSuppliers(raw: string | undefined): string[] {
+	return (raw ?? "")
+		.split(",")
+		.map((s) => s.trim())
+		.filter(Boolean)
+		.map((address) => {
+			if (!StrKey.isValidEd25519PublicKey(address)) {
+				throw new Error(`Invalid supplier address: ${address}`)
+			}
+			return address
+		})
 }
