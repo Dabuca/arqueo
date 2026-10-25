@@ -37,3 +37,25 @@ export function requiredRule(
 		roundToStroops(limits.cap30d)
 	return fitsMaximum && fitsCap ? "ordinary" : "large"
 }
+
+const STROOPS = 10_000_000
+
+/** What is left of the cap in the current period. Never negative. */
+export function remainingCap(limits: Limits, spentInPeriod: number): number {
+	const left = roundToStroops(limits.cap30d) - roundToStroops(spentInPeriod)
+	return Math.max(left, 0) / STROOPS
+}
+
+/**
+ * By how much a payment goes past what is left of the cap. 0 when it fits.
+ * A hint for the interface: the account on chain decides.
+ */
+export function capShortfall(
+	amount: number,
+	limits: Limits,
+	spentInPeriod: number,
+): number {
+	const over =
+		roundToStroops(amount) - roundToStroops(remainingCap(limits, spentInPeriod))
+	return Math.max(over, 0) / STROOPS
+}

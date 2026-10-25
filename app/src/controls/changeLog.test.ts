@@ -129,6 +129,15 @@ describe("changesToCsv", () => {
 		])
 	})
 
+	it("does not let a cell run as a spreadsheet formula", () => {
+		const csv = changesToCsv([
+			change({ previous: "=HYPERLINK(\"http://x\")", next: "+1" }),
+		])
+		const row = csv.split("\n")[1]
+		expect(row).toContain(`"'=HYPERLINK(""http://x"")"`)
+		expect(row).toContain(",'+1,")
+	})
+
 	it("writes the rule that was replaced", () => {
 		const csv = changesToCsv([change({ rule: "large" })])
 		expect(csv.split("\n")[1]).toBe(

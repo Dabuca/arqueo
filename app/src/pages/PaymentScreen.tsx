@@ -14,8 +14,14 @@ import { useEffect, useState, type FormEvent } from "react"
 import { Link } from "react-router-dom"
 import { Spinner, useChanged } from "../components/Spinner"
 import { DEMO_AMOUNTS } from "../controls/defaults"
-import { ruleForSigners } from "../controls/rules"
-import { loadCompany, loadControlsConfig, pay } from "../lib/stellar"
+import { capShortfall, remainingCap, ruleForSigners } from "../controls/rules"
+import {
+	loadCompany,
+	loadControlsConfig,
+	pay,
+	readControlState,
+	type ControlState,
+} from "../lib/stellar"
 import ui from "../styles/ui.module.css"
 import {
 	UNKNOWN_SUPPLIER_DEMO,
@@ -30,6 +36,9 @@ type CheckState = "pass" | "fail" | "idle"
 
 const testnetTx = (hash: string) =>
 	`https://stellar.expert/explorer/testnet/tx/${encodeURIComponent(hash)}`
+
+const formatXlm = (value: number) =>
+	value.toLocaleString("en-US", { maximumFractionDigits: 7 })
 
 const shortAddress = (address: string) =>
 	`${address.slice(0, 6)}…${address.slice(-5)}`
@@ -53,10 +62,14 @@ function CheckIcon({ state }: { state: CheckState }) {
 }
 
 export default function PaymentScreen() {
-	// The limits and suppliers the admin set in Settings (R17).
+	// What the admin set in Settings, and what the chain reports (R17, R23).
 	const [controls, setControls] = useState(() => loadControlsConfig())
-	const limits = controls.limits
-	const configuredSuppliers = controls.suppliers.map((s) => s.address)
+	const [chain, setChain] = useState<ControlState>()
+	const fromChain = chain?.source === "chain" ? chain : undefined
+	const limits = (fromChain?.config ?? controls).limits
+	const configuredSuppliers = (fromChain?.config ?? controls).suppliers.map(
+		(s) => s.address,
+	)
 	const [supplier, setSupplier] = useState(configuredSuppliers[0] ?? "")
 	const [customSupplier, setCustomSupplier] = useState(false)
 	const [amount, setAmount] = useState(String(DEMO_AMOUNTS.below))
@@ -70,13 +83,25 @@ export default function PaymentScreen() {
 
 	const [company, setCompany] = useState(() => loadCompany())
 	useEffect(() => {
-		const refreshCompany = () => {
+		let cancelled = false
+		const refresh = () => {
 			setCompany(loadCompany())
 			setControls(loadControlsConfig())
+			readControlState()
+				.then((state) => {
+					if (!cancelled) setChain(state)
+				})
+				.catch(() => undefined)
 		}
-		window.addEventListener("arqueo:company-updated", refreshCompany)
-		return () =>
-			window.removeEventListener("arqueo:company-updated", refreshCompany)
+		refresh()
+		// A payment changes what is left of the cap; a setup or a settings change
+		// changes the limits.
+		const events = ["arqueo:company-updated", "arqueo:payment-recorded"]
+		events.forEach((name) => window.addEventListener(name, refresh))
+		return () => {
+			cancelled = true
+			events.forEach((name) => window.removeEventListener(name, refresh))
+		}
 	}, [])
 	const numericAmount = Number(amount)
 	const amountIsValid = Number.isFinite(numericAmount) && numericAmount > 0
@@ -147,6 +172,13 @@ export default function PaymentScreen() {
 	const underLimit = amountIsValid
 		? numericAmount <= limits.maxPerPayment
 		: undefined
+	// What is left of the cap is only known when the chain could be read.
+	const cap = limits.cap30d
+	const left = fromChain ? remainingCap(limits, fromChain.spentXlm) : undefined
+	const overCap =
+		fromChain && amountIsValid
+			? capShortfall(numericAmount, limits, fromChain.spentXlm)
+			: undefined
 	const stateOf = (ok: boolean | undefined): CheckState =>
 		ok === undefined ? "idle" : ok ? "pass" : "fail"
 	const checks: { label: string; detail?: string; state: CheckState }[] = [
@@ -165,7 +197,7 @@ export default function PaymentScreen() {
 		signature === "manager"
 			? { label: "No per-payment limit on the large rule", state: "pass" }
 			: {
-					label: `Within ${limits.maxPerPayment} XLM per payment`,
+					label: `Within ${formatXlm(limits.maxPerPayment)} XLM per payment`,
 					state: stateOf(underLimit),
 					detail:
 						underLimit === false
@@ -176,9 +208,24 @@ export default function PaymentScreen() {
 			? []
 			: [
 					{
-						label: `Within ${limits.cap30d.toLocaleString("en-US")} XLM every ${limits.periodDays} days`,
-						state: "idle" as const,
-						detail: "Spending is checked on-chain.",
+						label:
+							left === undefined
+								? `Within ${formatXlm(cap)} XLM every ${limits.periodDays} days`
+								: `Within what is left of the ${formatXlm(cap)} XLM ${limits.periodDays}-day cap`,
+						state:
+							overCap === undefined
+								? ("idle" as const)
+								: overCap === 0
+									? ("pass" as const)
+									: ("fail" as const),
+						detail:
+							left === undefined
+								? "Spending is checked on-chain."
+								: overCap
+									? left === 0
+										? `The cap is used up. Add the manager's signature to pay ${formatXlm(overCap)} XLM.`
+										: `${formatXlm(overCap)} XLM over what is left (${formatXlm(left)} of ${formatXlm(cap)} XLM). Add the manager's signature to go above it.`
+									: `${formatXlm(left)} of ${formatXlm(cap)} XLM left this period.`,
 					},
 				]),
 		{
