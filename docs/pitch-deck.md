@@ -11,6 +11,12 @@ HackMeridian 2026 · Genesis track · Stellar Composed. For judges watching offl
 
 Target length: 3 minutes of slides, 3 minutes of demo (video), live Q&A for finalists.
 
+**Pending before submission**
+
+- [ ] Real app screenshots on slide 4, and the R16 diagram (`docs/architecture.md`) on slide 7.
+- [ ] The `[links]` in the closing slide.
+- [ ] Confirm the Safe row in the alternatives (slide 8).
+
 ---
 
 ## Slide 1 — Title
