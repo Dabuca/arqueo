@@ -9,22 +9,42 @@ export interface PaymentFormInput {
 	concept: string
 }
 
+export type PaymentField =
+	| "company"
+	| "rule"
+	| "recipient"
+	| "amount"
+	| "concept"
+
+export interface PaymentBlocker {
+	field: PaymentField
+	message: string
+}
+
 /**
  * Why the payment cannot be sent yet, in the order the form is filled. Empty
- * when it can. The screen shows these next to the button, so a disabled button
- * always says what is missing.
+ * when it can. The screen marks each field and focuses the first one, so the
+ * user always sees what is missing.
  */
-export function paymentBlockers(form: PaymentFormInput): string[] {
-	if (!form.hasCompany) return ["Create the company account above"]
-	if (!form.ordinaryReady) return ["Set up the payment rule"]
+export function paymentBlockers(form: PaymentFormInput): PaymentBlocker[] {
+	if (!form.hasCompany) {
+		return [{ field: "company", message: "Create the company account above" }]
+	}
+	if (!form.ordinaryReady) {
+		return [{ field: "rule", message: "Set up the payment rule" }]
+	}
 
-	const blockers: string[] = []
-	if (!form.recipient.trim()) blockers.push("Enter the supplier account")
+	const blockers: PaymentBlocker[] = []
+	if (!form.recipient.trim()) {
+		blockers.push({ field: "recipient", message: "Enter the supplier account" })
+	}
 	const amount = Number(form.amount)
 	if (form.amount.trim() === "" || !Number.isFinite(amount) || amount <= 0) {
-		blockers.push("Enter an amount above 0")
+		blockers.push({ field: "amount", message: "Enter an amount above 0" })
 	}
-	if (!form.concept.trim()) blockers.push("Add a payment concept")
+	if (!form.concept.trim()) {
+		blockers.push({ field: "concept", message: "Add a payment concept" })
+	}
 	return blockers
 }
 

@@ -7,7 +7,12 @@ import {
 	pay,
 	setupOrdinaryRule,
 } from "../lib/stellar"
-import { paymentBlockers, SCENES, type Scene } from "./paymentForm"
+import {
+	paymentBlockers,
+	SCENES,
+	type PaymentField,
+	type Scene,
+} from "./paymentForm"
 import { outcomeFromResult, type Outcome } from "./paymentOutcome"
 import styles from "./PaymentScreen.module.css"
 
@@ -24,6 +29,25 @@ const configuredSuppliers: string[] = (import.meta.env.PUBLIC_SUPPLIERS ?? "")
 const shortAddress = (address: string) =>
 	`${address.slice(0, 6)}…${address.slice(-5)}`
 
+// Inputs to focus when a field blocks the payment.
+const FIELD_IDS: Partial<Record<PaymentField, string>> = {
+	recipient: "payment-supplier",
+	amount: "payment-amount",
+	concept: "payment-concept",
+}
+
+function FieldError({ id, message }: { id: string; message?: string }) {
+	return (
+		<p
+			id={id}
+			className={styles.fieldError}
+			role={message ? "alert" : undefined}
+		>
+			{message}
+		</p>
+	)
+}
+
 export default function PaymentScreen() {
 	const [supplier, setSupplier] = useState(configuredSuppliers[0] ?? "")
 	const [customSupplier, setCustomSupplier] = useState(false)
@@ -34,6 +58,7 @@ export default function PaymentScreen() {
 	const [setupHash, setSetupHash] = useState<string>()
 	const [setupError, setSetupError] = useState<string>()
 	const [outcome, setOutcome] = useState<Outcome>()
+	const [showErrors, setShowErrors] = useState(false)
 
 	const [company, setCompany] = useState(() => loadCompany())
 	useEffect(() => {
@@ -97,9 +122,31 @@ export default function PaymentScreen() {
 		}
 	}
 
+	const blockers = paymentBlockers({
+		hasCompany: Boolean(company),
+		ordinaryReady,
+		recipient,
+		amount,
+		concept,
+	})
+	const errorFor = (field: PaymentField) =>
+		showErrors
+			? blockers.find((blocker) => blocker.field === field)?.message
+			: undefined
+
 	const submitPayment = async (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault()
 		setOutcome(undefined)
+		// The button stays clickable: a click on an incomplete form points at
+		// what is missing instead of doing nothing.
+		const [first] = blockers
+		if (first) {
+			setShowErrors(true)
+			const id = FIELD_IDS[first.field]
+			if (id) document.getElementById(id)?.focus()
+			return
+		}
+		setShowErrors(false)
 		setBusy(true)
 		try {
 			const result = await pay({
@@ -119,15 +166,6 @@ export default function PaymentScreen() {
 		}
 	}
 
-	const blockers = paymentBlockers({
-		hasCompany: Boolean(company),
-		ordinaryReady,
-		recipient,
-		amount,
-		concept,
-	})
-	const canSubmit = blockers.length === 0 && !busy
-
 	return (
 		<section className={styles.screen} aria-labelledby="payment-title">
 			<div className={styles.heading}>
@@ -144,6 +182,7 @@ export default function PaymentScreen() {
 			<div className={styles.workspace}>
 				<form
 					className={styles.form}
+					noValidate
 					onSubmit={(event) => void submitPayment(event)}
 				>
 					<div className={styles.formTopline}>
@@ -185,6 +224,8 @@ export default function PaymentScreen() {
 									autoComplete="off"
 									spellCheck={false}
 									required
+									aria-invalid={Boolean(errorFor("recipient"))}
+									aria-describedby="payment-supplier-error"
 								/>
 								{configuredSuppliers.length > 0 && (
 									<button
@@ -207,6 +248,10 @@ export default function PaymentScreen() {
 									: "Only suppliers on the account allowlist can receive a payment."
 								: "No supplier list is configured in this testnet build. Enter an address to try the account rules."}
 						</p>
+						<FieldError
+							id="payment-supplier-error"
+							message={errorFor("recipient")}
+						/>
 					</div>
 
 					<div className={styles.amountConcept}>
@@ -221,9 +266,15 @@ export default function PaymentScreen() {
 									value={amount}
 									onChange={(event) => setAmount(event.target.value)}
 									required
+									aria-invalid={Boolean(errorFor("amount"))}
+									aria-describedby="payment-amount-error"
 								/>
 								<span>XLM</span>
 							</div>
+							<FieldError
+								id="payment-amount-error"
+								message={errorFor("amount")}
+							/>
 						</div>
 						<div className={styles.field}>
 							<label htmlFor="payment-concept">Payment concept</label>
@@ -234,6 +285,12 @@ export default function PaymentScreen() {
 								placeholder="e.g. Office supplies"
 								maxLength={80}
 								required
+								aria-invalid={Boolean(errorFor("concept"))}
+								aria-describedby="payment-concept-error"
+							/>
+							<FieldError
+								id="payment-concept-error"
+								message={errorFor("concept")}
 							/>
 						</div>
 					</div>
@@ -307,11 +364,7 @@ export default function PaymentScreen() {
 								{busy ? "Preparing account…" : "Set up payment rule"}
 							</button>
 						) : (
-							<button
-								className={styles.primary}
-								type="submit"
-								disabled={!canSubmit}
-							>
+							<button className={styles.primary} type="submit" disabled={busy}>
 								{busy ? "Checking account rules…" : "Simulate & pay"}
 							</button>
 						)}
@@ -319,7 +372,7 @@ export default function PaymentScreen() {
 							{company
 								? ordinaryReady
 									? blockers.length > 0
-										? `To enable: ${blockers.join(" · ")}`
+										? `Still missing: ${blockers.map((blocker) => blocker.message).join(" · ")}`
 										: "The account checks this before submission."
 									: "Add the ordinary rule before sending a payment."
 								: "Create a company account above to enable payments."}

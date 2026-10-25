@@ -356,6 +356,21 @@
 	font-size: 0.9rem;
 }
 
+.fieldError {
+	margin: 0.35rem 0 0;
+	color: var(--reject);
+	font-size: 0.85rem;
+}
+
+.fieldError:empty {
+	display: none;
+}
+
+.field [aria-invalid="true"] {
+	border-color: var(--reject);
+	box-shadow: 0 0 0 1px var(--reject);
+}
+
 .receipt {
 	position: relative;
 	margin: 1.25rem 0 0;

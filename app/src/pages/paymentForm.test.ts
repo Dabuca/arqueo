@@ -12,6 +12,9 @@ const ready: PaymentFormInput = {
 	concept: "Office supplies",
 }
 
+const messages = (form: PaymentFormInput) =>
+	paymentBlockers(form).map((blocker) => blocker.message)
+
 describe("paymentBlockers", () => {
 	it("has nothing to report when the form is complete", () => {
 		expect(paymentBlockers(ready)).toEqual([])
@@ -19,45 +22,45 @@ describe("paymentBlockers", () => {
 
 	it("reports an empty concept, which used to grey out the button silently", () => {
 		expect(paymentBlockers({ ...ready, concept: "" })).toEqual([
-			"Add a payment concept",
+			{ field: "concept", message: "Add a payment concept" },
 		])
-		expect(paymentBlockers({ ...ready, concept: "   " })).toEqual([
+		expect(messages({ ...ready, concept: "   " })).toEqual([
 			"Add a payment concept",
 		])
 	})
 
 	it("reports an empty recipient", () => {
 		expect(paymentBlockers({ ...ready, recipient: " " })).toEqual([
-			"Enter the supplier account",
+			{ field: "recipient", message: "Enter the supplier account" },
 		])
 	})
 
 	it.each(["", "0", "-5", "abc"])("reports the amount %j", (amount) => {
 		expect(paymentBlockers({ ...ready, amount })).toEqual([
-			"Enter an amount above 0",
+			{ field: "amount", message: "Enter an amount above 0" },
 		])
 	})
 
 	it("asks for the company account before the payment rule", () => {
 		expect(
 			paymentBlockers({ ...ready, hasCompany: false, ordinaryReady: false }),
-		).toEqual(["Create the company account above"])
+		).toEqual([
+			{ field: "company", message: "Create the company account above" },
+		])
 	})
 
 	it("asks for the payment rule when the company exists", () => {
 		expect(paymentBlockers({ ...ready, ordinaryReady: false })).toEqual([
-			"Set up the payment rule",
+			{ field: "rule", message: "Set up the payment rule" },
 		])
 	})
 
-	it("lists every missing field in form order", () => {
+	it("lists every missing field in form order, so the first one gets focus", () => {
 		expect(
-			paymentBlockers({ ...ready, recipient: "", amount: "", concept: "" }),
-		).toEqual([
-			"Enter the supplier account",
-			"Enter an amount above 0",
-			"Add a payment concept",
-		])
+			paymentBlockers({ ...ready, recipient: "", amount: "", concept: "" }).map(
+				(blocker) => blocker.field,
+			),
+		).toEqual(["recipient", "amount", "concept"])
 	})
 })
 
@@ -87,7 +90,7 @@ describe("SCENES", () => {
 		const scene = SCENES.unknown
 		expect(scene.unknownSupplier).toBe(true)
 		expect(
-			paymentBlockers({
+			messages({
 				...ready,
 				recipient: "",
 				amount: String(scene.amount),
