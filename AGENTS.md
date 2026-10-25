@@ -19,18 +19,20 @@
 
 ## 2. El MVP está terminado cuando estas 4 escenas salen en testnet de principio a fin
 
-1. Pago de **200** a un proveedor autorizado → pasa con la firma del empleado.
-2. Pago de **2.000** → rechazado con una sola firma; aceptado cuando firma también el responsable.
-3. Pago de **100** a una cuenta desconocida → rechazado por las reglas de la cuenta.
+1. Pago **por debajo del máximo por pago** a un proveedor autorizado → pasa con la firma del empleado.
+2. Pago **por encima del máximo por pago** → rechazado con una sola firma; aceptado cuando firma también el responsable.
+3. Pago a una cuenta **que no está en la lista de proveedores** → rechazado por las reglas de la cuenta.
 4. El auditor ve todos los pagos (también los intentos rechazados) y descarga un CSV.
+
+Los importes no son fijos: el flujo depende de los límites que fije el admin (§3). Con los valores por defecto (máximo 500 por pago, tope 1.000 cada 30 días), el vídeo puede usar, por ejemplo, 200, 800 y 100. El importe de la escena 2 tiene que superar el máximo por pago **sin superar el tope de 30 días**; si no, el rechazo podría venir del tope y no se vería el mensaje de «manager approval required».
 
 Precisión para el pitch: el rechazo ocurre al simular la transacción contra las reglas de la cuenta; si se enviara igualmente, la red la rechazaría.
 
-## 3. Matriz de controles (valores fijos: solo D los cambia)
+## 3. Matriz de controles (la estructura la cambia solo D; los importes y proveedores los fija el admin)
 
 | Rol | Firma con | Qué hace |
 |---|---|---|
-| `admin` | passkey | crea la cuenta, las reglas, los firmantes y los proveedores |
+| `admin` | passkey | crea la cuenta, las reglas y los firmantes; fija y cambia en cualquier momento los límites y los proveedores (§3.1) |
 | `employee` | clave Ed25519 de testnet guardada en el navegador (atajo de demo) | pagos ordinarios |
 | `manager` | passkey | segunda firma de los pagos grandes |
 | `auditor` | nada (solo lectura) | ve los pagos y exporta CSV |
@@ -38,14 +40,28 @@ Precisión para el pitch: el rechazo ocurre al simular la transacción contra la
 | Regla | Contexto | Firmantes | Políticas |
 |---|---|---|---|
 | `admin` | default | admin | ninguna (sin políticas se exige a todos los firmantes) |
-| `ordinary` | llamadas al contrato del token | employee | umbral 1 · `control-policy` {proveedores, máximo 500 por pago} · `spending_limit` de OpenZeppelin: 1.000 cada 30 días |
+| `ordinary` | llamadas al contrato del token | employee | umbral 1 · `control-policy` {proveedores, máximo por pago (por defecto 500)} · tope de gasto cada 30 días (por defecto 1.000; ver §3.1) |
 | `large` | llamadas al contrato del token | employee + manager | umbral 2 · `control-policy` {proveedores, sin máximo} |
 
-- **Proveedores autorizados** (rellenar en R1, aquí y en `scripts/`): `SUPPLIER_1 = G…` · `SUPPLIER_2 = G…` · `SUPPLIER_3 = G…`
+- **Proveedores autorizados:** los fija el admin. Cada uno puede ser una cuenta de demo generada en testnet o la dirección real que introduzca el admin. Tiene que existir en testnet (con fondos de Friendbot); si no, el pago fallaría por otra causa y no por la regla. La cuenta desconocida de la escena 3 también tiene que existir, pero fuera de la lista. Los de la demo los crea `scripts/` (R14).
 - **Token del MVP:** XLM nativo de testnet a través de su contrato de activo (SAC). **Importes en la unidad mínima: 1 XLM = 10.000.000 stroops.** USDC de testnet es un extra (R18).
 - **Ojo con OpenZeppelin:** sin políticas, una regla exige a todos sus firmantes; con políticas, son ellas las que deciden si bastan las firmas presentes. **Toda regla con políticas lleva una de umbral.** Máximo 15 firmantes y 5 políticas por regla.
 - La app elige la regla según quién firma: `['employee']` → `ordinary`; `['employee', 'manager']` → `large`.
 - En producción cada persona firmaría con su passkey en su dispositivo; las claves en el navegador son solo para la demo. Decidlo en el README y en el pitch.
+
+### 3.1 Cambios de límites y proveedores
+
+- Solo el admin, en cualquier momento, desde la pantalla de ajustes (R17) y con su passkey. Los cambios de reglas solo los autoriza la regla `admin`: el employee y el manager no pueden tocar límites ni proveedores.
+- Nada se actualiza en sitio: cada cambio **da de baja** la regla o política vieja y **da de alta** la nueva.
+- Nunca puede haber un momento en que `ordinary` acepte pagos sin sus controles. Si hay que elegir, la cuenta queda cerrada (nadie paga) mientras dura el cambio, nunca abierta.
+- La app busca las reglas por nombre, no por ID: cada alta crea un ID nuevo.
+- Ajustes **nunca** toca la regla `admin`: sin ella la cuenta queda bloqueada para siempre.
+- Todo cambio en Ajustes (máximo por pago, tope o proveedores) deja rastro para el auditor: qué cambió, valor anterior y nuevo, y hash de las transacciones.
+- **Tope de 30 días:**
+  - Se puede cambiar, pero **conserva lo gastado y el inicio del periodo**. Ejemplo: llevas 500 gastados de 1.000 y lo subes a 1.500 → te quedan 1.000.
+  - **Nunca puede fijarse por debajo de lo ya gastado**: ese cambio se rechaza.
+  - Cada cambio deja rastro auditable: tope anterior, tope nuevo, gastado en ese momento, inicio del periodo y hash de las transacciones de baja y de alta. El auditor lo ve.
+- **Pendiente de acuerdo con A (Carlos) y B (DavidB):** la `spending_limit` de OpenZeppelin no cumple lo anterior (al reinstalarla empieza de cero), así que el tope tendría que pasar a `control-policy`, guardando lo gastado por cuenta y comprobando en la cadena que el tope nuevo no baje de lo gastado (error nuevo 4). Afecta a §6.2 y a R4. Falta decidir si entra en R5 (P0) o en R17 (P1, con el tope de OpenZeppelin fijo hasta entonces).
 
 ## 4. Stack (versiones fijadas: no se actualiza nada durante el evento)
 
@@ -64,7 +80,7 @@ Precisión para el pitch: el rechazo ocurre al simular la transacción contra la
 | A — `<nombre>` | Contratos (Rust/Soroban) | `<IA>` | `contracts/` |
 | B — `<nombre>` | Cuenta y pagos (camino crítico) | `<IA>` | `src/lib/`, `scripts/` |
 | C — `<nombre>` | App y auditoría | `<IA>` | `src/pages/`, `src/components/`, `src/styles/` |
-| D — Jesús | Producto y entrega | `<IA>` | `README.md`, `docs/`, `AGENTS.md` |
+| D — Jesús | Producto y entrega | `<IA>` | `README.md`, `docs/`, `AGENTS.md`, `src/controls/` |
 
 - Cada carpeta tiene una dueña. **Una IA no edita fuera de la carpeta de su persona**, salvo un arreglo mínimo que se explica en el PR.
 - `packages/` lo genera Scaffold Stellar: **no se edita a mano**; se regenera con `stellar scaffold build`.
@@ -76,10 +92,13 @@ packages/                    generado por Scaffold Stellar (no tocar)
 src/lib/stellar.ts           B · ÚNICA puerta a la red: toda llamada a Stellar pasa por aquí
 src/lib/mocks.ts             B · versión simulada de stellar.ts para que C no espere
 src/pages/  src/components/  C · Payments, Auditor, Settings y selector de rol
+src/controls/                D · la matriz de controles como código (R1): límites, proveedores, regla según importe, rastro de cambios. Sin red: no llama a Stellar
 scripts/                     B · alta de cuenta, firmantes, reglas y proveedores (demo reproducible)
 docs/                        D · diagrama, guion del vídeo, matriz de controles
 README.md                    D
 ```
+
+En el scaffold, las rutas `src/…` de esta sección cuelgan de `app/src/` (por ejemplo, `app/src/lib/stellar.ts`).
 
 ## 6. Interfaces entre personas (no se cambian sin acuerdo de los afectados)
 
@@ -128,13 +147,34 @@ export function listPayments(): Promise<Payment[]>; // MVP: registro local + has
 | 3 | Operation not allowed by the account rules |
 | otro | Rejected by the account rules (error original en un desplegable «Details») |
 
+### 6.4 `src/controls/` — la matriz de controles como código (D → B, C)
+
+TypeScript puro y probado (`npm test --workspace app`). **No llama a la red**: lo que necesita de Stellar llega inyectado y lo implementa B en `stellar.ts`. Importes en XLM salvo donde dice stroops. Guía detallada: `app/src/controls/README.md`.
+
+| Módulo | Qué exporta | Quién lo usa |
+|---|---|---|
+| `types.ts` | `Limits`, `Supplier`, `ControlsConfig`, `ControlChange`, `CheckResult`; reexporta `Role` y `RuleName` de `stellar.ts` (una sola definición) | todos |
+| `defaults.ts` | `DEFAULT_LIMITS` (500 por pago, 1.000 cada 30 días), `DEFAULT_CONFIG`, `DEMO_AMOUNTS` (200 / 800 / 100) | B (alta de reglas, R14), C (pantallas) |
+| `units.ts` | `xlmToStroops` (exacto, bigint), `stroopsToXlm`, `roundToStroops` (solo para comparar) | B al construir pagos y parámetros |
+| `rules.ts` | `signersFor(rule)`, `ruleForSigners(signers)`, `requiredRule(amount, limits, spentInPeriod)` | C (aviso «Needs manager approval»), B |
+| `validation.ts` | `looksLikeStellarAddress`, `isSupplier`, `validateLimitsChange(next, spentInPeriod)` | Ajustes (R17) |
+| `params.ts` | `toControlParams(config, rule)` → `{ allowlist, maxPerPayment: bigint \| null }`, que encaja con `ControlParams` de §6.2 | B, para convertirlo a `xdr.ScVal` (R6, R17) |
+| `suppliers.ts` | `SupplierDeps`, `addRealSupplier`, `addDemoSupplier`, `removeSupplier`, `createOutsiderAccount` | Ajustes (R17), script de demo (R14) |
+| `changeLog.ts` | `createChangeLog(storage?)` → `record` / `list` / `clear`; `changesToCsv` | Ajustes (R17) escribe, auditor (R9, R13) lee |
+
+Reglas:
+- `requiredRule` es solo una pista para la interfaz. Quien decide es la cuenta en la cadena, y la app tiene que dejar intentar el pago solo con employee (escena 2).
+- **Pendiente para B (R17):** implementar `SupplierDeps` en `stellar.ts` (`isValidAddress`, `accountExists`, `createFundedAccount`). Es una ampliación de §6.1: se acuerda en el PR.
+- Para el auditor, cada cambio de Ajustes se registra con `record(...)` **después** de tener los hashes de baja y alta. En los cambios del tope, con `spentAtChange` y `periodStart`.
+- No dupliques aquí lógica de `stellar.ts` ni al revés. Si necesitas algo nuevo en `src/controls/`, pídeselo a D.
+
 ## 7. Requisitos
 
 P0 bloquea la demo · P1 completa el MVP · P2 solo si sobra tiempo. **Marcad la casilla en el mismo PR que termina el requisito.**
 
 ### P0 — bloqueantes, en orden de dependencia
 
-- [ ] **R1 [D]** Matriz de controles cerrada (§3, con los proveedores rellenos). *Antes de las 10:30.*
+- [x] **R1 [D]** Matriz de controles cerrada (§3 y §3.1: límites y proveedores los fija el admin, con valores por defecto para la demo) y programada en `src/controls/` (§6.4). *Antes de las 10:30.*
 - [x] **R2 [B]** Testnet listo: kit configurado con las direcciones de `demo/.env.example` (incluido el verificador Ed25519), cuentas con fondos de Friendbot y token = XLM. *Hecho = la app lee un saldo de testnet.*
 - [x] **R3 [B]** Cuenta de empresa creada con la passkey del admin, firmantes employee (Ed25519) y manager (passkey), y con saldo. *Hecho = dirección C… visible en stellar.expert.*
 - [ ] **R4 [B]** Regla `ordinary` (umbral 1 + `spending_limit`) y primer pago firmado solo por employee (ruta `multiSigners` del kit). *Hecho = hash en testnet.* **Control de las 14:00.**
@@ -181,7 +221,7 @@ P0 bloquea la demo · P1 completa el MVP · P2 solo si sobra tiempo. **Marcad la
 - Ramas `<persona>/<R#>-<tema>`, por ejemplo `b/R4-first-payment`. **Nada directo a `main`.**
 - Un R# por PR, pequeño, revisado por **otra persona** (los cuatro ojos también en el código). El PR dice: R# · qué cambia · cómo probarlo · qué falta · decisiones tomadas.
 - Commits en inglés: `feat(R4): first payment from smart account`, `fix(R6): …`, `test(R5): …`, `docs(R10): …`.
-- Antes de pedir revisión: `cargo test` si tocas `contracts/` y `npm run build` si tocas la app.
+- Antes de pedir revisión: `cargo test` si tocas `contracts/`, `npm run build --workspace app` si tocas la app y `npm test --workspace app` si tocas `app/src/controls/` o algo que lo use.
 - `.gitignore` con `node_modules/`, `target/`, `dist/`, `.env` y `.env.local`.
 - **Nunca se suben claves secretas** (empiezan por `S`), tampoco las de testnet: van en `.env.local`.
 - El código se escribe durante el evento: el progreso en el hackathon puntúa y se ve en los commits.
@@ -209,6 +249,11 @@ P0 bloquea la demo · P1 completa el MVP · P2 solo si sobra tiempo. **Marcad la
 |---|---|---|---|
 | 25-oct | Propuesta de Claude a Jesús; **pendiente de que la acepte el equipo** | Track Genesis · Stellar Composed; token XLM en testnet | plan inicial |
 | 25-oct | David (B) | El producto se llama **Arqueo** (antes FourEyes). Scaffold con `stellar scaffold init arqueo` | decisión de David; el resto del equipo debe confirmarlo |
+| 25-oct 14:35 | Jesús (D) | Los importes no son fijos: el admin fija y cambia en cualquier momento el máximo por pago, el tope de 30 días y los proveedores (§3.1, R17). Las escenas de §2 dependen de esos límites | cada empresa pone sus límites y el control vive en la cuenta |
+| 25-oct 14:35 | Jesús (D) | Los cambios se hacen con baja y alta, nunca en sitio. El tope de 30 días conserva lo gastado, no puede bajar de lo gastado y cada cambio deja rastro auditable con hashes (§3.1) | que un cambio de límites no sirva para saltarse el tope |
+| 25-oct 14:35 | Jesús (D); **pendiente de A y B** | Mover el tope de 30 días a `control-policy` (cambia §6.2 y R4) y decidir si entra en R5 o en R17 | la `spending_limit` de OpenZeppelin se reinicia al reinstalarla |
+| 25-oct 15:41 | Jesús (D) | R1 programado en `src/controls/` (§6.4) y mezclado en `develop`. Tests unitarios con vitest en el workspace `app` (`npm test --workspace app`); los e2e siguen con Playwright en `e2e/` | una sola fuente de verdad para límites, proveedores, regla según importe y rastro de cambios, probada sin red |
+| 25-oct 15:41 | Jesús (D) | `Role` y `RuleName` se definen solo en `stellar.ts`; `src/controls/types.ts` los reexporta. `src/controls/units.ts` no exporta `STROOPS_PER_XLM` (ya lo exporta `stellar.ts`, como número) | evitar dos definiciones con el mismo nombre |
 
 ## 12. Enlaces
 
@@ -228,6 +273,10 @@ cargo install --locked stellar-scaffold-cli
 stellar scaffold init arqueo
 npm start                  # app en local
 stellar scaffold build     # compila los contratos y regenera packages/
+
+# App
+npm test --workspace app            # tests unitarios (vitest): app/src/controls
+npm run build --workspace app       # tsc + vite build
 
 # Contrato
 cargo test                 # dentro de contracts/control-policy

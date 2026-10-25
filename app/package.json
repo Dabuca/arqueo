@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "format": "prettier . --write",
     "prepare": "husky",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "test": "vitest run"
   },
   "dependencies": {
     "@stellar-scaffold/app-lib": "*",
@@ -41,7 +42,8 @@
     "typescript": "^6.0.2",
     "vite": "^8.0.0",
     "vite-plugin-node-polyfills": "^0.28.0",
-    "vite-plugin-wasm": "^3.6.0"
+    "vite-plugin-wasm": "^3.6.0",
+    "vitest": "5.0.5"
   },
   "lint-staged": {
     "**/*": [

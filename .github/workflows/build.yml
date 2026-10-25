@@ -17,14 +17,12 @@ jobs:
       - uses: actions/checkout@v4
 
       # ---- Fast checks first ----
-      # Fail in seconds on dep drift / lint / format before the multi-minute CLI
-      # build + Docker network below, so trivial fixes don't pay the full cost.
-
-      # Shared toolchain deps must stay in lockstep across templates (contributor
-      # guard; end users only ever instantiate one template). Reads package.json
-      # only — no install needed, so it runs first.
-      - name: Check template dependency parity
-        run: node scripts/check-dep-parity.mjs
+      # Fail in seconds on lint / format before the multi-minute CLI build +
+      # Docker network below, so trivial fixes don't pay the full cost.
+      #
+      # The scaffold monorepo also ran scripts/check-dep-parity.mjs here. It
+      # compares the dependencies of every app under templates/, which
+      # `stellar scaffold init` removes, so in this project it always failed.
 
       - run: npm ci
       - run: npm run lint
@@ -173,9 +171,16 @@ jobs:
             echo "Expected $INDEX to exist and be non-empty after client generation."
             exit 1
           fi
-          # Count one client constructor per contract; the shared `options`
-          # export is not a client
-          EXPECTED=$(find contracts -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
+          # Count one client constructor per contract that scaffold.yml
+          # declares; the shared `options` export is not a client. A folder
+          # under contracts/ that scaffold.yml does not list (such as
+          # control-policy, deployed outside the scaffold) gets no client.
+          EXPECTED=0
+          for dir in contracts/*/; do
+            if grep -Eq "^  $(basename "$dir"):" scaffold.yml; then
+              EXPECTED=$((EXPECTED + 1))
+            fi
+          done
           ACTUAL=$(grep -c "^export const .* = new " "$INDEX" || true)
           if [ "$ACTUAL" -ne "$EXPECTED" ]; then
             echo "Expected $EXPECTED client(s) in $INDEX, found $ACTUAL."

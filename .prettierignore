@@ -18,3 +18,12 @@ app-lib/clients
 # Test output
 test-results
 playwright-report
+
+# Vendored Stellar dev skills (and the lock that pins their contents)
+.agents
+skills-lock.json
+
+# Team planning docs, written by hand
+AGENTS.md
+REPARTO.md
+docs

@@ -10,10 +10,12 @@
 
 El MVP está terminado cuando las 4 escenas del `AGENTS.md` §2 funcionan en testnet de principio a fin:
 
-1. Pago de **200** a un proveedor autorizado → pasa con la firma del empleado.
-2. Pago de **2.000** → rechazado con una sola firma; aceptado con la del responsable.
-3. Pago de **100** a una cuenta desconocida → rechazado por las reglas de la cuenta.
+1. Pago **por debajo del máximo por pago** a un proveedor autorizado → pasa con la firma del empleado.
+2. Pago **por encima del máximo por pago** → rechazado con una sola firma; aceptado con la del responsable.
+3. Pago a una cuenta **que no está en la lista de proveedores** → rechazado por las reglas de la cuenta.
 4. El auditor ve todos los pagos (también los rechazados) y descarga un CSV.
+
+Los límites los fija el admin (`AGENTS.md` §3.1). Con los valores por defecto, la demo usa 200, 800 y 100 XLM (`app/src/controls/defaults.ts`).
 
 Controles de `AGENTS.md` §8: **14:00** pago real desde la smart account (R4). **20:00** las 4 escenas funcionan y se congelan las funcionalidades. **11:30** enviado.
 
