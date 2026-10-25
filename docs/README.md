@@ -6,5 +6,8 @@ Internal documentation for the HackMeridian 2026 team. The rules for working in 
 |---|---|---|
 | [mvp-features.md](mvp-features.md) | The MVP in product terms: the four demo scenes, roles, rules, and each feature with its requirement ID and done criteria | English |
 | [mvp-roadmap.md](mvp-roadmap.md) | Build order, critical path, branches and merge order, dependencies, open decisions | Spanish |
+| [../app/src/controls/README.md](../app/src/controls/README.md) | The controls matrix as code (R1): limits, suppliers, rule per amount, settings change log, and how B and C use it | English |
 
-Planned, not yet written: `controls-matrix.md` (R1), architecture diagram (R16), demo video script.
+The controls matrix itself (R1) lives in `AGENTS.md` §3 and §3.1, and in code in `app/src/controls/` (interface in `AGENTS.md` §6.4).
+
+Planned, not yet written: architecture diagram (R16), demo video script.

@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest"
-import {
-	roundToStroops,
-	STROOPS_PER_XLM,
-	stroopsToXlm,
-	xlmToStroops,
-} from "./units"
+import { roundToStroops, stroopsToXlm, xlmToStroops } from "./units"
 
 describe("xlmToStroops", () => {
 	it.each<[string | number, bigint]>([
@@ -80,8 +75,8 @@ describe("roundToStroops", () => {
 	})
 })
 
-describe("STROOPS_PER_XLM", () => {
-	it("is what turns 1 XLM into 10,000,000 stroops", () => {
-		expect(xlmToStroops("1")).toBe(STROOPS_PER_XLM)
+describe("stroops per XLM", () => {
+	it("turns 1 XLM into 10,000,000 stroops", () => {
+		expect(xlmToStroops("1")).toBe(10_000_000n)
 	})
 })

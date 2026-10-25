@@ -1,5 +1,6 @@
-export type Role = "admin" | "employee" | "manager" | "auditor"
-export type RuleName = "ordinary" | "large"
+// One definition for the whole app: stellar.ts owns these (AGENTS.md §6.1).
+// Type-only, so nothing from the network layer is loaded at runtime.
+export type { Role, RuleName } from "../lib/stellar"
 
 /** Limits set by the admin. Amounts in XLM. They apply to the `ordinary` rule. */
 export interface Limits {

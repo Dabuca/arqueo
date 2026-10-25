@@ -1,4 +1,5 @@
-export const STROOPS_PER_XLM = 10_000_000n
+// Not exported: stellar.ts already exports a numeric STROOPS_PER_XLM.
+const STROOPS_PER_XLM = 10_000_000n
 
 const DECIMALS = 7
 
