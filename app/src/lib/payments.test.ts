@@ -5,6 +5,7 @@ import {
 	employeeSelectedSigner,
 	ordinaryRuleParams,
 	paymentLog,
+	parseSuppliers,
 	paymentRecord,
 	ruleFor,
 	sortedPolicies,
@@ -175,5 +176,25 @@ describe("controlPolicyParams", () => {
 		const keys = Object.keys(native)
 
 		expect(keys).toEqual(["allowlist", "max_per_payment"])
+	})
+})
+
+describe("parseSuppliers", () => {
+	const a = Keypair.random().publicKey()
+	const b = Keypair.random().publicKey()
+
+	it("reads comma-separated G addresses, ignoring spaces and empty items", () => {
+		expect(parseSuppliers(` ${a} , ,${b} `)).toEqual([a, b])
+	})
+
+	it("returns an empty list when nothing is configured", () => {
+		expect(parseSuppliers("")).toEqual([])
+		expect(parseSuppliers(undefined)).toEqual([])
+	})
+
+	it("rejects anything that is not a G address, so a typo cannot silently drop a supplier", () => {
+		expect(() => parseSuppliers(`${a},not-an-address`)).toThrow(
+			"Invalid supplier address: not-an-address",
+		)
 	})
 })
