@@ -26,7 +26,8 @@ export function xlmToStroops(xlm: string | number): bigint {
 		}
 		throw new Error(`Not a valid XLM amount: ${text}`)
 	}
-	const [, whole, fraction = ""] = match
+	// Group 1 always matches; its default only satisfies noUncheckedIndexedAccess.
+	const [, whole = "0", fraction = ""] = match
 	if (fraction.length > DECIMALS) {
 		throw new Error(`XLM amount has more than ${DECIMALS} decimals: ${text}`)
 	}
