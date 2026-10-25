@@ -1,6 +1,12 @@
-import { Check, Circle, CircleCheck, Copy, ExternalLink, Minus } from "lucide-react"
+import {
+	Check,
+	Circle,
+	CircleCheck,
+	Copy,
+	ExternalLink,
+	Minus,
+} from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
-import { DEFAULT_LIMITS } from "../controls/defaults"
 import {
 	createCompanyAccount,
 	fundCompanyAccount,
@@ -8,8 +14,11 @@ import {
 	installControlPolicy,
 	listPayments,
 	loadCompany,
+	loadControlsConfig,
+	readControlState,
 	setupLargeRule,
 	setupOrdinaryRule,
+	type ControlState,
 	type Payment,
 } from "../lib/stellar"
 import ui from "../styles/ui.module.css"
@@ -32,14 +41,13 @@ const testnetTx = (hash: string) =>
 const DAY_MS = 86_400_000
 
 // Approximate: ordinary-rule payments that settled in this browser's journal, not read from the chain.
-const spentInPeriod = (payments: Payment[]) =>
+const spentInPeriod = (payments: Payment[], periodDays: number) =>
 	payments
 		.filter(
 			(payment) =>
 				payment.status === "ok" &&
 				payment.rule === "ordinary" &&
-				Date.now() - new Date(payment.at).getTime() <=
-					DEFAULT_LIMITS.periodDays * DAY_MS,
+				Date.now() - new Date(payment.at).getTime() <= periodDays * DAY_MS,
 		)
 		.reduce((total, payment) => total + payment.amount, 0)
 
@@ -73,13 +81,7 @@ const STEP_COPY: Record<
 	},
 }
 
-function RuleIcon({
-	done,
-	optional,
-}: {
-	done: boolean
-	optional?: boolean
-}) {
+function RuleIcon({ done, optional }: { done: boolean; optional?: boolean }) {
 	const changed = useChanged(done)
 	return (
 		<span
@@ -101,6 +103,10 @@ export function CompanyBalance() {
 	const [company, setCompany] = useState(() => loadCompany())
 	const [balance, setBalance] = useState<BalanceState>({ status: "loading" })
 	const [spent, setSpent] = useState<number>()
+	// What the chain enforces, when it can be read: it wins over the journal.
+	const [chain, setChain] = useState<ControlState>()
+	const fromChain = chain?.source === "chain" ? chain : undefined
+	const limits = (fromChain?.config ?? loadControlsConfig()).limits
 	const [working, setWorking] = useState<Step>()
 	const [error, setError] = useState<string>()
 	const [lastTx, setLastTx] = useState<string>()
@@ -135,15 +141,24 @@ export function CompanyBalance() {
 
 	const refreshSpent = useCallback(() => {
 		listPayments()
-			.then((payments) => setSpent(spentInPeriod(payments)))
+			.then((payments) =>
+				setSpent(
+					spentInPeriod(payments, loadControlsConfig().limits.periodDays),
+				),
+			)
 			.catch(() => setSpent(undefined))
+		readControlState()
+			.then(setChain)
+			.catch(() => undefined)
 	}, [])
 
 	useEffect(() => {
 		refreshSpent()
 		window.addEventListener("arqueo:payment-recorded", refreshSpent)
+		window.addEventListener("arqueo:company-updated", refreshSpent)
 		window.addEventListener("storage", refreshSpent)
 		return () => {
+			window.removeEventListener("arqueo:company-updated", refreshSpent)
 			window.removeEventListener("arqueo:payment-recorded", refreshSpent)
 			window.removeEventListener("storage", refreshSpent)
 		}
@@ -221,7 +236,7 @@ export function CompanyBalance() {
 			name: "Ordinary rule",
 			done: ordinaryReady,
 			text: ordinaryReady
-				? `Employee, up to ${DEFAULT_LIMITS.maxPerPayment} XLM per payment`
+				? `Employee, up to ${formatXlm(limits.maxPerPayment)} XLM per payment`
 				: "Not set up",
 		},
 		{
@@ -280,7 +295,9 @@ export function CompanyBalance() {
 						disabled={working !== undefined}
 					>
 						{working === "create" && <Spinner />}
-						{working === "create" ? "Creating account…" : "Create company account"}
+						{working === "create"
+							? "Creating account…"
+							: "Create company account"}
 					</button>
 				</div>
 			) : (
@@ -311,7 +328,11 @@ export function CompanyBalance() {
 									rel="noreferrer"
 									aria-label="View account on Stellar Expert"
 								>
-									<ExternalLink size={15} strokeWidth={1.8} aria-hidden="true" />
+									<ExternalLink
+										size={15}
+										strokeWidth={1.8}
+										aria-hidden="true"
+									/>
 								</a>
 								<span className={ui.srOnly} role="status">
 									{copied ? "Address copied" : ""}
@@ -341,16 +362,21 @@ export function CompanyBalance() {
 							</dd>
 						</div>
 
-						{spent !== undefined && (
+						{(fromChain ? true : spent !== undefined) && (
 							<div className={styles.item}>
 								<dt className={ui.label}>Spent, 30 days</dt>
 								<dd>
 									<span className={styles.spent}>
-										≈ {formatXlm(spent)} / {DEFAULT_LIMITS.cap30d.toLocaleString("en-US")}
+										{fromChain ? "" : "≈ "}
+										{formatXlm(
+											fromChain ? fromChain.spentXlm : (spent ?? 0),
+										)} / {formatXlm(limits.cap30d)}
 										<span className={styles.unit}>XLM</span>
 									</span>
 									<span className={styles.caption}>
-										Ordinary rule, from this browser&rsquo;s journal
+										{fromChain
+											? "Ordinary rule, read from the chain"
+											: "Ordinary rule, from this browser\u2019s journal"}
 									</span>
 								</dd>
 							</div>
@@ -366,7 +392,11 @@ export function CompanyBalance() {
 										<strong>
 											{rule.name}
 											<span className={ui.srOnly}>
-												{rule.done ? ": ready" : rule.optional ? ": optional" : ": to do"}
+												{rule.done
+													? ": ready"
+													: rule.optional
+														? ": optional"
+														: ": to do"}
 											</span>
 										</strong>
 										<span>{rule.text}</span>
@@ -387,7 +417,9 @@ export function CompanyBalance() {
 									disabled={working !== undefined}
 								>
 									{working === next && <Spinner />}
-									{working === next ? STEP_COPY[next].busy : STEP_COPY[next].label}
+									{working === next
+										? STEP_COPY[next].busy
+										: STEP_COPY[next].label}
 								</button>
 								<span className={styles.caption}>{STEP_COPY[next].note}</span>
 							</div>

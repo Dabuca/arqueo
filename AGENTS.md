@@ -201,7 +201,7 @@ P0 bloquea la demo · P1 completa el MVP · P2 solo si sobra tiempo. **Marcad la
 - [ ] **R15 [C]** App publicada en una URL con aviso «testnet only».
 - [ ] **R16 [D]** Diagrama de arquitectura para el README y el deck.
 - [ ] **R17 [B+C]** Pantalla de configuración: añadir o quitar proveedores y cambiar límites, con la firma del admin. Código y tests listos en `d/R17-settings` (ruta `/settings`); el `control-policy` nuevo ya está desplegado en testnet y probado en cadena con una cuenta clásica (ver §11); **falta** probar un cambio completo desde `/settings` con la passkey del admin antes de marcarla.
-- [ ] **R23 [B+C]** Pantalla de pago: muestra cuánto queda del tope de 30 días y por cuánto se supera cuando un rechazo es por tope. Necesita leer el gasto del periodo desde la cadena (depende de la decisión pendiente de §3.1 sobre dónde vive el tope). *Hecho = un rechazo por tope indica restante y exceso.*
+- [ ] **R23 [B+C]** Pantalla de pago: muestra cuánto queda del tope de 30 días y por cuánto se supera cuando un rechazo es por tope. Necesita leer el gasto del periodo desde la cadena (depende de la decisión pendiente de §3.1 sobre dónde vive el tope). *Hecho = un rechazo por tope indica restante y exceso.* Hecho en la pantalla de pago y en la tarjeta de la cuenta: leen el tope y lo gastado de la cadena (`readControlState`) y, si no se puede leer, usan lo guardado y el diario del navegador. Probado con datos reales de testnet; falta verlo con una cuenta inteligente con gasto real antes de marcarla.
 
 ### P2 — si sobra tiempo
 
