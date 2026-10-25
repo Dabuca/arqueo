@@ -17,6 +17,7 @@
     "e2e"
   ],
   "devDependencies": {
+    "@stellar/stellar-sdk": "16.4.1",
     "prettier": "^3.8.3"
   },
   "prettier": "@theahaco/ts-config/prettier",

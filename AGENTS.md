@@ -177,7 +177,7 @@ P0 bloquea la demo · P1 completa el MVP · P2 solo si sobra tiempo. **Marcad la
 - [x] **R1 [D]** Matriz de controles cerrada (§3 y §3.1: límites y proveedores los fija el admin, con valores por defecto para la demo) y programada en `src/controls/` (§6.4). *Antes de las 10:30.*
 - [x] **R2 [B]** Testnet listo: kit configurado con las direcciones de `demo/.env.example` (incluido el verificador Ed25519), cuentas con fondos de Friendbot y token = XLM. *Hecho = la app lee un saldo de testnet.*
 - [x] **R3 [B]** Cuenta de empresa creada con la passkey del admin, firmantes employee (Ed25519) y manager (passkey), y con saldo. *Hecho = dirección C… visible en stellar.expert.*
-- [ ] **R4 [B]** Regla `ordinary` (umbral 1 + `spending_limit`) y primer pago firmado solo por employee (ruta `multiSigners` del kit). *Hecho = hash en testnet.* **Control de las 14:00.**
+- [x] **R4 [B]** Regla `ordinary` (umbral 1 + `spending_limit`) y primer pago firmado solo por employee (ruta `multiSigners` del kit). *Hecho = hash en testnet.* **Control de las 14:00.**
 - [x] **R5 [A]** `control-policy` con tests (pasa · proveedor desconocido · importe excesivo) y desplegada en testnet. *Hecho = ID del contrato y `cargo test` en verde.*
 - [x] **R6 [A+B]** Política instalada en `ordinary` y `large` (parámetros como `xdr.ScVal`). *Hecho = la escena 3 se rechaza.*
 - [ ] **R7 [B]** Regla `large` (umbral 2) y pago multifirma. *Hecho = escena 2.*
