@@ -524,7 +524,7 @@ export default function Settings() {
 						</ul>
 						<p className={styles.hint}>
 							{plan && plan.swaps.length > 0
-								? `${plan.swaps.length * 2} transactions, each signed with the admin passkey: for every affected rule the new one is added first, then the old one is retired, so payments are never left uncontrolled.`
+								? `${plan.swaps.length * 2} transactions, each signed with the admin passkey: for every affected rule the new one is added first, then the old one is retired, so payments are never left uncontrolled. A tighter limit or a removed supplier applies once the old rule is retired, a few seconds after the new one is added.`
 								: "No rule exists on chain yet: these settings are used when the rules are created."}
 						</p>
 					</>

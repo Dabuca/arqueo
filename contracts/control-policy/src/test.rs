@@ -1,17 +1,20 @@
 extern crate std;
 
 use soroban_sdk::{
-    Address, Env, IntoVal, String, Vec,
+    Address, Env, Event, IntoVal, String, Vec,
     auth::{Context, ContractContext},
     symbol_short,
-    testutils::{Address as _, Ledger as _},
+    testutils::{Address as _, Events as _, Ledger as _},
 };
 use stellar_accounts::{
     policies::{Policy, PolicyClient},
     smart_account::{ContextRule, ContextRuleType, Signer},
 };
 
-use crate::contract::{ControlParams, ControlPolicy, ControlPolicyClient};
+use crate::contract::{
+    ControlParams, ControlPolicy, ControlPolicyClient, PaymentApproved, PolicyInstalled,
+    PolicyUninstalled,
+};
 
 // Each policy call runs in its own contract frame: `require_auth` on the same
 // smart account cannot be authorized twice within one frame.
@@ -368,8 +371,20 @@ fn payments_within_the_cap_accumulate() {
         &rule,
         &sa,
     );
-    enforce(&e, &policy, &rule, &sa, transfer_context(&e, &supplier, 400));
-    enforce(&e, &policy, &rule, &sa, transfer_context(&e, &supplier, 400));
+    enforce(
+        &e,
+        &policy,
+        &rule,
+        &sa,
+        transfer_context(&e, &supplier, 400),
+    );
+    enforce(
+        &e,
+        &policy,
+        &rule,
+        &sa,
+        transfer_context(&e, &supplier, 400),
+    );
 
     assert_eq!(view.spend_state(&sa, &PERIOD).spent, 800);
 }
@@ -391,10 +406,28 @@ fn payment_over_the_remaining_cap_is_rejected() {
         &rule,
         &sa,
     );
-    enforce(&e, &policy, &rule, &sa, transfer_context(&e, &supplier, 500));
-    enforce(&e, &policy, &rule, &sa, transfer_context(&e, &supplier, 400));
+    enforce(
+        &e,
+        &policy,
+        &rule,
+        &sa,
+        transfer_context(&e, &supplier, 500),
+    );
+    enforce(
+        &e,
+        &policy,
+        &rule,
+        &sa,
+        transfer_context(&e, &supplier, 400),
+    );
     // 900 spent: 101 more would pass 1,000 while staying under the maximum.
-    enforce(&e, &policy, &rule, &sa, transfer_context(&e, &supplier, 101));
+    enforce(
+        &e,
+        &policy,
+        &rule,
+        &sa,
+        transfer_context(&e, &supplier, 101),
+    );
 }
 
 #[test]
@@ -420,7 +453,10 @@ fn per_payment_maximum_is_checked_before_the_cap() {
         &rule,
         &sa,
     );
-    assert_eq!(over_max, Err(Ok(soroban_sdk::Error::from_contract_error(2))));
+    assert_eq!(
+        over_max,
+        Err(Ok(soroban_sdk::Error::from_contract_error(2)))
+    );
 }
 
 #[test]
@@ -468,13 +504,31 @@ fn the_period_resets_when_it_ends() {
         &rule,
         &sa,
     );
-    enforce(&e, &policy, &rule, &sa, transfer_context(&e, &supplier, 500));
-    enforce(&e, &policy, &rule, &sa, transfer_context(&e, &supplier, 500));
+    enforce(
+        &e,
+        &policy,
+        &rule,
+        &sa,
+        transfer_context(&e, &supplier, 500),
+    );
+    enforce(
+        &e,
+        &policy,
+        &rule,
+        &sa,
+        transfer_context(&e, &supplier, 500),
+    );
     assert_eq!(view.spend_state(&sa, &PERIOD).spent, 1_000);
 
     advance_ledgers(&e, PERIOD);
     assert_eq!(view.spend_state(&sa, &PERIOD).spent, 0);
-    enforce(&e, &policy, &rule, &sa, transfer_context(&e, &supplier, 500));
+    enforce(
+        &e,
+        &policy,
+        &rule,
+        &sa,
+        transfer_context(&e, &supplier, 500),
+    );
     assert_eq!(view.spend_state(&sa, &PERIOD).spent, 500);
 }
 
@@ -496,7 +550,13 @@ fn spent_survives_replacing_the_rule() {
         &old_rule,
         &sa,
     );
-    enforce(&e, &policy, &old_rule, &sa, transfer_context(&e, &supplier, 500));
+    enforce(
+        &e,
+        &policy,
+        &old_rule,
+        &sa,
+        transfer_context(&e, &supplier, 500),
+    );
     let before = view.spend_state(&sa, &PERIOD);
 
     // Raise the cap: add the replacement first, then retire the old rule.
@@ -511,8 +571,20 @@ fn spent_survives_replacing_the_rule() {
 
     // 500 spent and 1,500 allowed leaves 1,000, and the period did not restart.
     assert_eq!(view.spend_state(&sa, &PERIOD), before);
-    enforce(&e, &policy, &new_rule, &sa, transfer_context(&e, &supplier, 500));
-    enforce(&e, &policy, &new_rule, &sa, transfer_context(&e, &supplier, 500));
+    enforce(
+        &e,
+        &policy,
+        &new_rule,
+        &sa,
+        transfer_context(&e, &supplier, 500),
+    );
+    enforce(
+        &e,
+        &policy,
+        &new_rule,
+        &sa,
+        transfer_context(&e, &supplier, 500),
+    );
     assert_eq!(view.spend_state(&sa, &PERIOD).spent, 1_500);
 }
 
@@ -537,8 +609,20 @@ fn both_rules_count_against_the_same_cap_while_they_overlap() {
             &sa,
         );
     }
-    enforce(&e, &policy, &old_rule, &sa, transfer_context(&e, &supplier, 500));
-    enforce(&e, &policy, &new_rule, &sa, transfer_context(&e, &supplier, 500));
+    enforce(
+        &e,
+        &policy,
+        &old_rule,
+        &sa,
+        transfer_context(&e, &supplier, 500),
+    );
+    enforce(
+        &e,
+        &policy,
+        &new_rule,
+        &sa,
+        transfer_context(&e, &supplier, 500),
+    );
     // The cap is 1,000 in total, not 1,000 per rule.
     let third = client.try_enforce(
         &transfer_context(&e, &supplier, 1),
@@ -568,8 +652,20 @@ fn a_cap_below_what_was_spent_cannot_be_installed() {
         &old_rule,
         &sa,
     );
-    enforce(&e, &policy, &old_rule, &sa, transfer_context(&e, &supplier, 500));
-    enforce(&e, &policy, &old_rule, &sa, transfer_context(&e, &supplier, 300));
+    enforce(
+        &e,
+        &policy,
+        &old_rule,
+        &sa,
+        transfer_context(&e, &supplier, 500),
+    );
+    enforce(
+        &e,
+        &policy,
+        &old_rule,
+        &sa,
+        transfer_context(&e, &supplier, 300),
+    );
 
     let lowered = client.try_install(
         &capped_params(&e, &supplier, Some(500), 700, PERIOD).into_val(&e),
@@ -603,7 +699,13 @@ fn a_cap_below_what_was_spent_is_allowed_once_the_period_ended() {
         &old_rule,
         &sa,
     );
-    enforce(&e, &policy, &old_rule, &sa, transfer_context(&e, &supplier, 500));
+    enforce(
+        &e,
+        &policy,
+        &old_rule,
+        &sa,
+        transfer_context(&e, &supplier, 500),
+    );
     advance_ledgers(&e, PERIOD);
 
     install(
@@ -635,7 +737,13 @@ fn spent_is_kept_per_account() {
             account,
         );
     }
-    enforce(&e, &policy, &rule, &sa, transfer_context(&e, &supplier, 500));
+    enforce(
+        &e,
+        &policy,
+        &rule,
+        &sa,
+        transfer_context(&e, &supplier, 500),
+    );
     assert_eq!(view.spend_state(&other, &PERIOD).spent, 0);
 }
 
@@ -650,7 +758,13 @@ fn a_rule_without_a_cap_does_not_touch_the_spend_state() {
     let rule = context_rule(&e);
 
     install(&e, &policy, params(&e, &supplier, None), &rule, &sa);
-    enforce(&e, &policy, &rule, &sa, transfer_context(&e, &supplier, 10_000));
+    enforce(
+        &e,
+        &policy,
+        &rule,
+        &sa,
+        transfer_context(&e, &supplier, 10_000),
+    );
     assert_eq!(view.spend_state(&sa, &PERIOD).spent, 0);
 }
 
@@ -727,4 +841,245 @@ fn get_params_reads_what_is_installed() {
     assert_eq!(view.get_params(&sa, &7), Some(installed));
     uninstall(&e, &policy, &rule, &sa);
     assert_eq!(view.get_params(&sa, &7), None);
+}
+
+#[test]
+#[should_panic(expected = "period_ledgers cannot be above 30 days")]
+fn install_with_a_period_over_thirty_days_is_rejected() {
+    let e = Env::default();
+    e.mock_all_auths();
+    let policy = e.register(ControlPolicy, ());
+    let sa = Address::generate(&e);
+    let supplier = Address::generate(&e);
+    let rule = context_rule(&e);
+
+    install(
+        &e,
+        &policy,
+        capped_params(&e, &supplier, None, 1_000, 30 * 17_280 + 1),
+        &rule,
+        &sa,
+    );
+}
+
+#[test]
+fn a_period_of_exactly_thirty_days_is_allowed() {
+    let e = Env::default();
+    e.mock_all_auths();
+    let policy = e.register(ControlPolicy, ());
+    let sa = Address::generate(&e);
+    let supplier = Address::generate(&e);
+    let rule = context_rule(&e);
+
+    install(
+        &e,
+        &policy,
+        capped_params(&e, &supplier, None, 1_000, 30 * 17_280),
+        &rule,
+        &sa,
+    );
+}
+
+// Events let the auditor rebuild the history from the chain.
+
+#[test]
+fn install_emits_an_event_with_the_parameters() {
+    let e = Env::default();
+    e.mock_all_auths();
+    let policy = e.register(ControlPolicy, ());
+    let sa = Address::generate(&e);
+    let supplier = Address::generate(&e);
+    let rule = rule_with_id(&e, 3);
+    let installed = capped_params(&e, &supplier, Some(500), 1_000, PERIOD);
+
+    install(&e, &policy, installed.clone(), &rule, &sa);
+
+    assert_eq!(
+        e.events().all().filter_by_contract(&policy),
+        std::vec![
+            PolicyInstalled {
+                smart_account: sa,
+                context_rule_id: 3,
+                params: installed,
+            }
+            .to_xdr(&e, &policy)
+        ]
+    );
+}
+
+#[test]
+fn an_accepted_payment_emits_an_event_with_the_running_total() {
+    let e = Env::default();
+    e.mock_all_auths();
+    let policy = e.register(ControlPolicy, ());
+    let sa = Address::generate(&e);
+    let supplier = Address::generate(&e);
+    let rule = rule_with_id(&e, 3);
+
+    install(
+        &e,
+        &policy,
+        capped_params(&e, &supplier, Some(500), 1_000, PERIOD),
+        &rule,
+        &sa,
+    );
+    enforce(
+        &e,
+        &policy,
+        &rule,
+        &sa,
+        transfer_context(&e, &supplier, 300),
+    );
+
+    assert_eq!(
+        e.events().all().filter_by_contract(&policy),
+        std::vec![
+            PaymentApproved {
+                smart_account: sa,
+                context_rule_id: 3,
+                to: supplier,
+                amount: 300,
+                spent: 300,
+            }
+            .to_xdr(&e, &policy)
+        ]
+    );
+}
+
+#[test]
+fn a_rule_without_a_cap_reports_zero_spent_in_its_event() {
+    let e = Env::default();
+    e.mock_all_auths();
+    let policy = e.register(ControlPolicy, ());
+    let sa = Address::generate(&e);
+    let supplier = Address::generate(&e);
+    let rule = context_rule(&e);
+
+    install(&e, &policy, params(&e, &supplier, None), &rule, &sa);
+    enforce(
+        &e,
+        &policy,
+        &rule,
+        &sa,
+        transfer_context(&e, &supplier, 300),
+    );
+
+    assert_eq!(
+        e.events().all().filter_by_contract(&policy),
+        std::vec![
+            PaymentApproved {
+                smart_account: sa,
+                context_rule_id: rule.id,
+                to: supplier,
+                amount: 300,
+                spent: 0,
+            }
+            .to_xdr(&e, &policy)
+        ]
+    );
+}
+
+#[test]
+fn a_rejected_payment_emits_no_event() {
+    let e = Env::default();
+    e.mock_all_auths();
+    let policy = e.register(ControlPolicy, ());
+    let client = PolicyClient::new(&e, &policy);
+    let sa = Address::generate(&e);
+    let supplier = Address::generate(&e);
+    let stranger = Address::generate(&e);
+    let rule = context_rule(&e);
+
+    install(&e, &policy, params(&e, &supplier, None), &rule, &sa);
+    let _ = client.try_enforce(
+        &transfer_context(&e, &stranger, 100),
+        &Vec::new(&e),
+        &rule,
+        &sa,
+    );
+
+    assert!(
+        e.events()
+            .all()
+            .filter_by_contract(&policy)
+            .events()
+            .is_empty()
+    );
+}
+
+#[test]
+fn uninstall_emits_an_event() {
+    let e = Env::default();
+    e.mock_all_auths();
+    let policy = e.register(ControlPolicy, ());
+    let sa = Address::generate(&e);
+    let supplier = Address::generate(&e);
+    let rule = rule_with_id(&e, 3);
+
+    install(&e, &policy, params(&e, &supplier, None), &rule, &sa);
+    uninstall(&e, &policy, &rule, &sa);
+
+    assert_eq!(
+        e.events().all().filter_by_contract(&policy),
+        std::vec![
+            PolicyUninstalled {
+                smart_account: sa,
+                context_rule_id: 3,
+            }
+            .to_xdr(&e, &policy)
+        ]
+    );
+}
+
+#[test]
+#[should_panic(expected = "allowlist cannot have more than 50 suppliers")]
+fn install_with_too_many_suppliers_is_rejected() {
+    let e = Env::default();
+    e.mock_all_auths();
+    let policy = e.register(ControlPolicy, ());
+    let sa = Address::generate(&e);
+    let rule = context_rule(&e);
+    let mut allowlist = Vec::new(&e);
+    for _ in 0..51 {
+        allowlist.push_back(Address::generate(&e));
+    }
+
+    install(
+        &e,
+        &policy,
+        ControlParams {
+            allowlist,
+            cap_per_period: None,
+            max_per_payment: None,
+            period_ledgers: 0,
+        },
+        &rule,
+        &sa,
+    );
+}
+
+#[test]
+fn a_full_allowlist_of_fifty_is_accepted() {
+    let e = Env::default();
+    e.mock_all_auths();
+    let policy = e.register(ControlPolicy, ());
+    let sa = Address::generate(&e);
+    let rule = context_rule(&e);
+    let mut allowlist = Vec::new(&e);
+    for _ in 0..50 {
+        allowlist.push_back(Address::generate(&e));
+    }
+
+    install(
+        &e,
+        &policy,
+        ControlParams {
+            allowlist,
+            cap_per_period: None,
+            max_per_payment: None,
+            period_ledgers: 0,
+        },
+        &rule,
+        &sa,
+    );
 }

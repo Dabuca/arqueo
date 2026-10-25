@@ -132,13 +132,15 @@ export function listPayments(): Promise<Payment[]>; // MVP: registro local + has
 
 ### 6.2 `control-policy` (A → B)
 
-- **Parámetros de instalación** (por cuenta y por regla): `ControlParams { allowlist: Vec<Address>, cap_per_period: Option<i128>, max_per_payment: Option<i128>, period_ledgers: u32 }`. Importes en stroops; `None` = sin máximo o sin tope; `period_ledgers` es la duración del periodo del tope (30 días = 518.400) y se ignora sin tope. Como `ScVal` es un mapa con las claves en este orden alfabético.
+- **Parámetros de instalación** (por cuenta y por regla): `ControlParams { allowlist: Vec<Address>, cap_per_period: Option<i128>, max_per_payment: Option<i128>, period_ledgers: u32 }`. Importes en stroops; `None` = sin máximo o sin tope; `period_ledgers` es la duración del periodo del tope (30 días = 518.400, y no puede pasar de 30 días) y se ignora sin tope. La lista de proveedores admite 50 como máximo (la app, 20). Como `ScVal` es un mapa con las claves en este orden alfabético.
 - **Errores:** `SupplierNotAllowed = 1` · `AmountOverLimit = 2` · `NotATransfer = 3` · `CapBelowSpent = 4` (en `install`) · `CapExceeded = 5` (en `enforce`).
 - **`enforce`:** si la llamada es `transfer(from, to, amount)`, `to` tiene que estar en `allowlist`, `amount` no puede pasar de `max_per_payment` (si lo hay) y, si hay tope, lo gastado en el periodo más `amount` no puede pasar de `cap_per_period`. El máximo por pago se comprueba antes que el tope, para que la escena 2 muestre «manager approval required». Cualquier otra función → `NotATransfer`.
 - **Lo gastado** (`spent`, `period_start`) se guarda **por cuenta**, no por regla. `uninstall` borra solo los parámetros de la regla, no lo gastado. Un periodo que termina se reinicia solo en el siguiente pago. `install` con un tope menor que lo gastado en el periodo en curso falla con el error 4.
+- **Eventos:** `PolicyInstalled` (con los parámetros), `PolicyUninstalled` y `PaymentApproved` (`to`, `amount`, `spent`). Un pago rechazado se revierte y no emite nada: su transacción fallida es el registro.
+- **Datos caducados:** lo guardado vive 30 días desde su último uso. Una tesorería parada más tiempo debe restaurarlo (`stellar contract restore`); mientras tanto la política falla cerrada.
 - **Lecturas** (sin firma): `get_params(smart_account, context_rule_id) -> Option<ControlParams>` y `spend_state(smart_account, period_ledgers) -> SpendState { spent, period_start }`. La pantalla de Ajustes lee de aquí lo que la cadena aplica de verdad.
 - **Normas de OpenZeppelin para políticas con estado:** guardar los datos por (smart account, id de regla) y llamar a `require_auth` de la cuenta en `install`, `enforce` y `uninstall`. Copiad el patrón de su `spending_limit`.
-- **A entrega a B:** ID del contrato en testnet, formato exacto de los parámetros como `xdr.ScVal` y esta tabla de errores.
+- **A entrega a B:** ID del contrato en testnet, formato exacto de los parámetros como `xdr.ScVal` y esta tabla de errores. Ver `contracts/control-policy/README.md`.
 
 ### 6.3 Mensajes de rechazo (B ↔ C)
 
@@ -198,7 +200,7 @@ P0 bloquea la demo · P1 completa el MVP · P2 solo si sobra tiempo. **Marcad la
 - [ ] **R14 [B]** Script de demo reproducible que crea cuenta, firmantes, reglas y proveedores de una vez. Cada ensayo gasta el tope mensual: cuenta nueva por ensayo.
 - [ ] **R15 [C]** App publicada en una URL con aviso «testnet only».
 - [ ] **R16 [D]** Diagrama de arquitectura para el README y el deck.
-- [ ] **R17 [B+C]** Pantalla de configuración: añadir o quitar proveedores y cambiar límites, con la firma del admin. Código y tests listos en `d/R17-settings` (ruta `/settings`); **falta** desplegar el `control-policy` nuevo (A), poner su ID en `PUBLIC_CONTROL_POLICY_ADDRESS` y probar un cambio completo en testnet antes de marcarla.
+- [ ] **R17 [B+C]** Pantalla de configuración: añadir o quitar proveedores y cambiar límites, con la firma del admin. Código y tests listos en `d/R17-settings` (ruta `/settings`); el `control-policy` nuevo ya está desplegado en testnet y probado en cadena con una cuenta clásica (ver §11); **falta** probar un cambio completo desde `/settings` con la passkey del admin antes de marcarla.
 - [ ] **R23 [B+C]** Pantalla de pago: muestra cuánto queda del tope de 30 días y por cuánto se supera cuando un rechazo es por tope. Necesita leer el gasto del periodo desde la cadena (depende de la decisión pendiente de §3.1 sobre dónde vive el tope). *Hecho = un rechazo por tope indica restante y exceso.*
 
 ### P2 — si sobra tiempo
@@ -262,6 +264,7 @@ P0 bloquea la demo · P1 completa el MVP · P2 solo si sobra tiempo. **Marcad la
 | 25-oct 15:41 | Jesús (D) | `Role` y `RuleName` se definen solo en `stellar.ts`; `src/controls/types.ts` los reexporta. `src/controls/units.ts` no exporta `STROOPS_PER_XLM` (ya lo exporta `stellar.ts`, como número) | evitar dos definiciones con el mismo nombre |
 | 25-oct 23:10 | Jesús (D); **A y B confirman en el PR de R17** | R17 con el tope de 30 días dentro de `control-policy` (lo propuesto a las 14:35). Lo gastado se guarda por cuenta; los errores nuevos son 4 y 5; `get_params` y `spend_state` son lecturas nuevas; `ControlParams` gana `cap_per_period` y `period_ledgers`. `ordinary` ya no lleva `spending_limit` | cambiar límites o proveedores no puede reiniciar el tope. Hay que **redesplegar** `control-policy` y actualizar `PUBLIC_CONTROL_POLICY_ADDRESS`; las reglas creadas con el contrato antiguo se migran desde Ajustes |
 | 25-oct 23:10 | Jesús (D) | Un cambio de Ajustes da de alta la regla nueva **antes** de dar de baja la vieja (no baja y alta). `setupOrdinaryRule` y `setupLargeRule` fallan sin `PUBLIC_CONTROL_POLICY_ADDRESS` en vez de crear una regla abierta | con baja y alta la regla `ordinary` quedaría sin proveedores ni tope entre las dos transacciones; así convive con la vieja y nunca queda abierta |
+| 25-oct 23:30 | Jesús (D); **A confirma al revisar** | `control-policy` desplegado en testnet: `CBPCC6AT3756K43DGTRKLIZFOY5TODHZXGBJS4X4KZ64TFWUQDPEWU4L` (wasm `46e95a0e…e9910`, tx `f72f8142…2c216`). Ya está en `app/.env.example`. Añade eventos, un máximo de 50 proveedores y un periodo de hasta 30 días | la versión anterior no tenía tope por periodo ni lecturas. Probado en cadena: instalar, pagar, rechazos 1, 2 y 5, error 4 al bajar el tope, y que lo gastado y el inicio del periodo sobreviven a reemplazar la regla. No probado: el flujo con la cuenta inteligente y su passkey |
 
 ## 12. Enlaces
 

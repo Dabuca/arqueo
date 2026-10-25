@@ -10,7 +10,8 @@
 use soroban_sdk::{
     Address, Env, TryFromVal, Vec,
     auth::{Context, ContractContext},
-    contract, contracterror, contractimpl, contracttype, panic_with_error, symbol_short,
+    contract, contracterror, contractevent, contractimpl, contracttype, panic_with_error,
+    symbol_short,
 };
 use stellar_accounts::{
     policies::Policy,
@@ -62,9 +63,49 @@ pub enum ControlStorageKey {
     Spent(Address),
 }
 
+/// Events, so the account's history can be rebuilt from the chain (R9, P1).
+/// Only payments the rules accepted emit one: a rejected payment reverts, and
+/// its failed transaction is the record.
+#[contractevent]
+#[derive(Clone, Debug, PartialEq)]
+pub struct PolicyInstalled {
+    #[topic]
+    pub smart_account: Address,
+    #[topic]
+    pub context_rule_id: u32,
+    pub params: ControlParams,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, PartialEq)]
+pub struct PolicyUninstalled {
+    #[topic]
+    pub smart_account: Address,
+    #[topic]
+    pub context_rule_id: u32,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, PartialEq)]
+pub struct PaymentApproved {
+    #[topic]
+    pub smart_account: Address,
+    #[topic]
+    pub context_rule_id: u32,
+    pub to: Address,
+    pub amount: i128,
+    /// Spent in the cap period after this payment, or 0 when the rule has no cap.
+    pub spent: i128,
+}
+
 const DAY_IN_LEDGERS: u32 = 17280;
 const TTL_EXTEND_AMOUNT: u32 = 30 * DAY_IN_LEDGERS;
 const TTL_THRESHOLD: u32 = TTL_EXTEND_AMOUNT - DAY_IN_LEDGERS;
+/// Longest cap period. Stored data lives 30 days after its last use, so a
+/// longer period could lose what was spent before it ended and restart early.
+const MAX_PERIOD_LEDGERS: u32 = TTL_EXTEND_AMOUNT;
+/// Most suppliers on one allowlist: every payment scans it.
+const MAX_ALLOWLIST: u32 = 50;
 
 fn load_params(e: &Env, context_rule_id: u32, smart_account: &Address) -> Option<ControlParams> {
     let key = ControlStorageKey::AccountContext(smart_account.clone(), context_rule_id);
@@ -148,6 +189,7 @@ impl Policy for ControlPolicy {
             panic_with_error!(e, ControlError::AmountOverLimit)
         }
 
+        let mut spent = 0;
         if let Some(cap) = params.cap_per_period {
             let mut state = current_spend(e, &smart_account, params.period_ledgers);
             let Some(total) = state.spent.checked_add(amount) else {
@@ -158,7 +200,17 @@ impl Policy for ControlPolicy {
             }
             state.spent = total;
             save_spend(e, &smart_account, &state);
+            spent = total;
         }
+
+        PaymentApproved {
+            smart_account,
+            context_rule_id: context_rule.id,
+            to,
+            amount,
+            spent,
+        }
+        .publish(e);
     }
 
     fn install(
@@ -173,6 +225,9 @@ impl Policy for ControlPolicy {
         if !matches!(context_rule.context_type, ContextRuleType::CallContract(_)) {
             panic!("control policy requires a CallContract rule");
         }
+        if install_params.allowlist.len() > MAX_ALLOWLIST {
+            panic!("allowlist cannot have more than 50 suppliers");
+        }
         if install_params.max_per_payment.is_some_and(|max| max <= 0) {
             panic!("max_per_payment must be positive");
         }
@@ -182,6 +237,9 @@ impl Policy for ControlPolicy {
             }
             if install_params.period_ledgers == 0 {
                 panic!("period_ledgers must be positive when there is a cap");
+            }
+            if install_params.period_ledgers > MAX_PERIOD_LEDGERS {
+                panic!("period_ledgers cannot be above 30 days");
             }
             if install_params.max_per_payment.is_some_and(|max| max > cap) {
                 panic!("max_per_payment cannot be above cap_per_period");
@@ -194,7 +252,7 @@ impl Policy for ControlPolicy {
             }
         }
 
-        let key = ControlStorageKey::AccountContext(smart_account, context_rule.id);
+        let key = ControlStorageKey::AccountContext(smart_account.clone(), context_rule.id);
         if e.storage().persistent().has(&key) {
             panic!("control policy already installed");
         }
@@ -202,18 +260,31 @@ impl Policy for ControlPolicy {
         e.storage()
             .persistent()
             .extend_ttl(&key, TTL_THRESHOLD, TTL_EXTEND_AMOUNT);
+
+        PolicyInstalled {
+            smart_account,
+            context_rule_id: context_rule.id,
+            params: install_params,
+        }
+        .publish(e);
     }
 
     fn uninstall(e: &Env, context_rule: ContextRule, smart_account: Address) {
         smart_account.require_auth();
 
-        let key = ControlStorageKey::AccountContext(smart_account, context_rule.id);
+        let key = ControlStorageKey::AccountContext(smart_account.clone(), context_rule.id);
         if !e.storage().persistent().has(&key) {
             panic!("control policy not installed");
         }
         // Only the rule's parameters go. The spend state belongs to the
         // account and stays, so the replacement rule keeps counting from it.
         e.storage().persistent().remove(&key);
+
+        PolicyUninstalled {
+            smart_account,
+            context_rule_id: context_rule.id,
+        }
+        .publish(e);
     }
 }
 
