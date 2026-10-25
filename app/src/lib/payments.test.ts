@@ -1,6 +1,7 @@
-import { Keypair, StrKey } from "@stellar/stellar-sdk"
+import { Keypair, StrKey, scValToNative } from "@stellar/stellar-sdk"
 import { describe, expect, it } from "vitest"
 import {
+	controlPolicyParams,
 	employeeSelectedSigner,
 	ordinaryRuleParams,
 	paymentLog,
@@ -148,5 +149,31 @@ describe("paymentLog", () => {
 		paymentLog(storage).add(rejected)
 
 		expect(paymentLog(storage).list()).toEqual([ok, rejected])
+	})
+})
+
+describe("controlPolicyParams", () => {
+	const supplier = StrKey.encodeEd25519PublicKey(new Uint8Array(32).fill(0x07))
+
+	it("encodes ControlParams with the maximum converted to stroops", () => {
+		const native = scValToNative(controlPolicyParams([supplier], 500n))
+
+		expect(native).toEqual({
+			allowlist: [supplier],
+			max_per_payment: 5_000_000_000n,
+		})
+	})
+
+	it("encodes no maximum as void", () => {
+		const native = scValToNative(controlPolicyParams([supplier]))
+
+		expect(native.max_per_payment).toBeNull()
+	})
+
+	it("keeps the struct keys in alphabetical order, as Soroban requires", () => {
+		const native = scValToNative(controlPolicyParams([supplier], 1n))
+		const keys = Object.keys(native)
+
+		expect(keys).toEqual(["allowlist", "max_per_payment"])
 	})
 })

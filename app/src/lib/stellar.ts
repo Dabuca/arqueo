@@ -13,6 +13,8 @@ import { SmartAccountKit, createCallContractContext } from "smart-account-kit"
 import {
 	employeeSelectedSigner,
 	employeeSigner,
+	ORDINARY_MAX_PER_PAYMENT_XLM,
+	controlPolicyParams,
 	ordinaryRuleParams,
 	paymentLog,
 	paymentRecord,
@@ -278,9 +280,34 @@ async function connectedKit(company: CompanyAccount): Promise<SmartAccountKit> {
 }
 
 /**
+ * Adds `control-policy` to a rule's policies (AGENTS.md §6.2).
+ * TODO(R6): A hands over PUBLIC_CONTROL_POLICY_ADDRESS (the deployed contract
+ * id) and D closes R1 with the real suppliers for PUBLIC_SUPPLIERS (comma
+ * separated G... addresses). Until both are set the rule is created without it
+ * and scene 3 will not be rejected.
+ */
+function addControlPolicy(
+	policies: Map<string, unknown>,
+	maxPerPaymentXlm?: bigint,
+): void {
+	const address = import.meta.env.PUBLIC_CONTROL_POLICY_ADDRESS
+	const suppliers = (import.meta.env.PUBLIC_SUPPLIERS ?? "")
+		.split(",")
+		.map((s: string) => s.trim())
+		.filter(Boolean)
+	if (!address || suppliers.length === 0) {
+		console.warn(
+			"control-policy skipped: set PUBLIC_CONTROL_POLICY_ADDRESS and PUBLIC_SUPPLIERS",
+		)
+		return
+	}
+	policies.set(address, controlPolicyParams(suppliers, maxPerPaymentXlm))
+}
+
+/**
  * Adds the `ordinary` rule (AGENTS.md §3): token calls signed by the employee,
  * threshold 1 and OpenZeppelin's spending limit of 1,000 XLM every 30 days.
- * The admin passkey signs it under the admin rule. R6 adds control-policy.
+ * The admin passkey signs it under the admin rule. control-policy joins it when configured (see addControlPolicy).
  */
 export async function setupOrdinaryRule(): Promise<{
 	ruleId: number
@@ -292,18 +319,18 @@ export async function setupOrdinaryRule(): Promise<{
 
 	const kit = await connectedKit(company)
 	const params = ordinaryRuleParams()
-	const policies = sortedPolicies(
-		new Map<string, unknown>([
-			[
-				required("PUBLIC_THRESHOLD_POLICY_ADDRESS"),
-				kit.convertPolicyParams("threshold", params.threshold),
-			],
-			[
-				required("PUBLIC_SPENDING_LIMIT_POLICY_ADDRESS"),
-				kit.convertPolicyParams("spending_limit", params.spendingLimit),
-			],
-		]),
-	)
+	const unsorted = new Map<string, unknown>([
+		[
+			required("PUBLIC_THRESHOLD_POLICY_ADDRESS"),
+			kit.convertPolicyParams("threshold", params.threshold),
+		],
+		[
+			required("PUBLIC_SPENDING_LIMIT_POLICY_ADDRESS"),
+			kit.convertPolicyParams("spending_limit", params.spendingLimit),
+		],
+	])
+	addControlPolicy(unsorted, ORDINARY_MAX_PER_PAYMENT_XLM)
+	const policies = sortedPolicies(unsorted)
 	const tx = await kit.rules.add(
 		createCallContractContext(required("PUBLIC_NATIVE_TOKEN_CONTRACT")),
 		"ordinary",

@@ -1,4 +1,4 @@
-import { Address, Keypair } from "@stellar/stellar-sdk"
+import { Address, Keypair, nativeToScVal, xdr } from "@stellar/stellar-sdk"
 import {
 	LEDGERS_PER_DAY,
 	createEd25519Signer,
@@ -27,6 +27,7 @@ const compareBytes = (a: Uint8Array, b: Uint8Array): number => {
 const STROOPS_PER_XLM = 10_000_000n
 const ORDINARY_SPENDING_LIMIT_XLM = 1_000n
 const ORDINARY_PERIOD_DAYS = 30
+export const ORDINARY_MAX_PER_PAYMENT_XLM = 500n
 
 /** The rule that authorizes a payment, chosen by who signs (AGENTS.md §3). */
 export function ruleFor(signers: Role[]): RuleName | undefined {
@@ -45,6 +46,34 @@ export function ordinaryRuleParams() {
 			ORDINARY_PERIOD_DAYS * LEDGERS_PER_DAY,
 		),
 	}
+}
+
+/**
+ * Install params of `control-policy` (AGENTS.md §6.2) as the `ScVal` the kit
+ * expects for a custom policy. `ControlParams` is a `#[contracttype]` struct,
+ * so on chain it is a map with symbol keys in alphabetical order; the optional
+ * maximum is `Void` for "no maximum".
+ */
+export function controlPolicyParams(
+	allowlist: string[],
+	maxPerPaymentXlm?: bigint,
+): xdr.ScVal {
+	const entry = (key: string, val: xdr.ScVal) =>
+		new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol(key), val })
+	return xdr.ScVal.scvMap([
+		entry(
+			"allowlist",
+			xdr.ScVal.scvVec(
+				allowlist.map((address) => Address.fromString(address).toScVal()),
+			),
+		),
+		entry(
+			"max_per_payment",
+			maxPerPaymentXlm === undefined
+				? xdr.ScVal.scvVoid()
+				: nativeToScVal(maxPerPaymentXlm * STROOPS_PER_XLM, { type: "i128" }),
+		),
+	])
 }
 
 /**
