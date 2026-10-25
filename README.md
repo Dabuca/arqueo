@@ -1,4 +1,4 @@
-# Stellar Scaffold Frontend
+# Arqueo
 
 _To get started with Stellar Scaffold, visit its repo:
 [github.com/stellar-scaffold/cli](https://github.com/stellar-scaffold/cli)._
