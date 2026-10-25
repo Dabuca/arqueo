@@ -18,6 +18,13 @@ export async function getBalance(): Promise<number> {
 	return 10_000
 }
 
+export async function setupOrdinaryRule(): Promise<{
+	ruleId: number
+	hash?: string
+}> {
+	return { ruleId: 1, hash: "mock-ordinary-rule" }
+}
+
 export async function pay(p: {
 	to: string
 	amount: number

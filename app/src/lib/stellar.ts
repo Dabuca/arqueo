@@ -9,7 +9,18 @@ import {
 	rpc,
 	scValToNative,
 } from "@stellar/stellar-sdk"
-import { SmartAccountKit } from "smart-account-kit"
+import { SmartAccountKit, createCallContractContext } from "smart-account-kit"
+import {
+	employeeSelectedSigner,
+	employeeSigner,
+	ordinaryRuleParams,
+	paymentLog,
+	paymentRecord,
+	ruleFor,
+	sortedPolicies,
+	type PayInput,
+	type PayResult,
+} from "./payments"
 
 // The only door to Stellar: every call to the network goes through this file.
 // Interfaces follow AGENTS.md §6.1. Mocks in mocks.ts export the same names.
@@ -53,12 +64,20 @@ export interface CompanyAccount {
 	adminCredentialId: string
 	employee: { publicKey: string; secret: string }
 	manager: { credentialId: string; publicKey: string } // public key in base64
+	rules?: Partial<Record<RuleName, number>> // on-chain context rule ids
 }
 
 export function loadCompany(): CompanyAccount | undefined {
 	const raw = localStorage.getItem(COMPANY_KEY)
 	return raw ? (JSON.parse(raw) as CompanyAccount) : undefined
 }
+
+function saveCompany(company: CompanyAccount): void {
+	localStorage.setItem(COMPANY_KEY, JSON.stringify(company))
+}
+
+// createWallet installs the admin passkey on the account's first rule.
+const ADMIN_RULE_ID = 0
 
 // The kit's default deployer is shared and sign-only: without a relayer it
 // cannot pay for a deployment. A per-browser testnet key pays instead.
@@ -183,7 +202,7 @@ export async function createCompanyAccount(): Promise<{ address: string }> {
 			publicKey: toBase64(manager.publicKey),
 		},
 	}
-	localStorage.setItem(COMPANY_KEY, JSON.stringify(company))
+	saveCompany(company)
 
 	// Saved before funding: the account exists even if funding fails.
 	try {
@@ -243,17 +262,109 @@ export async function fundCompanyAccount(xlm = 9_000): Promise<string> {
 	return sent.hash
 }
 
-// TODO(R4): pay through the smart account with multiSigners.
-export function pay(p: {
-	to: string
-	amount: number
-	concept: string
-	signers: Role[]
-}): Promise<{ ok: true; hash: string } | { ok: false; reason: string }> {
-	throw new Error(`pay is not implemented yet (R4): ${p.concept}`)
+function requireCompany(): CompanyAccount {
+	const company = loadCompany()
+	if (!company) throw new Error("Create the company account first")
+	return company
 }
 
-// TODO(R4): read the local payment log; P1 rebuilds it from the chain.
-export function listPayments(): Promise<Payment[]> {
-	throw new Error("listPayments is not implemented yet (R4)")
+async function connectedKit(company: CompanyAccount): Promise<SmartAccountKit> {
+	const kit = getKit()
+	await kit.connectWallet({
+		contractId: company.address,
+		credentialId: company.adminCredentialId,
+	})
+	return kit
+}
+
+/**
+ * Adds the `ordinary` rule (AGENTS.md §3): token calls signed by the employee,
+ * threshold 1 and OpenZeppelin's spending limit of 1,000 XLM every 30 days.
+ * The admin passkey signs it under the admin rule. R6 adds control-policy.
+ */
+export async function setupOrdinaryRule(): Promise<{
+	ruleId: number
+	hash?: string
+}> {
+	const company = requireCompany()
+	const existing = company.rules?.ordinary
+	if (existing !== undefined) return { ruleId: existing }
+
+	const kit = await connectedKit(company)
+	const params = ordinaryRuleParams()
+	const policies = sortedPolicies(
+		new Map<string, unknown>([
+			[
+				required("PUBLIC_THRESHOLD_POLICY_ADDRESS"),
+				kit.convertPolicyParams("threshold", params.threshold),
+			],
+			[
+				required("PUBLIC_SPENDING_LIMIT_POLICY_ADDRESS"),
+				kit.convertPolicyParams("spending_limit", params.spendingLimit),
+			],
+		]),
+	)
+	const tx = await kit.rules.add(
+		createCallContractContext(required("PUBLIC_NATIVE_TOKEN_CONTRACT")),
+		"ordinary",
+		[
+			employeeSigner(
+				required("PUBLIC_ED25519_VERIFIER_ADDRESS"),
+				company.employee.publicKey,
+			),
+		],
+		policies,
+	)
+	// The simulated result is the rule the transaction creates.
+	const ruleId = tx.result.id
+	const result = await kit.signAndSubmit(tx, {
+		credentialId: company.adminCredentialId,
+		resolveContextRuleIds: () => [ADMIN_RULE_ID],
+	})
+	if (!result.success) {
+		throw new Error(`Ordinary rule setup failed: ${result.error.message}`)
+	}
+	saveCompany({ ...company, rules: { ...company.rules, ordinary: ruleId } })
+	return { ruleId, hash: result.hash }
+}
+
+/**
+ * Pays from the company account. The rule follows from who signs. A payment
+ * the account rules reject resolves to `{ ok: false }` and is logged too.
+ */
+export async function pay(p: PayInput): Promise<PayResult> {
+	const rule = ruleFor(p.signers)
+	if (!rule) throw new Error(`No rule for signers: ${p.signers.join(", ")}`)
+	// TODO(R7): the large rule also needs the manager passkey signature.
+	if (rule === "large") throw new Error("Large payments are not ready yet (R7)")
+
+	const company = requireCompany()
+	const ruleId = company.rules?.[rule]
+	if (ruleId === undefined) throw new Error(`Set up the ${rule} rule first`)
+
+	const kit = await connectedKit(company)
+	kit.externalSigners.addEd25519FromSecret(company.employee.secret)
+	const result = await kit.multiSigners.transfer(
+		required("PUBLIC_NATIVE_TOKEN_CONTRACT"),
+		p.to,
+		p.amount,
+		[
+			employeeSelectedSigner(
+				required("PUBLIC_ED25519_VERIFIER_ADDRESS"),
+				company.employee.publicKey,
+			),
+		],
+		{ resolveContextRuleIds: () => [ruleId] },
+	)
+	// TODO(R12): map contract error codes to the AGENTS.md §6.3 messages.
+	const outcome: PayResult = result.success
+		? { ok: true, hash: result.hash }
+		: { ok: false, reason: result.error.message }
+	paymentLog(localStorage).add(paymentRecord(p, rule, outcome))
+	return outcome
+}
+
+/** MVP: the local payment log; P1 rebuilds it from the chain. */
+export async function listPayments(): Promise<Payment[]> {
+	return paymentLog(localStorage).list()
 }
