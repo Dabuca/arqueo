@@ -1,13 +1,13 @@
 extern crate std;
 
 use soroban_sdk::{
+    Address, Env, IntoVal, String, Vec,
     auth::{Context, ContractContext},
     symbol_short,
     testutils::Address as _,
-    Address, Env, IntoVal, String, Vec,
 };
 use stellar_accounts::{
-    policies::Policy,
+    policies::{Policy, PolicyClient},
     smart_account::{ContextRule, ContextRuleType, Signer},
 };
 
@@ -44,7 +44,10 @@ fn transfer_context(e: &Env, to: &Address, amount: i128) -> Context {
 fn params(e: &Env, supplier: &Address, max: Option<i128>) -> ControlParams {
     let mut allowlist = Vec::new(e);
     allowlist.push_back(supplier.clone());
-    ControlParams { allowlist, max_per_payment: max }
+    ControlParams {
+        allowlist,
+        max_per_payment: max,
+    }
 }
 
 fn install(e: &Env, policy: &Address, params: ControlParams, rule: &ContextRule, sa: &Address) {
@@ -74,8 +77,20 @@ fn allowed_supplier_within_limit_passes() {
     let supplier = Address::generate(&e);
     let rule = context_rule(&e);
 
-    install(&e, &policy, params(&e, &supplier, Some(5_000_000)), &rule, &sa);
-    enforce(&e, &policy, &rule, &sa, transfer_context(&e, &supplier, 2_000_000));
+    install(
+        &e,
+        &policy,
+        params(&e, &supplier, Some(5_000_000)),
+        &rule,
+        &sa,
+    );
+    enforce(
+        &e,
+        &policy,
+        &rule,
+        &sa,
+        transfer_context(&e, &supplier, 2_000_000),
+    );
 }
 
 #[test]
@@ -90,7 +105,13 @@ fn unknown_supplier_is_rejected() {
     let rule = context_rule(&e);
 
     install(&e, &policy, params(&e, &supplier, None), &rule, &sa);
-    enforce(&e, &policy, &rule, &sa, transfer_context(&e, &stranger, 100));
+    enforce(
+        &e,
+        &policy,
+        &rule,
+        &sa,
+        transfer_context(&e, &stranger, 100),
+    );
 }
 
 #[test]
@@ -103,8 +124,20 @@ fn amount_over_max_is_rejected() {
     let supplier = Address::generate(&e);
     let rule = context_rule(&e);
 
-    install(&e, &policy, params(&e, &supplier, Some(5_000_000)), &rule, &sa);
-    enforce(&e, &policy, &rule, &sa, transfer_context(&e, &supplier, 5_000_001));
+    install(
+        &e,
+        &policy,
+        params(&e, &supplier, Some(5_000_000)),
+        &rule,
+        &sa,
+    );
+    enforce(
+        &e,
+        &policy,
+        &rule,
+        &sa,
+        transfer_context(&e, &supplier, 5_000_001),
+    );
 }
 
 #[test]
@@ -117,7 +150,13 @@ fn no_max_allows_any_amount_to_allowed_supplier() {
     let rule = context_rule(&e);
 
     install(&e, &policy, params(&e, &supplier, None), &rule, &sa);
-    enforce(&e, &policy, &rule, &sa, transfer_context(&e, &supplier, i128::MAX));
+    enforce(
+        &e,
+        &policy,
+        &rule,
+        &sa,
+        transfer_context(&e, &supplier, i128::MAX),
+    );
 }
 
 #[test]
@@ -158,6 +197,108 @@ fn installing_twice_is_rejected() {
 }
 
 #[test]
+#[should_panic(expected = "Error(Contract, #3)")]
+fn negative_amount_is_rejected() {
+    let e = Env::default();
+    e.mock_all_auths();
+    let policy = e.register(ControlPolicy, ());
+    let sa = Address::generate(&e);
+    let supplier = Address::generate(&e);
+    let rule = context_rule(&e);
+
+    install(&e, &policy, params(&e, &supplier, None), &rule, &sa);
+    enforce(&e, &policy, &rule, &sa, transfer_context(&e, &supplier, -1));
+}
+
+#[test]
+#[should_panic(expected = "control policy requires a CallContract rule")]
+fn install_on_default_rule_is_rejected() {
+    let e = Env::default();
+    e.mock_all_auths();
+    let policy = e.register(ControlPolicy, ());
+    let sa = Address::generate(&e);
+    let supplier = Address::generate(&e);
+    let mut rule = context_rule(&e);
+    rule.context_type = ContextRuleType::Default;
+
+    install(&e, &policy, params(&e, &supplier, None), &rule, &sa);
+}
+
+#[test]
+#[should_panic(expected = "max_per_payment must be positive")]
+fn install_with_non_positive_max_is_rejected() {
+    let e = Env::default();
+    e.mock_all_auths();
+    let policy = e.register(ControlPolicy, ());
+    let sa = Address::generate(&e);
+    let supplier = Address::generate(&e);
+    let rule = context_rule(&e);
+
+    install(&e, &policy, params(&e, &supplier, Some(0)), &rule, &sa);
+}
+
+// The smart account calls the policy through `PolicyClient` with the install
+// params as a raw `Val`; these tests exercise that exact path.
+
+#[test]
+fn policy_client_install_and_enforce_accept_allowed_payment() {
+    let e = Env::default();
+    e.mock_all_auths();
+    let policy = e.register(ControlPolicy, ());
+    let client = PolicyClient::new(&e, &policy);
+    let sa = Address::generate(&e);
+    let supplier = Address::generate(&e);
+    let rule = context_rule(&e);
+
+    client.install(
+        &params(&e, &supplier, Some(5_000_000)).into_val(&e),
+        &rule,
+        &sa,
+    );
+    client.enforce(
+        &transfer_context(&e, &supplier, 5_000_000),
+        &Vec::new(&e),
+        &rule,
+        &sa,
+    );
+}
+
+#[test]
+fn policy_client_enforce_returns_table_error_codes() {
+    let e = Env::default();
+    e.mock_all_auths();
+    let policy = e.register(ControlPolicy, ());
+    let client = PolicyClient::new(&e, &policy);
+    let sa = Address::generate(&e);
+    let supplier = Address::generate(&e);
+    let stranger = Address::generate(&e);
+    let rule = context_rule(&e);
+    let no_signers = Vec::new(&e);
+
+    client.install(
+        &params(&e, &supplier, Some(5_000_000)).into_val(&e),
+        &rule,
+        &sa,
+    );
+
+    let unknown = client.try_enforce(
+        &transfer_context(&e, &stranger, 100),
+        &no_signers,
+        &rule,
+        &sa,
+    );
+    assert_eq!(unknown, Err(Ok(soroban_sdk::Error::from_contract_error(1))));
+
+    let too_big = client.try_enforce(
+        &transfer_context(&e, &supplier, 5_000_001),
+        &no_signers,
+        &rule,
+        &sa,
+    );
+    assert_eq!(too_big, Err(Ok(soroban_sdk::Error::from_contract_error(2))));
+}
+
+#[test]
 #[should_panic(expected = "control policy not installed")]
 fn enforce_after_uninstall_is_rejected() {
     let e = Env::default();
@@ -169,5 +310,11 @@ fn enforce_after_uninstall_is_rejected() {
 
     install(&e, &policy, params(&e, &supplier, None), &rule, &sa);
     uninstall(&e, &policy, &rule, &sa);
-    enforce(&e, &policy, &rule, &sa, transfer_context(&e, &supplier, 100));
+    enforce(
+        &e,
+        &policy,
+        &rule,
+        &sa,
+        transfer_context(&e, &supplier, 100),
+    );
 }

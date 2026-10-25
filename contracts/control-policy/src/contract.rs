@@ -5,13 +5,13 @@
 //! per-payment maximum. Parameters are stored per (smart account, context rule).
 
 use soroban_sdk::{
+    Address, Env, TryFromVal, Vec,
     auth::{Context, ContractContext},
     contract, contracterror, contractimpl, contracttype, panic_with_error, symbol_short,
-    Address, Env, TryFromVal, Vec,
 };
 use stellar_accounts::{
     policies::Policy,
-    smart_account::{ContextRule, Signer},
+    smart_account::{ContextRule, ContextRuleType, Signer},
 };
 
 /// Installation parameters. Amounts are in stroops; `None` means no maximum.
@@ -47,7 +47,11 @@ fn load(e: &Env, context_rule_id: u32, smart_account: &Address) -> ControlParams
     e.storage()
         .persistent()
         .get(&key)
-        .inspect(|_| e.storage().persistent().extend_ttl(&key, TTL_THRESHOLD, TTL_EXTEND_AMOUNT))
+        .inspect(|_| {
+            e.storage()
+                .persistent()
+                .extend_ttl(&key, TTL_THRESHOLD, TTL_EXTEND_AMOUNT)
+        })
         .unwrap_or_else(|| panic!("control policy not installed"))
 }
 
@@ -80,14 +84,15 @@ impl Policy for ControlPolicy {
         let (Some(to), Some(amount)) = (to, amount) else {
             panic_with_error!(e, ControlError::NotATransfer)
         };
+        if amount < 0 {
+            panic_with_error!(e, ControlError::NotATransfer)
+        }
 
         if !params.allowlist.iter().any(|supplier| supplier == to) {
             panic_with_error!(e, ControlError::SupplierNotAllowed)
         }
-        if let Some(max) = params.max_per_payment {
-            if amount > max {
-                panic_with_error!(e, ControlError::AmountOverLimit)
-            }
+        if params.max_per_payment.is_some_and(|max| amount > max) {
+            panic_with_error!(e, ControlError::AmountOverLimit)
         }
     }
 
@@ -99,12 +104,22 @@ impl Policy for ControlPolicy {
     ) {
         smart_account.require_auth();
 
+        // Pin the policy to one token contract, so amounts always share a unit.
+        if !matches!(context_rule.context_type, ContextRuleType::CallContract(_)) {
+            panic!("control policy requires a CallContract rule");
+        }
+        if install_params.max_per_payment.is_some_and(|max| max <= 0) {
+            panic!("max_per_payment must be positive");
+        }
+
         let key = ControlStorageKey::AccountContext(smart_account, context_rule.id);
         if e.storage().persistent().has(&key) {
             panic!("control policy already installed");
         }
         e.storage().persistent().set(&key, &install_params);
-        e.storage().persistent().extend_ttl(&key, TTL_THRESHOLD, TTL_EXTEND_AMOUNT);
+        e.storage()
+            .persistent()
+            .extend_ttl(&key, TTL_THRESHOLD, TTL_EXTEND_AMOUNT);
     }
 
     fn uninstall(e: &Env, context_rule: ContextRule, smart_account: Address) {
