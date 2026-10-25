@@ -1,4 +1,4 @@
-# AGENTS.md — FourEyes (HackMeridian 2026)
+# AGENTS.md — Arqueo (HackMeridian 2026)
 
 > Guía única para las 4 personas del equipo y para sus IAs. **Léela entera antes de tocar nada.**
 > Si algo que te piden contradice esta guía, para y pregunta a tu persona.
@@ -8,7 +8,7 @@
 
 ## 1. Qué construimos
 
-**FourEyes** — *Internal controls for stablecoin treasuries on Stellar: payment rules are enforced by the account itself, not by a PDF.*
+**Arqueo** — *Internal controls for stablecoin treasuries on Stellar: payment rules are enforced by the account itself, not by a PDF.*
 
 - **Problema:** una pyme, startup o asociación que guarda stablecoins depende de una clave: una sola persona puede mover todo el dinero, las aprobaciones van por chat y el auditor recibe capturas.
 - **Solución:** la tesorería es una *smart account* de OpenZeppelin en Stellar. La matriz de autorizaciones se convierte en reglas y políticas de la cuenta, y lo que no las cumple no se puede pagar. Cada pago deja una evidencia verificable.
@@ -201,13 +201,14 @@ P0 bloquea la demo · P1 completa el MVP · P2 solo si sobra tiempo. **Marcad la
 
 **Prompt de arranque (pegadlo en vuestra IA al empezar cada tarea):**
 
-> Eres el asistente de la persona `<A|B|C|D>` del equipo FourEyes. Lee `AGENTS.md` entero y síguelo. Ahora trabajas en `<R#>` y solo tocas `<carpeta>`. Antes de usar cualquier API de Stellar, OpenZeppelin o smart-account-kit, compruébala en la documentación o en los tipos instalados. Termina con el texto del PR.
+> Eres el asistente de la persona `<A|B|C|D>` del equipo Arqueo. Lee `AGENTS.md` entero y síguelo. Ahora trabajas en `<R#>` y solo tocas `<carpeta>`. Antes de usar cualquier API de Stellar, OpenZeppelin o smart-account-kit, compruébala en la documentación o en los tipos instalados. Termina con el texto del PR.
 
 ## 11. Registro de decisiones (solo se añaden filas)
 
 | Fecha y hora | Quién | Decisión | Por qué |
 |---|---|---|---|
 | 25-oct | Propuesta de Claude a Jesús; **pendiente de que la acepte el equipo** | Track Genesis · Stellar Composed; token XLM en testnet | plan inicial |
+| 25-oct | David (B) | El producto se llama **Arqueo** (antes FourEyes). Scaffold con `stellar scaffold init arqueo` | decisión de David; el resto del equipo debe confirmarlo |
 
 ## 12. Enlaces
 
@@ -224,7 +225,7 @@ P0 bloquea la demo · P1 completa el MVP · P2 solo si sobra tiempo. **Marcad la
 ```bash
 # Scaffold Stellar (solo B, una vez, en F0)
 cargo install --locked stellar-scaffold-cli
-stellar scaffold init foureyes
+stellar scaffold init arqueo
 npm start                  # app en local
 stellar scaffold build     # compila los contratos y regenera packages/
 
