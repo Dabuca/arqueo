@@ -92,7 +92,7 @@ test("a failed simulation is reported as an error, not a wrong guess", async ({
 
 /** Load the app, wait for the stand-in wallet to connect, and submit a guess. */
 async function guess(page: Page, value: string) {
-	await page.goto("/")
+	await page.goto("/app")
 	const address = guesser.publicKey()
 	const short = `${address.slice(0, 4)}...${address.slice(-4)}`
 	await expect(page.getByRole("button", { name: short })).toBeVisible()
