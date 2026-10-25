@@ -1,5 +1,5 @@
 import { type CheckResult, type ControlsConfig, type Limits } from "./types"
-import { roundToStroops, stroopsToXlm } from "./units"
+import { roundToStroops, stroopsToXlm, xlmToStroops } from "./units"
 
 /**
  * Format check only (G + 55 base32 characters). The full checksum is checked
@@ -15,6 +15,17 @@ export function isSupplier(address: string, config: ControlsConfig): boolean {
 
 const isPositive = (value: number) => Number.isFinite(value) && value > 0
 
+// The contract takes amounts in stroops, so an amount finer than a stroop
+// cannot be installed.
+function fitsInStroops(value: number): boolean {
+	try {
+		xlmToStroops(value)
+		return true
+	} catch {
+		return false
+	}
+}
+
 const rejected = (reason: string): CheckResult => ({ ok: false, reason })
 
 /**
@@ -29,8 +40,14 @@ export function validateLimitsChange(
 	if (!isPositive(next.maxPerPayment)) {
 		return rejected("The per-payment maximum must be a positive number")
 	}
+	if (!fitsInStroops(next.maxPerPayment)) {
+		return rejected("The per-payment maximum can have at most 7 decimals")
+	}
 	if (!isPositive(next.cap30d)) {
 		return rejected("The 30-day cap must be a positive number")
+	}
+	if (!fitsInStroops(next.cap30d)) {
+		return rejected("The 30-day cap can have at most 7 decimals")
 	}
 	if (!isPositive(next.periodDays)) {
 		return rejected("The period must be a positive number of days")

@@ -162,4 +162,29 @@ describe("validateLimitsChange", () => {
 			expect(result.ok === false && result.reason).toContain("already spent")
 		},
 	)
+
+	// A stroop is the smallest unit, so anything finer could not be sent to the
+	// contract (toControlParams would throw in the middle of a rule change).
+	it.each<[string, Partial<Limits>, string]>([
+		[
+			"a maximum with 8 decimals",
+			{ maxPerPayment: 0.12345678 },
+			"per-payment maximum",
+		],
+		["a cap with 8 decimals", { cap30d: 1000.12345678 }, "30-day cap"],
+	])("rejects %s", (_label, over, mention) => {
+		const result = validateLimitsChange(limits(over), 0)
+		expect(result.ok).toBe(false)
+		expect(result.ok === false && result.reason).toContain(mention)
+		expect(result.ok === false && result.reason).toContain("7 decimals")
+	})
+
+	it("accepts a maximum and a cap with exactly 7 decimals", () => {
+		expect(
+			validateLimitsChange(
+				limits({ maxPerPayment: 0.1234567, cap30d: 1000.1234567 }),
+				0,
+			),
+		).toEqual({ ok: true })
+	})
 })
