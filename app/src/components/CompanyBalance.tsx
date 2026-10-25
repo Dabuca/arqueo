@@ -24,6 +24,8 @@ import {
 import ui from "../styles/ui.module.css"
 import { Amount, AmountUnit } from "./Amount"
 import styles from "./CompanyBalance.module.css"
+import { formatXlm } from "./format"
+import { useCurrency } from "../providers/CurrencyProvider"
 import { Spinner, useChanged } from "./Spinner"
 
 type BalanceState =
@@ -51,9 +53,6 @@ const spentInPeriod = (payments: Payment[], periodDays: number) =>
 				Date.now() - new Date(payment.at).getTime() <= periodDays * DAY_MS,
 		)
 		.reduce((total, payment) => total + payment.amount, 0)
-
-const formatXlm = (xlm: number) =>
-	xlm.toLocaleString("en-US", { maximumFractionDigits: 7 })
 
 const STEP_COPY: Record<
 	Exclude<Step, "create">,
@@ -101,6 +100,7 @@ function RuleIcon({ done, optional }: { done: boolean; optional?: boolean }) {
 }
 
 export function CompanyBalance() {
+	const { rate } = useCurrency()
 	const [company, setCompany] = useState(() => loadCompany())
 	const [balance, setBalance] = useState<BalanceState>({ status: "loading" })
 	const [spent, setSpent] = useState<number>()
@@ -237,7 +237,7 @@ export function CompanyBalance() {
 			name: "Ordinary rule",
 			done: ordinaryReady,
 			text: ordinaryReady
-				? `Employee, up to ${formatXlm(limits.maxPerPayment)} XLM per payment`
+				? `Employee, up to ${formatXlm(limits.maxPerPayment, rate)} XLM per payment`
 				: "Not set up",
 		},
 		{

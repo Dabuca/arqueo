@@ -1,14 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { useCurrency } from "../providers/CurrencyProvider"
-
-export const formatXlm = (xlm: number) =>
-	xlm.toLocaleString("en-US", { maximumFractionDigits: 7 })
-
-export const formatUsd = (usd: number) =>
-	usd.toLocaleString("en-US", {
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 2,
-	})
+import { formatUsd, formatXlm } from "./format"
 
 /** Converts an XLM amount to the chosen display currency, falling back to XLM without a price. */
 export function useDisplayAmount() {
@@ -17,7 +9,7 @@ export function useDisplayAmount() {
 	return (xlm: number) =>
 		inUsd
 			? { text: formatUsd(xlm * rate), unit: "USD" }
-			: { text: formatXlm(xlm), unit: "XLM" }
+			: { text: formatXlm(xlm, rate), unit: "XLM" }
 }
 
 const TWEEN_MS = 450
@@ -34,7 +26,7 @@ export function Amount({ xlm }: { xlm: number }) {
 	const { currency, rate } = useCurrency()
 	const inUsd = currency === "USD" && rate !== undefined
 	const target = inUsd ? xlm * rate : xlm
-	const finalText = inUsd ? formatUsd(target) : formatXlm(target)
+	const finalText = inUsd ? formatUsd(target) : formatXlm(target, rate)
 
 	const [shown, setShown] = useState<number | null>(null)
 	const current = useRef(target)
@@ -67,10 +59,7 @@ export function Amount({ xlm }: { xlm: number }) {
 	if (shown === null) return <>{finalText}</>
 	return (
 		<>
-			{shown.toLocaleString("en-US", {
-				minimumFractionDigits: inUsd ? 2 : 0,
-				maximumFractionDigits: 2,
-			})}
+			{inUsd ? formatUsd(shown) : formatXlm(shown, rate)}
 		</>
 	)
 }
