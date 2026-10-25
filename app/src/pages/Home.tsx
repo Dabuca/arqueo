@@ -3,8 +3,8 @@ import React from "react"
 import { Link } from "react-router-dom"
 import { CompanyBalance } from "../components/CompanyBalance"
 import { GuessTheNumber } from "../components/GuessTheNumber"
-import { OrdinaryPayment } from "../components/OrdinaryPayment"
 import styles from "./Home.module.css"
+import PaymentScreen from "./PaymentScreen"
 
 const Home: React.FC = () => (
 	<div className={styles.Home}>
@@ -24,10 +24,7 @@ const Home: React.FC = () => (
 			<CompanyBalance />
 		</div>
 
-		<div className={`card ${styles.payment}`}>
-			<h2>Ordinary payments</h2>
-			<OrdinaryPayment />
-		</div>
+		<PaymentScreen />
 
 		<div className={`card ${styles.contracts}`}>
 			<h2>Sample Contracts</h2>

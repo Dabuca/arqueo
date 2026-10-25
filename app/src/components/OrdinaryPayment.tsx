@@ -1,6 +1,11 @@
 import { useState } from "react"
-import  { type PayResult } from "../lib/payments"
-import { loadCompany, pay, setupOrdinaryRule } from "../lib/stellar"
+import { type PayResult } from "../lib/payments"
+import {
+	installControlPolicy,
+	loadCompany,
+	pay,
+	setupOrdinaryRule,
+} from "../lib/stellar"
 
 // R4: set up the ordinary rule and make a payment signed only by the employee.
 // The full payment screen (R8) replaces the payment form.
@@ -14,6 +19,9 @@ const txLink = (hash: string) =>
 export function OrdinaryPayment() {
 	const [ruleId, setRuleId] = useState(() => loadCompany()?.rules?.ordinary)
 	const [setupHash, setSetupHash] = useState<string>()
+	const [policyHash, setPolicyHash] = useState(
+		() => loadCompany()?.controlPolicy?.hash,
+	)
 	const [to, setTo] = useState("")
 	const [amount, setAmount] = useState("200")
 	const [busy, setBusy] = useState(false)
@@ -37,6 +45,11 @@ export function OrdinaryPayment() {
 			const rule = await setupOrdinaryRule()
 			setRuleId(rule.ruleId)
 			setSetupHash(rule.hash)
+		})
+
+	const addPolicy = () =>
+		run(async () => {
+			setPolicyHash((await installControlPolicy()).hash)
 		})
 
 	const send = () =>
@@ -75,6 +88,26 @@ export function OrdinaryPayment() {
 							</>
 						)}
 					</p>
+					{policyHash ? (
+						<p>
+							Supplier allowlist (control-policy) is on:{" "}
+							<a href={txLink(policyHash)} target="_blank" rel="noreferrer">
+								transaction
+							</a>
+						</p>
+					) : (
+						<p>
+							<button
+								type="button"
+								onClick={() => void addPolicy()}
+								disabled={busy}
+							>
+								{busy
+									? "Adding control-policy…"
+									: "Add control-policy to ordinary rule (admin passkey)"}
+							</button>
+						</p>
+					)}
 					<p>
 						<label>
 							To{" "}
@@ -112,7 +145,17 @@ export function OrdinaryPayment() {
 					</a>
 				</p>
 			)}
-			{result && !result.ok && <p role="alert">Rejected: {result.reason}</p>}
+			{result && !result.ok && (
+				<p role="alert">
+					Rejected: {result.reason}
+					{result.details && (
+						<details>
+							<summary>Details</summary>
+							<code>{result.details}</code>
+						</details>
+					)}
+				</p>
+			)}
 		</>
 	)
 }
