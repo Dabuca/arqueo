@@ -1,15 +1,21 @@
 import { labPrefix } from "@stellar-scaffold/app-lib"
 import { NavLink, Outlet, Route, Routes } from "react-router-dom"
 import styles from "./App.module.css"
+import { BrandOrbit } from "./components/BrandOrbit"
 import ConnectAccount from "./components/ConnectAccount"
+import { SiteHeader } from "./components/SiteHeader"
 import Debug from "./pages/Debug"
 import Home from "./pages/Home"
+import Landing from "./pages/Landing"
+import Auditor from "./pages/Auditor"
 
 function App() {
 	return (
 		<Routes>
+			<Route path="/" element={<Landing />} />
+			<Route path="/auditor" element={<Auditor />} />
 			<Route element={<AppLayout />}>
-				<Route path="/" element={<Home />} />
+				<Route path="/app" element={<Home />} />
 				<Route path="/debug" element={<Debug />} />
 				<Route path="/debug/:contractName" element={<Debug />} />
 			</Route>
@@ -19,9 +25,15 @@ function App() {
 
 const AppLayout = () => (
 	<div className={styles.AppLayout}>
-		<header className={styles.header}>
-			<span className={styles.logo}>Scaffold</span>
-			<nav className={styles.headerNav}>
+		<BrandOrbit />
+		<SiteHeader wallet={<ConnectAccount />} />
+
+		<main className={styles.main}>
+			<Outlet />
+		</main>
+
+		<footer className={styles.footer}>
+			<nav className={styles.footerNav}>
 				<NavLink
 					to="/debug"
 					className={({ isActive }) => (isActive ? styles.active : "")}
@@ -31,16 +43,6 @@ const AppLayout = () => (
 				<a href={labPrefix()} target="_blank" rel="noreferrer">
 					Transaction Explorer
 				</a>
-			</nav>
-			<ConnectAccount />
-		</header>
-
-		<main className={styles.main}>
-			<Outlet />
-		</main>
-
-		<footer className={styles.footer}>
-			<nav className={styles.footerNav}>
 				<a
 					href="https://github.com/stellar-scaffold/cli"
 					target="_blank"

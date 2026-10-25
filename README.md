@@ -1,6 +1,6 @@
 <!--
 PENDING before submission (R10). Each gap is marked TODO(R10) below. Remove this block when done.
-- Scene hashes for 1, 2 (simulation error and failed tx), 2b and 3: from B, after R4, R6 and R7.
+- Failed on-chain tx hashes for scenes 2 and 3, and testnet verification of scene 3: from B and A.
 - Scene 4 screenshot or video timestamp: from C.
 - Smart account ID: from B (R3 creates it in each browser; the repo does not record it).
 - control-policy contract ID: from A (no deployment recorded in the repo or scaffold.yml).
@@ -22,6 +22,8 @@ HackMeridian 2026 · Track Genesis · Stellar Composed
 
 - **App:** <!-- TODO(R10): app URL (R15) -->not published yet
 - **Video:** <!-- TODO(R10): video URL -->not recorded yet
+- **Pitch deck and submission pack:**
+  [docs/submission](docs/submission/README.md)
 
 ## The problem
 
@@ -44,13 +46,13 @@ The MVP is done when these four scenes run on testnet from start to finish.
 Amounts depend on the limits the admin sets. With the defaults (500 XLM per
 payment, 1,000 XLM per 30 days) the demo uses 200, 800 and 100 XLM.
 
-| #   | Scene                                                                                    | What happens                                                                                                                                            | Proof (stellar.expert, testnet)                                            |
-| --- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| 1   | Payment below the per-payment maximum, to an authorized supplier, signed by the employee | Accepted by rule `ordinary`                                                                                                                             | <!-- TODO(R10): tx hash and link (B, after R4) -->                         |
-| 2   | Payment above the maximum, signed only by the employee                                   | Rejected by `control-policy` with error 2 (`AmountOverLimit`): the simulation fails, and one rejected transaction is sent on purpose and fails on chain | <!-- TODO(R10): simulation error text and failed tx hash (B, after R6) --> |
-| 2b  | Same payment, signed by employee and manager                                             | Accepted by rule `large`                                                                                                                                | <!-- TODO(R10): tx hash and link (B, after R7) -->                         |
-| 3   | Payment to an account that is not on the supplier list                                   | Rejected by `control-policy` with error 1 (`SupplierNotAllowed`), with its failed transaction                                                           | <!-- TODO(R10): failed tx hash (B, after R6) -->                           |
-| 4   | The auditor opens the payment list                                                       | Sees every payment, including rejected attempts, and downloads a CSV                                                                                    | <!-- TODO(R10): screenshot or video timestamp (C, after R9/R11) -->        |
+| #   | Scene                                                                                    | What happens                                                                                                                                            | Proof (stellar.expert, testnet)                                                                                                                               |
+| --- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Payment below the per-payment maximum, to an authorized supplier, signed by the employee | Accepted by rule `ordinary`                                                                                                                             | [`f7af3add…7ee12a8e`](https://stellar.expert/explorer/testnet/tx/f7af3add0b4141f5caf9ced34c718e5ba7848265dcdb9fbc9520d7077ee12a8e), 200 XLM, ledger 5,385,825 |
+| 2   | Payment above the maximum, signed only by the employee                                   | Rejected by `control-policy` with error 2 (`AmountOverLimit`): the simulation fails, and one rejected transaction is sent on purpose and fails on chain | Simulation rejected with error 2 (800 XLM, employee only; reported in `AGENTS.md` R7). <!-- TODO(R10): failed tx hash (B) -->                                 |
+| 2b  | Same payment, signed by employee and manager                                             | Accepted by rule `large`                                                                                                                                | [`03784fdb…63f711d2`](https://stellar.expert/explorer/testnet/tx/03784fdb5d38537fc92f82e30754a942af5204b740b4335937ddd45763f711d2), 800 XLM, ledger 5,386,036 |
+| 3   | Payment to an account that is not on the supplier list                                   | Rejected by `control-policy` with error 1 (`SupplierNotAllowed`), with its failed transaction                                                           | <!-- TODO(R10): failed tx hash; scene 3 still needs end-to-end testnet verification (B) -->                                                                   |
+| 4   | The auditor opens the payment list                                                       | Sees every payment, including rejected attempts, and downloads a CSV                                                                                    | <!-- TODO(R10): screenshot or video timestamp (C, after R9/R11) -->                                                                                           |
 
 The rejection in scenes 2 and 3 happens when the transaction is simulated
 against the account's rules. If it were sent anyway, the network would reject
@@ -61,15 +63,17 @@ it.
 | Company smart account | <!-- TODO(R10): C... address of the demo account (B; R3 creates it but the repo does not record it) --> |
 | `control-policy`      | <!-- TODO(R10): C... contract ID (A; no deployment is recorded in the repo yet) -->                     |
 
-Not built yet: the payment flow (R4, R6, R7), the screens (R8, R9, R17) and the
-demo script (R14). The table above is filled in as each one lands.
+Not built yet: the admin Settings screen (R17), the demo script (R14) and a
+hosted URL (R15). Scene 3 and the failed on-chain transactions of scenes 2 and 3
+still need end-to-end testnet verification. The table is filled in as each one
+lands.
 
 ## How Stellar is composed
 
 | Piece                                                                                                    | What it gives Arqueo                                                                                                                                           |
 | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [OpenZeppelin Stellar Contracts](https://docs.openzeppelin.com/stellar-contracts/accounts/context-rules) | The smart account, context rules (`admin`, `ordinary`, `large`), the threshold policy (how many signatures a rule needs) and `spending_limit` (the 30-day cap) |
-| [`smart-account-kit`](https://cdn.jsdelivr.net/npm/smart-account-kit@0.6.0/README.md) 0.6.0              | Creates the account, WebAuthn passkey signers (admin, manager), an Ed25519 signer (employee) and multi-signer transactions                                     |
+| [`smart-account-kit`](https://cdn.jsdelivr.net/npm/smart-account-kit@0.6.1/README.md) 0.6.1              | Creates the account, WebAuthn passkey signers (admin, manager), an Ed25519 signer (employee) and multi-signer transactions                                     |
 | [Scaffold Stellar](https://developers.stellar.org/docs/tools/scaffold-stellar)                           | Project template, contract build and generated TypeScript clients                                                                                              |
 | `contracts/control-policy` (ours, Rust/Soroban)                                                          | A custom policy: only `transfer` calls, only to listed suppliers, up to a maximum per payment                                                                  |
 | Native XLM through its Stellar Asset Contract                                                            | The token that moves. Amounts are in stroops (1 XLM = 10,000,000)                                                                                              |
@@ -114,15 +118,17 @@ See [docs/architecture.md](docs/architecture.md).
 Everything below was written at the event, starting Sunday 25 October 2026.
 Times are UTC+1; Lisbon is one hour earlier.
 
-| When              | What                                                                                      |
-| ----------------- | ----------------------------------------------------------------------------------------- |
-| Sun 11:50         | Initial commit and the team guide (`AGENTS.md`)                                           |
-| Sun 13:52         | MVP feature spec and roadmap                                                              |
-| Sun 14:37         | Project generated with `stellar scaffold init`                                            |
-| Sun 15:22 – 16:02 | Testnet configuration and balance read (R2)                                               |
-| Sun 15:50         | `control-policy` contract with tests (R5); auditor CSV export component (R11)             |
-| Sun 16:17         | Company smart account creation and funding (R3)                                           |
-| Sun 15:59 – 17:21 | Controls matrix as tested TypeScript: limits, suppliers, rule per amount, change log (R1) |
+| When              | What                                                                                                                                 |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Sun 11:50         | Initial commit and the team guide (`AGENTS.md`)                                                                                      |
+| Sun 13:52         | MVP feature spec and roadmap                                                                                                         |
+| Sun 14:37         | Project generated with `stellar scaffold init`                                                                                       |
+| Sun 15:22 – 16:02 | Testnet configuration and balance read (R2)                                                                                          |
+| Sun 15:50         | `control-policy` contract with tests (R5); auditor CSV export component (R11)                                                        |
+| Sun 16:17         | Company smart account creation and funding (R3)                                                                                      |
+| Sun 15:59 – 17:21 | Controls matrix as tested TypeScript: limits, suppliers, rule per amount, change log (R1)                                            |
+| Sun 17:52 – 19:43 | `ordinary` and `large` rules, first employee-signed payment and multi-signer payment (R4, R6, R7); readable rejection messages (R12) |
+| Sun 22:06 – 22:40 | Payment screen, auditor journal with signers and rule (R8, R9, R13), submission pack                                                 |
 
 From the Scaffold Stellar template (not ours): the app shell, the `Home` and
 `Debug` pages, the wallet and notification providers, the example contracts
@@ -162,9 +168,9 @@ Requirements: Node.js 22+, Rust (see `rust-toolchain.toml`), the Stellar CLI and
 the Scaffold Stellar plugin (`cargo install --locked stellar-scaffold-cli`).
 
 ```bash
-cp app/.env.example app/.env   # testnet addresses for smart-account-kit are already filled in
+cp app/.env.example app/.env.local   # kit addresses are filled in; set PUBLIC_CONTROL_POLICY_ADDRESS and PUBLIC_SUPPLIERS
 npm install
-npm start              # set STELLAR_NETWORK=testnet in app/.env first
+npm start              # set STELLAR_NETWORK=testnet in app/.env.local first
 ```
 
 ```bash

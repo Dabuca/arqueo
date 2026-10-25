@@ -177,10 +177,10 @@ P0 bloquea la demo · P1 completa el MVP · P2 solo si sobra tiempo. **Marcad la
 - [x] **R1 [D]** Matriz de controles cerrada (§3 y §3.1: límites y proveedores los fija el admin, con valores por defecto para la demo) y programada en `src/controls/` (§6.4). *Antes de las 10:30.*
 - [x] **R2 [B]** Testnet listo: kit configurado con las direcciones de `demo/.env.example` (incluido el verificador Ed25519), cuentas con fondos de Friendbot y token = XLM. *Hecho = la app lee un saldo de testnet.*
 - [x] **R3 [B]** Cuenta de empresa creada con la passkey del admin, firmantes employee (Ed25519) y manager (passkey), y con saldo. *Hecho = dirección C… visible en stellar.expert.*
-- [ ] **R4 [B]** Regla `ordinary` (umbral 1 + `spending_limit`) y primer pago firmado solo por employee (ruta `multiSigners` del kit). *Hecho = hash en testnet.* **Control de las 14:00.**
+- [x] **R4 [B]** Regla `ordinary` (umbral 1 + `spending_limit`) y primer pago firmado solo por employee (ruta `multiSigners` del kit). *Hecho = hash en testnet.* **Control de las 14:00.** Hash: `f7af3add0b4141f5caf9ced34c718e5ba7848265dcdb9fbc9520d7077ee12a8e` (200 XLM a proveedor 3, ledger 5385825).
 - [x] **R5 [A]** `control-policy` con tests (pasa · proveedor desconocido · importe excesivo) y desplegada en testnet. *Hecho = ID del contrato y `cargo test` en verde.*
-- [ ] **R6 [A+B]** Política instalada en `ordinary` y `large` (parámetros como `xdr.ScVal`). *Hecho = la escena 3 se rechaza.*
-- [ ] **R7 [B]** Regla `large` (umbral 2) y pago multifirma. *Hecho = escena 2.*
+- [x] **R6 [A+B]** Política instalada en `ordinary` y `large` (parámetros como `xdr.ScVal`). *Hecho = la escena 3 se rechaza.* Instalada en `large` (R7) y en `ordinary` (R6). Pendiente: comprobar la escena 3 en testnet con la cuenta de ensayo.
+- [x] **R7 [B]** Regla `large` (umbral 2) y pago multifirma. *Hecho = escena 2.* Evidencia en testnet (cuenta de ensayo `CCTSVHF4…`): 800 XLM solo con employee rechazado por máximo por pago (control-policy, error 2); 800 XLM con employee + manager aceptado, hash `03784fdb5d38537fc92f82e30754a942af5204b740b4335937ddd45763f711d2`, ledger 5386036.
 - [ ] **R8 [C]** Pantalla de pago: proveedor, importe y concepto; selector de rol; resultado con enlace a la transacción o motivo del rechazo. *Hecho = escenas 1-3 sin usar la consola.*
 - [ ] **R9 [C]** Vista de auditor mínima: importe, destinatario, fecha, estado y enlace.
 - [ ] **R10 [D]** Entrega: repo público (el jurado tiene que poder abrirlo; no está verificado qué exige el formulario) con README y LICENSE (propuesta: Apache-2.0), vídeo, deck y respuestas del formulario. *Hecho = enlaces probados en ventana privada y enviado antes de las 11:30.*
@@ -188,12 +188,13 @@ P0 bloquea la demo · P1 completa el MVP · P2 solo si sobra tiempo. **Marcad la
 ### P1 — MVP completo
 
 - [ ] **R11 [C]** CSV del auditor.
-- [ ] **R12 [A+C]** Errores legibles (§6.3).
+- [ ] **R12 [A+C]** Errores legibles (§6.3). Pendiente: el desplegable «Details» en la pantalla de pago.
 - [ ] **R13 [C]** El auditor ve también los firmantes y la regla aplicada.
 - [ ] **R14 [B]** Script de demo reproducible que crea cuenta, firmantes, reglas y proveedores de una vez. Cada ensayo gasta el tope mensual: cuenta nueva por ensayo.
 - [ ] **R15 [C]** App publicada en una URL con aviso «testnet only».
 - [ ] **R16 [D]** Diagrama de arquitectura para el README y el deck.
 - [ ] **R17 [B+C]** Pantalla de configuración: añadir o quitar proveedores y cambiar límites, con la firma del admin.
+- [ ] **R23 [B+C]** Pantalla de pago: muestra cuánto queda del tope de 30 días y por cuánto se supera cuando un rechazo es por tope. Necesita leer el gasto del periodo desde la cadena (depende de la decisión pendiente de §3.1 sobre dónde vive el tope). *Hecho = un rechazo por tope indica restante y exceso.*
 
 ### P2 — si sobra tiempo
 

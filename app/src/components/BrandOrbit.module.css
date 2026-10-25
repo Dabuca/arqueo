@@ -1,0 +1,86 @@
+.orbit {
+	position: fixed;
+	inset: 0;
+	z-index: 0;
+	overflow: hidden;
+	pointer-events: none;
+	opacity: 0.13;
+}
+
+.mark {
+	position: absolute;
+	top: 48%;
+	left: 73%;
+	width: min(108vw, 1040px);
+	height: auto;
+	transform: translate(-50%, -50%);
+}
+
+.backDisc {
+	fill: #0a2a22;
+}
+
+.frontDisc {
+	fill: #fbfaf6;
+	stroke: #0f3b30;
+	stroke-width: 2;
+}
+
+.track {
+	fill: none;
+	stroke: #0f3b30;
+	stroke-width: 2;
+}
+
+.planet,
+.star {
+	transform-box: view-box;
+	transform-origin: 320px 320px;
+}
+
+.planet circle {
+	fill: #0f3b30;
+}
+
+.star path {
+	fill: #0f3b30;
+}
+
+.planet {
+	animation: planet-orbit 52s linear infinite;
+}
+
+.star {
+	animation: star-orbit 38s linear infinite reverse;
+}
+
+@keyframes planet-orbit {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@keyframes star-orbit {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@media (max-width: 640px) {
+	.mark {
+		top: 34%;
+		left: 115%;
+		width: 150vw;
+	}
+
+	.orbit {
+		opacity: 0.09;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.planet,
+	.star {
+		animation: none;
+	}
+}

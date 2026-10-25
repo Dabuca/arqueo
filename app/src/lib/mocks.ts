@@ -18,6 +18,24 @@ export async function getBalance(): Promise<number> {
 	return 10_000
 }
 
+export async function setupOrdinaryRule(): Promise<{
+	ruleId: number
+	hash?: string
+}> {
+	return { ruleId: 1, hash: "mock-ordinary-rule" }
+}
+
+export async function setupLargeRule(): Promise<{
+	ruleId: number
+	hash?: string
+}> {
+	return { ruleId: 2, hash: "mock-large-rule" }
+}
+
+export async function installControlPolicy(): Promise<{ hash: string }> {
+	return { hash: "mock-control-policy" }
+}
+
 export async function pay(p: {
 	to: string
 	amount: number
@@ -30,10 +48,12 @@ export async function pay(p: {
 		const reason =
 			"Amount exceeds the per-payment limit: manager approval required"
 		payments.push({ ...p, rule, status: "rejected", reason, at })
+		window.dispatchEvent(new Event("arqueo:payment-recorded"))
 		return { ok: false, reason }
 	}
 	const hash = `mock-${payments.length + 1}`
 	payments.push({ ...p, rule, status: "ok", hash, at })
+	window.dispatchEvent(new Event("arqueo:payment-recorded"))
 	return { ok: true, hash }
 }
 
