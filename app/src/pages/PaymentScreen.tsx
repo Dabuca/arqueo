@@ -29,6 +29,7 @@ import {
 	type FieldErrors,
 } from "./paymentFields"
 import { outcomeFromResult, type Outcome } from "./paymentOutcome"
+import { formatXlm } from "../components/format"
 import styles from "./PaymentScreen.module.css"
 
 type SignatureChoice = "employee" | "manager"
@@ -36,9 +37,6 @@ type CheckState = "pass" | "fail" | "idle"
 
 const testnetTx = (hash: string) =>
 	`https://stellar.expert/explorer/testnet/tx/${encodeURIComponent(hash)}`
-
-const formatXlm = (value: number) =>
-	value.toLocaleString("en-US", { maximumFractionDigits: 7 })
 
 const shortAddress = (address: string) =>
 	`${address.slice(0, 6)}…${address.slice(-5)}`

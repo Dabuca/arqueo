@@ -31,6 +31,7 @@ import {
 	supplierDeps,
 	type ControlState,
 } from "../lib/stellar"
+import { formatXlm } from "../components/format"
 import ui from "../styles/ui.module.css"
 import styles from "./Settings.module.css"
 
@@ -51,6 +52,10 @@ const shortAddress = (address: string) =>
 	`${address.slice(0, 6)}…${address.slice(-6)}`
 
 const shortHash = (hash: string) => `${hash.slice(0, 8)}…${hash.slice(-6)}`
+
+// Amounts read better rounded. The stored values stay exact.
+const shownChangeValue = (field: ControlField, value: string) =>
+	field === "suppliers" || !value ? value : formatXlm(Number(value))
 
 const formatDate = (iso: string) =>
 	new Date(iso).toLocaleString(undefined, { timeZoneName: "short" })
@@ -401,28 +406,28 @@ export default function Settings() {
 					<div>
 						<dt>Max per payment</dt>
 						<dd>
-							{limits.maxPerPayment}
+							{formatXlm(limits.maxPerPayment)}
 							<span className={styles.unit}>XLM</span>
 						</dd>
 					</div>
 					<div>
 						<dt>{limits.periodDays}-day cap</dt>
 						<dd>
-							{limits.cap30d}
+							{formatXlm(limits.cap30d)}
 							<span className={styles.unit}>XLM</span>
 						</dd>
 					</div>
 					<div>
 						<dt>Spent this period</dt>
 						<dd>
-							{state.spentXlm}
+							{formatXlm(state.spentXlm)}
 							<span className={styles.unit}>XLM</span>
 						</dd>
 					</div>
 					<div>
 						<dt>Left this period</dt>
 						<dd>
-							{remaining}
+							{formatXlm(remaining)}
 							<span className={styles.unit}>XLM</span>
 						</dd>
 					</div>
@@ -483,7 +488,7 @@ export default function Settings() {
 						<p className={styles.hint}>
 							A payment above the maximum needs the manager&apos;s second
 							signature. The cap cannot be set below what was already spent in
-							the period ({state.spentXlm} XLM now), and what was spent carries
+							the period ({formatXlm(state.spentXlm)} XLM now), and what was spent carries
 							over when it changes.
 						</p>
 					</section>
@@ -706,13 +711,13 @@ export default function Settings() {
 										</td>
 										<td data-label="Rule">{change.rule ?? "—"}</td>
 										<td data-label="Previous" className={styles.num}>
-											{change.previous}
+											{shownChangeValue(change.field, change.previous)}
 										</td>
 										<td data-label="New" className={styles.num}>
-											{change.next}
+											{shownChangeValue(change.field, change.next)}
 										</td>
 										<td data-label="Spent then" className={styles.num}>
-											{change.spentAtChange ?? "—"}
+											{change.spentAtChange === undefined ? "—" : formatXlm(change.spentAtChange)}
 										</td>
 										<td data-label="Transactions">
 											<span className={styles.txLinks}>

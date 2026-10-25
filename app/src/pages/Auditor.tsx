@@ -2,6 +2,7 @@ import { ClipboardList, Download, ExternalLink, RefreshCw, SearchX } from "lucid
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { downloadPaymentsCsv } from "../components/paymentsCsv"
+import { formatXlm } from "../components/format"
 import { changesToCsv, createChangeLog } from "../controls/changeLog"
 import  { type ControlChange, type ControlField } from "../controls/types"
 import { type Payment, type RuleName, listPayments } from "../lib/stellar"
@@ -25,12 +26,6 @@ const FIELD_LABELS: Record<ControlField, string> = {
 
 const transactionUrl = (hash: string) =>
 	`https://stellar.expert/explorer/testnet/tx/${encodeURIComponent(hash)}`
-
-const formatAmount = (amount: number) =>
-	new Intl.NumberFormat("en-US", {
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 7,
-	}).format(amount)
 
 const formatDate = (at: string) => {
 	const date = new Date(at)
@@ -264,7 +259,7 @@ export default function Auditor() {
 												</td>
 												<td data-label="Concept">{payment.concept || "—"}</td>
 												<td data-label="Amount" className={styles.amount}>
-													{formatAmount(payment.amount)} XLM
+													{formatXlm(payment.amount)} XLM
 												</td>
 												<td data-label="Signers" className={styles.signers}>
 													{payment.signers.join(" + ")}
@@ -363,7 +358,7 @@ export default function Auditor() {
 												<td data-label="Spent at change" className={styles.amount}>
 													{change.spentAtChange === undefined
 														? "—"
-														: `${formatAmount(change.spentAtChange)} XLM`}
+														: `${formatXlm(change.spentAtChange)} XLM`}
 												</td>
 												<td data-label="Period start">
 													{change.periodStart ? formatDate(change.periodStart) : "—"}

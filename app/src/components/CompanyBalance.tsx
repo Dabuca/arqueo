@@ -23,6 +23,7 @@ import {
 } from "../lib/stellar"
 import ui from "../styles/ui.module.css"
 import styles from "./CompanyBalance.module.css"
+import { formatXlm } from "./format"
 import { Spinner, useChanged } from "./Spinner"
 
 type BalanceState =
@@ -50,9 +51,6 @@ const spentInPeriod = (payments: Payment[], periodDays: number) =>
 				Date.now() - new Date(payment.at).getTime() <= periodDays * DAY_MS,
 		)
 		.reduce((total, payment) => total + payment.amount, 0)
-
-const formatXlm = (xlm: number) =>
-	xlm.toLocaleString("en-US", { maximumFractionDigits: 7 })
 
 const STEP_COPY: Record<
 	Exclude<Step, "create">,
