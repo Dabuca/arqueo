@@ -1,0 +1,207 @@
+/* Journal tape: brand cream stock, deep green ink, oxblood only for rejections.
+   Tokens come from the landing root and fall back to the brand values. */
+
+.roll {
+	--tape-ink: var(--ink, #0f3b30);
+	--tape-stock: var(--stock, #f8f5ef);
+	--tape-alert: var(--alert, #8a2a1e);
+
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	height: 100%;
+	min-height: 0;
+	margin: 0;
+}
+
+/* The printer: a deep green body, a status light that blinks while a line
+   prints, and the slot the paper hangs from. */
+.printHead {
+	position: relative;
+	z-index: 1;
+	display: grid;
+	justify-items: center;
+	gap: 1.1rem;
+	width: min(100%, 27rem);
+	padding: 1.1rem 1.25rem 1.1rem;
+	border-radius: 14px 14px 6px 6px;
+	background: var(--tape-ink);
+	box-shadow: 0 10px 24px -12px rgb(15 59 48 / 55%);
+}
+
+.led {
+	justify-self: end;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--tape-stock);
+	opacity: 0.35;
+	animation: blink 1200ms steps(2, jump-none) 4 500ms;
+}
+
+@keyframes blink {
+	from {
+		opacity: 1;
+	}
+	to {
+		opacity: 0.35;
+	}
+}
+
+.slot {
+	display: block;
+	width: calc(100% - 2.5rem);
+	height: 4px;
+	border-radius: 2px;
+	background: rgb(0 0 0 / 45%);
+}
+
+/* The paper hangs from the slot and runs past the bottom of the frame. Both
+   edges are punched, like continuous-feed stock. */
+.paper {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+	width: min(100% - 2.5rem, 23rem);
+	margin-top: -4px;
+	padding: 0.5rem 1.6rem 0;
+	overflow: hidden;
+	background: var(--tape-stock);
+	box-shadow: 0 18px 32px -20px rgb(15 59 48 / 45%);
+	color: var(--tape-ink);
+	font-family: "Spline Sans Mono", ui-monospace, monospace;
+	font-size: 0.8rem;
+	line-height: 1.5;
+	font-variant-numeric: tabular-nums;
+	/* The end of the tape is torn, not cut. */
+	mask:
+		linear-gradient(#000 0 0) top / 100% calc(100% - 9px) no-repeat,
+		conic-gradient(from 135deg at 50% 0, #000 90deg, #0000 0) bottom / 14px 9px
+			repeat-x;
+}
+
+.paper::before,
+.paper::after {
+	content: "";
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 10px;
+	background: radial-gradient(
+			circle,
+			var(--ground, #ede8df) 2.5px,
+			transparent 3px
+		)
+		center top / 10px 16px repeat-y;
+}
+
+.paper::before {
+	left: 4px;
+}
+
+.paper::after {
+	right: 4px;
+}
+
+.entries {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* Each entry feeds in under the head and pushes the older ones down. */
+.feed {
+	display: grid;
+	grid-template-rows: 1fr;
+	animation: feed 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+	animation-delay: calc(var(--order) * 1200ms + 500ms);
+}
+
+.feed > .entry {
+	min-height: 0;
+	overflow: hidden;
+}
+
+@keyframes feed {
+	from {
+		grid-template-rows: 0fr;
+		opacity: 0;
+	}
+	to {
+		grid-template-rows: 1fr;
+		opacity: 1;
+	}
+}
+
+/* Now: the newest line, just under the head, carries a faint ink wash. */
+.feed:first-child .entry {
+	margin-inline: -0.6rem;
+	padding-inline: 0.6rem;
+	background: rgb(15 59 48 / 6%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.feed,
+	.led {
+		animation: none;
+	}
+}
+
+.entry {
+	border-bottom: 2px dotted rgb(15 59 48 / 40%);
+}
+
+.entry summary {
+	display: grid;
+	gap: 0.1rem;
+	padding: 0.85rem 0;
+	cursor: pointer;
+	list-style: none;
+}
+
+.entry summary::-webkit-details-marker {
+	display: none;
+}
+
+.entry summary:focus-visible {
+	outline: 2px solid var(--tape-ink);
+	outline-offset: 2px;
+}
+
+.line {
+	display: flex;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.approved,
+.rejected {
+	display: grid;
+	margin-top: 0.35rem;
+}
+
+.approved strong,
+.rejected strong {
+	font-weight: 700;
+	letter-spacing: 0.04em;
+}
+
+.rejected {
+	color: var(--tape-alert);
+}
+
+.checks {
+	margin: 0 0 0.85rem;
+	padding-left: 1rem;
+	list-style: "- ";
+	opacity: 0.85;
+}
+
+.start {
+	margin: 1.25rem 0 2rem;
+	text-align: center;
+	letter-spacing: 0.06em;
+	opacity: 0.7;
+}

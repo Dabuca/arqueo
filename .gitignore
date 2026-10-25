@@ -46,3 +46,7 @@ app-lib/clients/*
 
 # TypeScript incremental build info
 *.tsbuildinfo
+
+# Impeccable local review captures and decision pages
+app/.impeccable/review/
+app/.impeccable/questions/
