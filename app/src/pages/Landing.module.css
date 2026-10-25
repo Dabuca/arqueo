@@ -1,14 +1,16 @@
-/* Arqueo landing. Brand cream paper and deep green ink from the logo; oxblood
-   is reserved for rejections on the tape. */
+/* Arqueo landing. Cream paper ground with deep green ink, both from the logo.
+   Red appears only on a refused payment. */
 
 .landing {
 	--ground: #ede8df;
 	--stock: #fbfaf6;
 	--ink: #0f3b30;
 	--ink-deep: #0a2a22;
+	--panel: #e3dccf;
+	--soft: #2a4f45;
 	--muted: #46645a;
-	--alert: #8a2a1e;
-	--rule: rgb(15 59 48 / 22%);
+	--alert-on-cream: #8a2a1e;
+	--line: rgb(15 59 48 / 22%);
 	--gutter: clamp(16px, 4vw, 48px);
 	--measure: 1200px;
 	--inline: max(var(--gutter), (100% - var(--measure)) / 2);
@@ -26,7 +28,7 @@
 	color: var(--ground);
 }
 
-.landing a {
+:where(.landing) a {
 	color: inherit;
 	text-underline-offset: 0.25em;
 	text-decoration-thickness: 1px;
@@ -53,18 +55,37 @@
 	margin-bottom: 1rem;
 }
 
+.landing h3 {
+	font-size: 1.2rem;
+	line-height: 1.3;
+	margin-bottom: 0.4rem;
+}
+
 .landing p {
 	max-width: 62ch;
 	margin: 0;
 }
 
 .landing code {
-	padding: 0;
-	border: 0;
-	background: none;
-	color: inherit;
 	font-family: "Spline Sans Mono", ui-monospace, monospace;
-	font-size: 0.9em;
+	font-size: 0.92em;
+	padding: 0.05em 0.35em;
+	border: 1px solid var(--line);
+	border-radius: 4px;
+}
+
+.skip {
+	position: absolute;
+	left: 16px;
+	top: -100px;
+	padding: 0.5rem 1rem;
+	background: var(--ink);
+	color: var(--ground);
+	border-radius: 6px;
+}
+
+.skip:focus {
+	top: 16px;
 }
 
 .srOnly {
@@ -72,213 +93,524 @@
 	width: 1px;
 	height: 1px;
 	overflow: hidden;
-	clip-path: inset(50%);
+	clip: rect(0 0 0 0);
 	white-space: nowrap;
 }
 
-.skip {
-	position: absolute;
-	left: var(--gutter);
-	top: -3rem;
-	z-index: 2;
-	padding: 0.5rem 1rem;
-	background: var(--ink);
-	color: var(--ground) !important;
+/* Buttons: the outline and primary pair from the hero style. */
+
+.primary,
+.outline,
+.closeAction {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	height: 3.125rem;
+	padding: 0 1.5rem;
+	border-radius: 8px;
+	font-size: 1.05rem;
+	font-weight: 500;
+	text-decoration: none;
+	white-space: nowrap;
+	transition:
+		background-color 160ms ease-out,
+		border-color 160ms ease-out;
 }
 
-.skip:focus {
-	top: 0.5rem;
+.primary {
+	background: linear-gradient(to bottom, #1d5143, var(--ink) 70%, #0c3129);
+	color: var(--ground) !important;
+	transition:
+		transform 160ms ease-out,
+		filter 160ms ease-out;
+}
+
+.primary:hover {
+	transform: scale(1.03);
+	filter: brightness(1.08);
+}
+
+.primary:active {
+	transform: scale(0.97);
+}
+
+.outline {
+	border: 1px solid var(--line);
+	background: var(--ground);
+	color: var(--ink);
+}
+
+.outline:hover {
+	background: var(--panel);
+	border-color: var(--ink);
+}
+
+.buttonArrow {
+	flex: none;
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.75;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	transition: transform 160ms ease-out;
+}
+
+.primary:hover .buttonArrow,
+.closeAction:hover .buttonArrow {
+	transform: translateX(2px);
 }
 
 /* Header */
 
 .header {
+	position: sticky;
+	top: 0;
+	z-index: 50;
+	border-bottom: 1px solid var(--line);
+	background: rgb(237 232 223 / 85%);
+	backdrop-filter: blur(12px);
+}
+
+.headerBar {
+	position: relative;
 	display: flex;
 	align-items: center;
-	gap: 2rem;
+	justify-content: space-between;
+	gap: 1.5rem;
 	padding: 1rem var(--inline);
 }
 
 .brand {
-	display: flex;
+	display: inline-flex;
 	align-items: center;
-	gap: 0.5rem;
+	gap: 0.75rem;
 	text-decoration: none;
 }
 
-.brand img:first-child,
-.close img:first-child {
-	/* The symbol's paper ground is matched to the page; fade its edge too. */
-	mask-image: radial-gradient(closest-side, #000 86%, transparent);
+.symbol {
+	width: 52px;
+	height: 52px;
+	border-radius: 50%;
+	object-fit: cover;
+	transition: transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* A slight tilt on hover or keyboard focus; the wordmark stays still. */
+.brand:hover .symbol,
+.brand:focus-visible .symbol {
+	transform: rotate(15deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.symbol {
+		transition: none;
+	}
 }
 
 .wordmark {
+	display: block;
 	width: 110px;
-	height: auto;
+	height: 18px;
+	background: var(--ink);
+	-webkit-mask: center / contain no-repeat;
+	mask: center / contain no-repeat;
 }
 
-.nav {
-	display: flex;
-	gap: 1.75rem;
-	margin-left: auto;
+/* Header navigation, centred on the bar. Shown from 768px, as in the reference. */
+
+.links {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	display: none;
+	gap: 2rem;
+	transform: translate(-50%, -50%);
+	font-size: 0.875rem;
 }
 
-.nav a {
+.link {
+	color: var(--muted);
 	text-decoration: none;
+	transition: color 160ms ease-out;
 }
 
-.nav a:hover {
-	text-decoration: underline;
+.link:hover {
+	color: var(--ink);
 }
 
-.headerAction {
-	font-weight: 500;
+.headerActions {
+	display: none;
+	align-items: center;
+	gap: 1rem;
 }
 
-/* Actions */
-
-.primary {
+.solid {
 	display: inline-flex;
 	align-items: center;
-	padding: 0.85rem 1.4rem;
-	border-radius: 10px;
-	background: var(--ink);
-	color: var(--ground) !important;
+	justify-content: center;
+	height: 2.5rem;
+	padding: 0 1.25rem;
+	border-radius: 6px;
+	font-size: 0.875rem;
 	font-weight: 500;
 	text-decoration: none;
-	box-shadow: 0 8px 18px -10px rgb(15 59 48 / 60%);
-	transition: background-color 160ms ease-out;
+	white-space: nowrap;
+	transition:
+		background-color 160ms ease-out,
+		color 160ms ease-out;
 }
 
-.primary:hover {
+.solid {
+	background: var(--ink);
+	color: var(--ground) !important;
+}
+
+.solid:hover {
 	background: var(--ink-deep);
 }
 
-.secondary {
-	font-weight: 500;
+.menuButton {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.5rem;
+	height: 2.5rem;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--ink);
+	cursor: pointer;
 }
 
-/* Hero: pitch on the left, the journal tape hanging on the right. */
+.icon {
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 2;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+/* Phone menu: the links and the two header actions, stacked. */
+
+.mobilePanel {
+	display: grid;
+	gap: 0.25rem;
+	padding: 1rem var(--gutter) 1.25rem;
+	border-top: 1px solid var(--line);
+	background: var(--ground);
+}
+
+.mobileLink {
+	padding: 0.6rem 0;
+	color: var(--muted);
+	font-size: 0.95rem;
+	text-decoration: none;
+}
+
+.mobileLink:hover {
+	color: var(--ink);
+}
+
+.mobileActions {
+	display: grid;
+	gap: 0.5rem;
+	margin-top: 0.75rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--line);
+}
+
+.mobileActions a {
+	justify-content: center;
+}
+
+@media (min-width: 768px) {
+	.links,
+	.headerActions {
+		display: flex;
+	}
+
+	.menuButton,
+	.mobilePanel {
+		display: none;
+	}
+}
+
+/* Hero: the width of the reference, max-w-5xl, with the copy in a max-w-2xl
+   column and the image bleeding off the right edge on phones. */
 
 .hero {
-	display: grid;
-	grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-	gap: clamp(2rem, 5vw, 5rem);
-	align-items: start;
-	padding: clamp(1.5rem, 4vh, 3rem) var(--inline) 0;
+	position: relative;
+	overflow: hidden;
+	padding: 2.5rem var(--inline) 0;
+	text-align: center;
+	background-image: radial-gradient(
+		20% 80% at 20% 0%,
+		rgb(15 59 48 / 8%),
+		transparent
+	);
 }
 
 .pitch {
+	position: relative;
+	z-index: 1;
 	display: grid;
-	gap: 1.5rem;
-	padding-top: clamp(1rem, 8vh, 5rem);
+	justify-items: center;
+	gap: 1.75rem;
+	max-width: 46rem;
+	margin: 0 auto;
+}
+
+.badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.75rem;
+	justify-self: center;
+	padding: 0.25rem 0.5rem 0.25rem 0.25rem;
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	background: var(--stock);
+	font-size: 0.85rem;
+	text-decoration: none;
+}
+
+.badgeTag {
+	padding: 0.1rem 0.4rem;
+	border: 1px solid var(--line);
+	border-radius: 2px;
+	background: var(--ground);
+	font-family: "Spline Sans Mono", ui-monospace, monospace;
+	font-size: 0.72rem;
+}
+
+.badgeRule {
+	width: 1px;
+	height: 1.1rem;
+	background: var(--line);
+}
+
+.badgeArrow {
+	flex: none;
+	width: 12px;
+	height: 12px;
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.75;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	transition: transform 160ms ease-out;
+}
+
+.badge:hover .badgeArrow {
+	transform: translateX(2px);
 }
 
 .pitch h1 {
-	max-width: 15ch;
-	font-size: clamp(2.6rem, 5.4vw, 4.6rem);
-	line-height: 1.02;
-	letter-spacing: -0.03em;
+	font-size: clamp(2.25rem, 4.5vw, 3.75rem);
+	font-weight: 500;
+	line-height: 1.1;
+	letter-spacing: -0.04em;
+	background: linear-gradient(
+		to bottom,
+		var(--ink),
+		var(--ink),
+		rgb(15 59 48 / 60%)
+	);
+	-webkit-background-clip: text;
+	background-clip: text;
+	-webkit-text-fill-color: transparent;
 }
 
 .lead {
-	font-size: 1.2rem;
-	line-height: 1.55;
+	max-width: 40rem;
+	font-size: clamp(1rem, 1.6vw, 1.125rem);
+	line-height: 1.6;
+	color: var(--muted);
 }
 
 .actions {
 	display: flex;
 	flex-wrap: wrap;
+	justify-content: center;
 	align-items: center;
-	gap: 1rem 1.75rem;
+	gap: 1rem;
 }
 
-.fine {
+/* The stage: the hero image, fading out at 60% of its height. The negative
+   right margin on phones lets it bleed off the edge, as in the reference. */
+
+.stage {
+	position: relative;
+	margin-top: 2.5rem;
+	margin-right: 0;
+	padding: 0 0.5rem;
+}
+
+.glow {
+	position: absolute;
+	inset: -12% -18% 10%;
+	border-radius: 50%;
+	background: radial-gradient(
+		ellipse at center,
+		rgb(15 59 48 / 14%),
+		transparent 70%
+	);
+	filter: blur(50px);
+	pointer-events: none;
+}
+
+/* The payment check: the one object in the flow, on a stock card. */
+
+.payment {
+	position: relative;
+	z-index: 1;
+	max-width: 40rem;
+	margin: 0 auto;
+	text-align: left;
+	padding: clamp(1.25rem, 3vw, 2rem);
+	background: var(--stock);
+	color: var(--ink);
+	border: 1px solid var(--line);
+	border-radius: 14px;
+	box-shadow: 0 30px 60px -36px rgb(15 59 48 / 45%);
+	display: grid;
+	gap: 1.1rem;
+}
+
+.paymentHead {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 1rem;
+	font-size: 1.5rem;
+	font-weight: 500;
+	letter-spacing: -0.01em;
+}
+
+.paymentHead span:last-child {
+	font-size: 0.85rem;
+	font-weight: 400;
 	color: var(--muted);
-	font-size: 0.95rem;
 }
 
-.tape {
-	height: min(calc(100svh - 5.5rem), 54rem);
-	min-height: 34rem;
+.paymentMeta {
+	color: var(--soft);
+	font-size: 0.98rem;
+}
+
+.checks {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	border-top: 1px solid var(--line);
+}
+
+.checks li {
+	display: grid;
+	grid-template-columns: 1.25rem 1fr;
+	gap: 0.75rem;
+	align-items: center;
+	padding: 0.8rem 0;
+	border-bottom: 1px solid var(--line);
+}
+
+.mark {
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 2;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.failed {
+	color: var(--alert-on-cream);
+	font-weight: 600;
+}
+
+.verdict {
+	display: grid;
+	gap: 0.2rem;
+	max-width: none;
+	color: var(--alert-on-cream);
+}
+
+.verdict strong {
+	font-size: 1.1rem;
+	font-weight: 600;
 }
 
 /* Problem and controls */
 
 .problem,
 .controls,
+.how,
 .video,
 .honest {
 	padding: clamp(4rem, 10vh, 7rem) var(--inline) 0;
 }
 
-.problem > p,
-.controls > p {
-	margin-bottom: 2rem;
-	font-size: 1.15rem;
-}
-
-.ledger {
+.compare {
 	width: 100%;
+	margin-top: 2rem;
 	border-collapse: collapse;
-	font-variant-numeric: tabular-nums;
 	text-align: left;
 }
 
-.ledger caption {
-	padding-bottom: 0.75rem;
-	font-weight: 500;
-	font-size: 1.15rem;
-	text-align: left;
-}
-
-.ledger th,
-.ledger td {
-	padding: 0.85rem 1rem 0.85rem 0;
-	border-bottom: 1px solid var(--rule);
+.compare th,
+.compare td {
+	padding: 1rem 1.25rem 1rem 0;
+	border-bottom: 1px solid var(--line);
 	vertical-align: top;
 }
 
-.ledger thead th {
+.compare thead th {
 	color: var(--muted);
 	font-size: 0.9rem;
 	font-weight: 500;
-	border-bottom-color: var(--ink);
 }
 
-.ledger tbody th {
+.compare tbody th {
 	font-weight: 500;
-	white-space: nowrap;
+	width: 30%;
 }
 
-.problem .ledger {
-	max-width: 52rem;
-}
-
-.problem .ledger td:last-child {
-	font-weight: 500;
-}
-
-.tables {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 3rem;
-	margin-top: 1.5rem;
-}
-
-/* How it works: the one section drenched in the brand green. */
-
-.how {
-	margin-top: clamp(4rem, 10vh, 7rem);
-	padding: clamp(4rem, 10vh, 7rem) var(--inline);
-	background: var(--ink);
-	color: var(--ground);
-}
-
-.how ::selection {
-	background: var(--ground);
+.compare tbody td:last-child {
 	color: var(--ink);
 }
+
+.compare tbody td:nth-child(2) {
+	color: var(--muted);
+}
+
+.tiles {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+	gap: 1px;
+	margin-top: 2rem;
+	background: var(--line);
+	border: 1px solid var(--line);
+	border-radius: 14px;
+	overflow: hidden;
+}
+
+.tiles + .tiles {
+	margin-top: 1rem;
+}
+
+.tile {
+	padding: 1.5rem;
+	background: var(--stock);
+}
+
+.tile p + p {
+	margin-top: 0.4rem;
+}
+
+.signs {
+	color: var(--muted);
+	font-size: 0.95rem;
+}
+
+/* How it works: a rail with one dot per step. */
 
 .steps {
 	display: grid;
@@ -286,50 +618,42 @@
 	margin: 2.5rem 0 0;
 	padding: 0;
 	list-style: none;
-	counter-reset: step;
+	border-left: 1px solid var(--line);
 }
 
 .steps li {
-	display: grid;
-	grid-template-columns: 4rem minmax(0, 1fr);
-	grid-template-rows: auto auto;
-	column-gap: 1.5rem;
-	padding: 1.5rem 0;
-	border-top: 1px solid rgb(243 240 233 / 25%);
-	counter-increment: step;
+	position: relative;
+	padding: 0 0 2rem 2rem;
 }
 
 .steps li::before {
-	content: counter(step);
-	grid-row: 1 / span 2;
-	font-size: 2.5rem;
-	font-weight: 400;
-	line-height: 1;
-	font-variant-numeric: tabular-nums;
+	content: "";
+	position: absolute;
+	left: -4px;
+	top: 0.55rem;
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--ink);
 }
 
-.steps h3 {
-	font-size: 1.35rem;
-	line-height: 1.3;
-}
-
-.steps p {
-	margin-top: 0.35rem;
-	color: rgb(243 240 233 / 82%);
+.steps li:last-child {
+	padding-bottom: 0;
 }
 
 .stack {
-	margin-top: 2.5rem !important;
-	color: rgb(243 240 233 / 82%);
+	margin-top: 3rem;
+	color: var(--muted);
+	font-size: 0.98rem;
 }
 
-/* Video */
+/* Demo video */
 
 .player {
 	display: block;
 	width: 100%;
-	max-width: 960px;
 	aspect-ratio: 16 / 9;
+	margin-top: 2rem;
 	border: 0;
 	border-radius: 14px;
 }
@@ -338,94 +662,79 @@
 	display: grid;
 	justify-items: start;
 	gap: 1.25rem;
-	max-width: 960px;
-	padding: 1.75rem 2rem;
-	border: 1px dashed var(--ink);
+	margin-top: 2rem;
+	padding: 2rem;
+	border: 1px dashed var(--line);
 	border-radius: 14px;
-}
-
-.pending p {
-	font-size: 1.2rem;
-}
-
-/* Honesty note and close */
-
-.honest h2 {
-	font-size: 1.35rem;
-	margin-bottom: 0.5rem;
+	color: var(--soft);
 }
 
 .honest p {
-	color: var(--muted);
+	margin-top: 1rem;
+	color: var(--soft);
 }
+
+/* Closing: the one dark block, drawn in the logo's deep green. */
 
 .close {
+	padding: clamp(4rem, 10vh, 7rem) var(--inline) 0;
+}
+
+.closePanel {
 	display: grid;
-	justify-items: center;
-	gap: 1.5rem;
-	padding: clamp(3rem, 8vh, 5rem) var(--inline) clamp(4rem, 10vh, 6rem);
+	justify-items: start;
+	gap: 1.75rem;
+	padding: clamp(2.5rem, 6vw, 4.5rem);
+	background: var(--ink);
+	color: var(--ground);
+	border-radius: 14px;
 }
 
-.close img {
-	width: min(320px, 70vw);
-	height: auto;
+.closeSymbol {
+	width: 150px;
+	height: 150px;
+	border-radius: 50%;
+	object-fit: cover;
 }
 
-.close .closeWordmark {
-	width: min(360px, 78vw);
-	margin-top: -1rem;
+.closeWordmark {
+	display: block;
+	width: min(360px, 100%);
+	height: 60px;
+	background: var(--ground);
+	-webkit-mask: left / contain no-repeat;
+	mask: left / contain no-repeat;
 }
+
+.closeAction {
+	background: var(--ground);
+	color: var(--ink);
+}
+
+.closeAction:hover {
+	background: var(--panel);
+}
+
+/* Footer */
 
 .footer {
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: space-between;
-	gap: 1rem;
+	gap: 0.75rem 2rem;
+	margin-top: clamp(4rem, 10vh, 6rem);
 	padding: 1.5rem var(--inline) 2rem;
-	border-top: 1px solid var(--rule);
+	border-top: 1px solid var(--line);
 	color: var(--muted);
 	font-size: 0.95rem;
 }
 
-/* Small screens */
+/* Responsive: the reference widens the image bleed and spacing from 640px. */
 
-@media (max-width: 900px) {
-	.hero {
-		grid-template-columns: minmax(0, 1fr);
-		row-gap: 1.25rem;
-	}
-
-	/* Phones: a refused payment reaches the first screen, right under the
-	   headline. */
-	.pitch {
-		display: contents;
-	}
-
-	.pitch h1 {
-		order: 1;
-		padding-top: 0.5rem;
-	}
-
-	.tape {
-		order: 2;
-		height: 17rem;
-		min-height: 0;
-	}
-
-	.lead {
-		order: 3;
-	}
-
-	.actions {
-		order: 4;
-	}
-
-	.fine {
-		order: 5;
-	}
-
-	.tables {
-		grid-template-columns: minmax(0, 1fr);
+@media (min-width: 640px) {
+	.stage {
+		margin-top: 2.5rem;
+		margin-right: 0;
 	}
 }
 
@@ -434,36 +743,41 @@
 		display: none;
 	}
 
-	.header {
-		justify-content: space-between;
+	.pitch h1 {
+		font-size: clamp(2.4rem, 11vw, 3.25rem);
 	}
 
-	.headerAction {
-		font-size: 0.95rem;
+	.compare thead {
+		display: none;
 	}
 
-	.actions {
-		gap: 0.75rem 1.25rem;
+	.compare,
+	.compare tbody,
+	.compare tr,
+	.compare th,
+	.compare td {
+		display: block;
+		width: 100%;
 	}
 
-	.primary {
-		padding: 0.75rem 1.1rem;
+	.compare tr {
+		padding: 0.9rem 0;
+		border-bottom: 1px solid var(--line);
 	}
 
-	.lead {
-		font-size: 1.1rem;
+	.compare th,
+	.compare td {
+		padding: 0.15rem 0;
+		border: 0;
 	}
 
-	.steps li {
-		grid-template-columns: 2.5rem minmax(0, 1fr);
-		column-gap: 1rem;
+	.compare td:nth-child(2)::before {
+		content: "Today: ";
+		color: var(--muted);
 	}
 
-	.steps li::before {
-		font-size: 1.75rem;
-	}
-
-	.ledger tbody th {
-		white-space: normal;
+	.compare td:last-child::before {
+		content: "With Arqueo: ";
+		color: var(--muted);
 	}
 }
