@@ -67,7 +67,9 @@ Precisión para el pitch: el rechazo ocurre al simular la transacción contra la
 
 - **Red:** Stellar **testnet** únicamente.
 - **Contratos:** Rust + `soroban-sdk` (la versión que pida la librería de OpenZeppelin, fijada en `Cargo.toml`) + **OpenZeppelin Stellar Contracts** (smart account y políticas `simple_threshold`, `weighted_threshold` y `spending_limit`). Nuestro contrato propio: `contracts/control-policy`.
-- **Cliente:** **`smart-account-kit` 0.6.0** (repo `stellar/smart-account-kit`), versión exacta y sin `^`, + `@stellar/stellar-sdk`. Las direcciones de testnet (WASM de la cuenta y verificadores WebAuthn y Ed25519) salen de su `demo/.env.example`.
+- **Cliente:** **`smart-account-kit` 0.6.1** (repo `stellar/smart-account-kit`) + **`@stellar/stellar-sdk` 16.4.1**, las dos con versión exacta y sin `^` en `app/package.json`; la SDK también está fijada en el `package.json` de la raíz, porque el kit se instala en la raíz. Las direcciones de testnet (WASM de la cuenta y verificadores WebAuthn y Ed25519) salen de su `demo/.env.example`.
+  - **No volváis a la 0.6.0**: npm la marca con un problema de seguridad en la validación de la conexión de wallet.
+  - **No subáis la SDK a la 17**: el kit lee las entradas del ledger con la API de la SDK 16 y con la 17.4.0 falla (`instance.val.contractData is not a function`). Detalle en §11.
 - **App:** React + Vite + TypeScript con **Scaffold Stellar**.
 - **Explorador:** stellar.expert (testnet).
 - **Publicación de la app (P1):** Vercel o GitHub Pages, con aviso «testnet only».
@@ -77,9 +79,9 @@ Precisión para el pitch: el rechazo ocurre al simular la transacción contra la
 
 | Persona | Rol | IA | Dueña de |
 |---|---|---|---|
-| A — `<nombre>` | Contratos (Rust/Soroban) | `<IA>` | `contracts/` |
-| B — `<nombre>` | Cuenta y pagos (camino crítico) | `<IA>` | `src/lib/`, `scripts/` |
-| C — `<nombre>` | App y auditoría | `<IA>` | `src/pages/`, `src/components/`, `src/styles/` |
+| A — Carlos | Contratos (Rust/Soroban) | `<IA>` | `contracts/` |
+| B — DavidB | Cuenta y pagos (camino crítico) | `<IA>` | `src/lib/`, `scripts/` |
+| C — DavidP | App y auditoría | `<IA>` | `src/pages/`, `src/components/`, `src/styles/` |
 | D — Jesús | Producto y entrega | `<IA>` | `README.md`, `docs/`, `AGENTS.md`, `src/controls/` |
 
 - Cada carpeta tiene una dueña. **Una IA no edita fuera de la carpeta de su persona**, salvo un arreglo mínimo que se explica en el PR.
@@ -254,13 +256,15 @@ P0 bloquea la demo · P1 completa el MVP · P2 solo si sobra tiempo. **Marcad la
 | 25-oct 14:35 | Jesús (D); **pendiente de A y B** | Mover el tope de 30 días a `control-policy` (cambia §6.2 y R4) y decidir si entra en R5 o en R17 | la `spending_limit` de OpenZeppelin se reinicia al reinstalarla |
 | 25-oct 15:41 | Jesús (D) | R1 programado en `src/controls/` (§6.4) y mezclado en `develop`. Tests unitarios con vitest en el workspace `app` (`npm test --workspace app`); los e2e siguen con Playwright en `e2e/` | una sola fuente de verdad para límites, proveedores, regla según importe y rastro de cambios, probada sin red |
 | 25-oct 15:41 | Jesús (D) | `Role` y `RuleName` se definen solo en `stellar.ts`; `src/controls/types.ts` los reexporta. `src/controls/units.ts` no exporta `STROOPS_PER_XLM` (ya lo exporta `stellar.ts`, como número) | evitar dos definiciones con el mismo nombre |
+| 25-oct (R4) | Carlos | `smart-account-kit` fijado en **0.6.1** y `@stellar/stellar-sdk` en **16.4.1**, versiones exactas en `app/` (la SDK también en la raíz) (§4) | la 0.6.0 tiene un aviso de seguridad; el kit usa la API de la SDK 16 y con la 17.4.0 falla al crear la primera regla |
+| 25-oct 17:40 | Jesús (D) | Nombres del equipo en §5 según `REPARTO.md`: A Carlos, B DavidB, C DavidP, D Jesús | que cada IA sepa a quién pertenece cada carpeta |
 
 ## 12. Enlaces
 
 - OpenZeppelin, políticas: https://docs.openzeppelin.com/stellar-contracts/accounts/policies
 - OpenZeppelin, flujo de autorización: https://docs.openzeppelin.com/stellar-contracts/accounts/authorization-flow
 - OpenZeppelin, reglas de contexto: https://docs.openzeppelin.com/stellar-contracts/accounts/context-rules
-- smart-account-kit (README): https://cdn.jsdelivr.net/npm/smart-account-kit@0.6.0/README.md
+- smart-account-kit (README): https://cdn.jsdelivr.net/npm/smart-account-kit@0.6.1/README.md
 - Scaffold Stellar: https://developers.stellar.org/docs/tools/scaffold-stellar
 - Documentación de Stellar para IAs: https://developers.stellar.org/llms.txt
 - Reglas y rúbrica de HackMeridian: https://www.hackmeridian.com/build
