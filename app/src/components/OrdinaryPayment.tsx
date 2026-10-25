@@ -1,5 +1,5 @@
 import { useState } from "react"
-import  { type PayResult } from "../lib/payments"
+import { type PayResult } from "../lib/payments"
 import { loadCompany, pay, setupOrdinaryRule } from "../lib/stellar"
 
 // R4: set up the ordinary rule and make a payment signed only by the employee.
@@ -112,7 +112,17 @@ export function OrdinaryPayment() {
 					</a>
 				</p>
 			)}
-			{result && !result.ok && <p role="alert">Rejected: {result.reason}</p>}
+			{result && !result.ok && (
+				<p role="alert">
+					Rejected: {result.reason}
+					{result.details && (
+						<details>
+							<summary>Details</summary>
+							<code>{result.details}</code>
+						</details>
+					)}
+				</p>
+			)}
 		</>
 	)
 }
