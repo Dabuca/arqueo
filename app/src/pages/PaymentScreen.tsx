@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from "react"
-import { DEFAULT_LIMITS, DEMO_AMOUNTS } from "../controls/defaults"
+import { DEMO_AMOUNTS } from "../controls/defaults"
 import { requiredRule, ruleForSigners } from "../controls/rules"
 import {
 	installControlPolicy,
 	loadCompany,
+	loadControlsConfig,
 	pay,
 	setupLargeRule,
 	setupOrdinaryRule,
@@ -21,15 +22,13 @@ type SignatureChoice = "employee" | "manager"
 const testnetTx = (hash: string) =>
 	`https://stellar.expert/explorer/testnet/tx/${encodeURIComponent(hash)}`
 
-const configuredSuppliers: string[] = (import.meta.env.PUBLIC_SUPPLIERS ?? "")
-	.split(",")
-	.map((address: string) => address.trim())
-	.filter(Boolean)
-
 const shortAddress = (address: string) =>
 	`${address.slice(0, 6)}…${address.slice(-5)}`
 
 export default function PaymentScreen() {
+	// The limits and suppliers the admin set in Settings (R17).
+	const [controls, setControls] = useState(() => loadControlsConfig())
+	const configuredSuppliers = controls.suppliers.map((s) => s.address)
 	const [supplier, setSupplier] = useState(configuredSuppliers[0] ?? "")
 	const [customSupplier, setCustomSupplier] = useState(false)
 	const [amount, setAmount] = useState(String(DEMO_AMOUNTS.below))
@@ -45,7 +44,10 @@ export default function PaymentScreen() {
 
 	const [company, setCompany] = useState(() => loadCompany())
 	useEffect(() => {
-		const refreshCompany = () => setCompany(loadCompany())
+		const refreshCompany = () => {
+			setCompany(loadCompany())
+			setControls(loadControlsConfig())
+		}
 		window.addEventListener("arqueo:company-updated", refreshCompany)
 		return () =>
 			window.removeEventListener("arqueo:company-updated", refreshCompany)
@@ -58,7 +60,7 @@ export default function PaymentScreen() {
 			: (["employee", "manager"] as const)
 	const selectedRule = ruleForSigners([...signers])
 	const suggestedRule = amountIsValid
-		? requiredRule(numericAmount, DEFAULT_LIMITS, 0)
+		? requiredRule(numericAmount, controls.limits, 0)
 		: "ordinary"
 	const recipient = supplier
 	const ordinaryReady = company?.rules?.ordinary !== undefined
@@ -442,7 +444,7 @@ export default function PaymentScreen() {
 						</dl>
 						<p className={styles.ruleNote}>
 							{suggestedRule === "ordinary"
-								? `Ordinary allows up to ${DEFAULT_LIMITS.maxPerPayment} XLM per payment.`
+								? `Ordinary allows up to ${controls.limits.maxPerPayment} XLM per payment.`
 								: "The amount exceeds the ordinary limit. The account decides whether these signatures satisfy its large rule."}
 						</p>
 						<div className={styles.perforation} aria-hidden="true" />

@@ -8,6 +8,7 @@ import Debug from "./pages/Debug"
 import Home from "./pages/Home"
 import Landing from "./pages/Landing"
 import Auditor from "./pages/Auditor"
+import Settings from "./pages/Settings"
 
 function App() {
 	return (
@@ -16,6 +17,7 @@ function App() {
 			<Route path="/auditor" element={<Auditor />} />
 			<Route element={<AppLayout />}>
 				<Route path="/app" element={<Home />} />
+				<Route path="/settings" element={<Settings />} />
 				<Route path="/debug" element={<Debug />} />
 				<Route path="/debug/:contractName" element={<Debug />} />
 			</Route>
@@ -34,6 +36,12 @@ const AppLayout = () => (
 
 		<footer className={styles.footer}>
 			<nav className={styles.footerNav}>
+				<NavLink
+					to="/settings"
+					className={({ isActive }) => (isActive ? styles.active : "")}
+				>
+					Settings
+				</NavLink>
 				<NavLink
 					to="/debug"
 					className={({ isActive }) => (isActive ? styles.active : "")}

@@ -47,7 +47,7 @@ rules; if it were sent anyway, the network would reject it.
   `manager` (passkey; second signature on large payments), `auditor` (read only;
   payments and CSV).
 - Rules: `admin` (default), `ordinary` (employee, threshold 1, authorized
-  suppliers, max 500 per payment, spending limit 1,000 every 30 days), `large`
+  suppliers, max 500 per payment, cap 1,000 every 30 days, all inside `control-policy`), `large`
   (employee + manager, threshold 2, authorized suppliers, no per-payment max).
 - Stack: Stellar testnet, OpenZeppelin Stellar Contracts (smart account,
   threshold and spending-limit policies), a custom `control-policy` contract,

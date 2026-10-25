@@ -13,6 +13,7 @@ const CSV_COLUMNS = [
 	"periodStart",
 	"removeTxHash",
 	"addTxHash",
+	"rule",
 ] as const
 
 function defaultStorage(): ChangeStorage | null {
