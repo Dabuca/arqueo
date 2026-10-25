@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react"
-import { DEFAULT_LIMITS, DEMO_AMOUNTS } from "../controls/defaults"
+import { DEFAULT_LIMITS } from "../controls/defaults"
 import { requiredRule, ruleForSigners } from "../controls/rules"
 import {
 	installControlPolicy,
@@ -7,6 +7,7 @@ import {
 	pay,
 	setupOrdinaryRule,
 } from "../lib/stellar"
+import { paymentBlockers, SCENES, type Scene } from "./paymentForm"
 import { outcomeFromResult, type Outcome } from "./paymentOutcome"
 import styles from "./PaymentScreen.module.css"
 
@@ -26,7 +27,7 @@ const shortAddress = (address: string) =>
 export default function PaymentScreen() {
 	const [supplier, setSupplier] = useState(configuredSuppliers[0] ?? "")
 	const [customSupplier, setCustomSupplier] = useState(false)
-	const [amount, setAmount] = useState(String(DEMO_AMOUNTS.below))
+	const [amount, setAmount] = useState(String(SCENES.below.amount))
 	const [concept, setConcept] = useState("")
 	const [signature, setSignature] = useState<SignatureChoice>("employee")
 	const [busy, setBusy] = useState(false)
@@ -54,11 +55,12 @@ export default function PaymentScreen() {
 	const recipient = supplier
 	const ordinaryReady = company?.rules?.ordinary !== undefined
 
-	const pickScenario = (nextAmount: number, useUnknownSupplier = false) => {
-		setAmount(String(nextAmount))
+	const pickScenario = (scene: Scene) => {
+		setAmount(String(scene.amount))
+		setConcept(scene.concept)
 		setSignature("employee")
 		setOutcome(undefined)
-		if (useUnknownSupplier) {
+		if (scene.unknownSupplier) {
 			setCustomSupplier(true)
 			setSupplier("")
 		} else if (configuredSuppliers[0]) {
@@ -117,13 +119,14 @@ export default function PaymentScreen() {
 		}
 	}
 
-	const canSubmit =
-		Boolean(company) &&
-		ordinaryReady &&
-		Boolean(recipient.trim()) &&
-		amountIsValid &&
-		Boolean(concept.trim()) &&
-		!busy
+	const blockers = paymentBlockers({
+		hasCompany: Boolean(company),
+		ordinaryReady,
+		recipient,
+		amount,
+		concept,
+	})
+	const canSubmit = blockers.length === 0 && !busy
 
 	return (
 		<section className={styles.screen} aria-labelledby="payment-title">
@@ -282,23 +285,14 @@ export default function PaymentScreen() {
 
 					<div className={styles.quickAmounts} aria-label="Demo scenarios">
 						<span>Try a scene</span>
-						<button
-							type="button"
-							onClick={() => pickScenario(DEMO_AMOUNTS.below)}
-						>
-							Within limit <b>{DEMO_AMOUNTS.below}</b>
+						<button type="button" onClick={() => pickScenario(SCENES.below)}>
+							Within limit <b>{SCENES.below.amount}</b>
 						</button>
-						<button
-							type="button"
-							onClick={() => pickScenario(DEMO_AMOUNTS.above)}
-						>
-							Needs approval <b>{DEMO_AMOUNTS.above}</b>
+						<button type="button" onClick={() => pickScenario(SCENES.above)}>
+							Needs approval <b>{SCENES.above.amount}</b>
 						</button>
-						<button
-							type="button"
-							onClick={() => pickScenario(DEMO_AMOUNTS.unknown, true)}
-						>
-							Unknown supplier <b>{DEMO_AMOUNTS.unknown}</b>
+						<button type="button" onClick={() => pickScenario(SCENES.unknown)}>
+							Unknown supplier <b>{SCENES.unknown.amount}</b>
 						</button>
 					</div>
 
@@ -321,10 +315,12 @@ export default function PaymentScreen() {
 								{busy ? "Checking account rules…" : "Simulate & pay"}
 							</button>
 						)}
-						<span className={styles.actionNote}>
+						<span className={styles.actionNote} aria-live="polite">
 							{company
 								? ordinaryReady
-									? "The account checks this before submission."
+									? blockers.length > 0
+										? `To enable: ${blockers.join(" · ")}`
+										: "The account checks this before submission."
 									: "Add the ordinary rule before sending a payment."
 								: "Create a company account above to enable payments."}
 						</span>
