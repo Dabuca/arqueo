@@ -1,6 +1,7 @@
 import { labPrefix } from "@stellar-scaffold/app-lib"
 import React from "react"
 import { Link } from "react-router-dom"
+import { CompanyBalance } from "../components/CompanyBalance"
 import { GuessTheNumber } from "../components/GuessTheNumber"
 import styles from "./Home.module.css"
 
@@ -17,6 +18,11 @@ const Home: React.FC = () => (
 					View docs
 				</Link>
 			</p>
+		</div>
+
+		<div className="card">
+			<h2>Treasury</h2>
+			<CompanyBalance />
 		</div>
 
 		<div className="card">
