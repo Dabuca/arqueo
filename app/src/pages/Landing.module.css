@@ -1461,3 +1461,9 @@
 	max-width: none;
 	margin: 0;
 }
+
+.shot {
+	display: block;
+	width: 100%;
+	height: auto;
+}
