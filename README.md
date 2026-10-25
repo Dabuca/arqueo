@@ -1,3 +1,13 @@
+<!--
+PENDING before submission (R10). Each gap is marked TODO(R10) below. Remove this block when done.
+- Scene hashes for 1, 2 (simulation error and failed tx), 2b and 3: from B, after R4, R6 and R7.
+- Scene 4 screenshot or video timestamp: from C.
+- Smart account ID: from B (R3 creates it in each browser; the repo does not record it).
+- control-policy contract ID: from A (no deployment recorded in the repo or scaffold.yml).
+- App URL (C, R15), video URL (D) and design screenshots (C).
+- Final pass after the 20:00 freeze (D).
+-->
+
 # Arqueo
 
 **Internal controls for stablecoin treasuries on Stellar: payment rules are
