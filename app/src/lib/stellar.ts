@@ -489,6 +489,7 @@ export async function pay(p: PayInput): Promise<PayResult> {
 		? { ok: true, hash: result.hash }
 		: { ok: false, ...rejectionReason(result.error) }
 	paymentLog(localStorage).add(paymentRecord(p, rule, outcome))
+	window.dispatchEvent(new Event("arqueo:payment-recorded"))
 	return outcome
 }
 

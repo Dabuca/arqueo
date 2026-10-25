@@ -7,11 +7,13 @@ import { SiteHeader } from "./components/SiteHeader"
 import Debug from "./pages/Debug"
 import Home from "./pages/Home"
 import Landing from "./pages/Landing"
+import Auditor from "./pages/Auditor"
 
 function App() {
 	return (
 		<Routes>
 			<Route path="/" element={<Landing />} />
+			<Route path="/auditor" element={<Auditor />} />
 			<Route element={<AppLayout />}>
 				<Route path="/app" element={<Home />} />
 				<Route path="/debug" element={<Debug />} />

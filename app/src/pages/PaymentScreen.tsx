@@ -5,8 +5,10 @@ import {
 	installControlPolicy,
 	loadCompany,
 	pay,
+	setupLargeRule,
 	setupOrdinaryRule,
 } from "../lib/stellar"
+import { fieldErrors, type FieldErrors } from "./paymentFields"
 import { outcomeFromResult, type Outcome } from "./paymentOutcome"
 import styles from "./PaymentScreen.module.css"
 
@@ -33,6 +35,9 @@ export default function PaymentScreen() {
 	const [setupHash, setSetupHash] = useState<string>()
 	const [setupError, setSetupError] = useState<string>()
 	const [outcome, setOutcome] = useState<Outcome>()
+	const [errors, setErrors] = useState<FieldErrors>({})
+	const clearError = (field: keyof FieldErrors) =>
+		setErrors((current) => ({ ...current, [field]: undefined }))
 
 	const [company, setCompany] = useState(() => loadCompany())
 	useEffect(() => {
@@ -53,6 +58,8 @@ export default function PaymentScreen() {
 		: "ordinary"
 	const recipient = supplier
 	const ordinaryReady = company?.rules?.ordinary !== undefined
+	const largeReady = company?.rules?.large !== undefined
+	const ruleReady = signature === "manager" ? largeReady : ordinaryReady
 
 	const pickScenario = (nextAmount: number, useUnknownSupplier = false) => {
 		setAmount(String(nextAmount))
@@ -67,11 +74,11 @@ export default function PaymentScreen() {
 		}
 	}
 
-	const prepareRule = async () => {
+	const prepareRule = async (setup: () => Promise<{ hash?: string }>) => {
 		setBusy(true)
 		setSetupError(undefined)
 		try {
-			const result = await setupOrdinaryRule()
+			const result = await setup()
 			setSetupHash(result.hash)
 			setCompany(loadCompany())
 		} catch (error) {
@@ -97,6 +104,9 @@ export default function PaymentScreen() {
 
 	const submitPayment = async (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault()
+		const found = fieldErrors({ supplier: recipient, amount, concept })
+		setErrors(found)
+		if (Object.keys(found).length > 0) return
 		setOutcome(undefined)
 		setBusy(true)
 		try {
@@ -117,13 +127,7 @@ export default function PaymentScreen() {
 		}
 	}
 
-	const canSubmit =
-		Boolean(company) &&
-		ordinaryReady &&
-		Boolean(recipient.trim()) &&
-		amountIsValid &&
-		Boolean(concept.trim()) &&
-		!busy
+	const canSubmit = Boolean(company) && ruleReady && !busy
 
 	return (
 		<section className={styles.screen} aria-labelledby="payment-title">
@@ -141,6 +145,7 @@ export default function PaymentScreen() {
 			<div className={styles.workspace}>
 				<form
 					className={styles.form}
+					noValidate
 					onSubmit={(event) => void submitPayment(event)}
 				>
 					<div className={styles.formTopline}>
@@ -177,11 +182,13 @@ export default function PaymentScreen() {
 								<input
 									id="payment-supplier"
 									value={supplier}
-									onChange={(event) => setSupplier(event.target.value)}
+									onChange={(event) => {
+										setSupplier(event.target.value)
+										clearError("supplier")
+									}}
 									placeholder="Paste a Stellar G… address"
 									autoComplete="off"
 									spellCheck={false}
-									required
 								/>
 								{configuredSuppliers.length > 0 && (
 									<button
@@ -204,6 +211,11 @@ export default function PaymentScreen() {
 									: "Only suppliers on the account allowlist can receive a payment."
 								: "No supplier list is configured in this testnet build. Enter an address to try the account rules."}
 						</p>
+						{errors.supplier && (
+							<p className={styles.inlineError} role="alert">
+								{errors.supplier}
+							</p>
+						)}
 					</div>
 
 					<div className={styles.amountConcept}>
@@ -216,22 +228,36 @@ export default function PaymentScreen() {
 									min="0.0000001"
 									step="0.0000001"
 									value={amount}
-									onChange={(event) => setAmount(event.target.value)}
-									required
+									onChange={(event) => {
+										setAmount(event.target.value)
+										clearError("amount")
+									}}
 								/>
 								<span>XLM</span>
 							</div>
+							{errors.amount && (
+								<p className={styles.inlineError} role="alert">
+									{errors.amount}
+								</p>
+							)}
 						</div>
 						<div className={styles.field}>
 							<label htmlFor="payment-concept">Payment concept</label>
 							<input
 								id="payment-concept"
 								value={concept}
-								onChange={(event) => setConcept(event.target.value)}
+								onChange={(event) => {
+									setConcept(event.target.value)
+									clearError("concept")
+								}}
 								placeholder="e.g. Office supplies"
 								maxLength={80}
-								required
 							/>
+							{errors.concept && (
+								<p className={styles.inlineError} role="alert">
+									{errors.concept}
+								</p>
+							)}
 						</div>
 					</div>
 
@@ -307,7 +333,7 @@ export default function PaymentScreen() {
 							<button
 								className={styles.primary}
 								type="button"
-								onClick={() => void prepareRule()}
+								onClick={() => void prepareRule(setupOrdinaryRule)}
 								disabled={busy || !company}
 							>
 								{busy ? "Preparing account…" : "Set up payment rule"}
@@ -329,6 +355,20 @@ export default function PaymentScreen() {
 								: "Create a company account above to enable payments."}
 						</span>
 					</div>
+					{ordinaryReady && signature === "manager" && !largeReady && (
+						<p>
+							<button
+								className={styles.primary}
+								type="button"
+								onClick={() => void prepareRule(setupLargeRule)}
+								disabled={busy || !company}
+							>
+								{busy
+									? "Preparing manager rule…"
+									: "Set up manager rule (admin passkey)"}
+							</button>
+						</p>
+					)}
 					{ordinaryReady && company && !company.controlPolicy && (
 						<p>
 							<button
