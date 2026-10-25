@@ -17,7 +17,11 @@ import { DEFAULT_LIMITS, DEMO_AMOUNTS } from "../controls/defaults"
 import { ruleForSigners } from "../controls/rules"
 import { loadCompany, pay } from "../lib/stellar"
 import ui from "../styles/ui.module.css"
-import { fieldErrors, type FieldErrors } from "./paymentFields"
+import {
+	UNKNOWN_SUPPLIER_DEMO,
+	fieldErrors,
+	type FieldErrors,
+} from "./paymentFields"
 import { outcomeFromResult, type Outcome } from "./paymentOutcome"
 import styles from "./PaymentScreen.module.css"
 
@@ -90,7 +94,7 @@ export default function PaymentScreen() {
 		setOutcome(undefined)
 		if (useUnknownSupplier) {
 			setCustomSupplier(true)
-			setSupplier("")
+			setSupplier(UNKNOWN_SUPPLIER_DEMO)
 		} else if (configuredSuppliers[0]) {
 			setCustomSupplier(false)
 			setSupplier(configuredSuppliers[0])
