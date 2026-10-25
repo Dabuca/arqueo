@@ -8,6 +8,7 @@ import styles from "./SiteHeader.module.css"
 const NAV = [
 	{ to: "/app", label: "Treasury" },
 	{ to: "/auditor", label: "Auditor" },
+	{ to: "/settings", label: "Settings" },
 	{ to: "/debug", label: "Contracts" },
 ] as const
 
