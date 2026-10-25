@@ -44,10 +44,12 @@ export function CompanyBalance() {
 		setCreateError(undefined)
 		try {
 			setAddress((await createCompanyAccount()).address)
+			window.dispatchEvent(new Event("arqueo:company-updated"))
 		} catch (error) {
 			setCreateError(errorMessage(error))
 			// Funding can fail after the account was created and saved.
 			setAddress(loadCompany()?.address)
+			window.dispatchEvent(new Event("arqueo:company-updated"))
 		} finally {
 			setCreating(false)
 		}
