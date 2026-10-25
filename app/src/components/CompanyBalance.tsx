@@ -22,6 +22,7 @@ import {
 	type Payment,
 } from "../lib/stellar"
 import ui from "../styles/ui.module.css"
+import { Amount, AmountUnit } from "./Amount"
 import styles from "./CompanyBalance.module.css"
 import { Spinner, useChanged } from "./Spinner"
 
@@ -355,8 +356,8 @@ export function CompanyBalance() {
 								)}
 								{balance.status === "ok" && (
 									<span className={styles.balance}>
-										{formatXlm(balance.xlm)}
-										<span className={styles.unit}>XLM</span>
+										<Amount xlm={balance.xlm} />
+										<span className={styles.unit}><AmountUnit /></span>
 									</span>
 								)}
 							</dd>
@@ -368,10 +369,11 @@ export function CompanyBalance() {
 								<dd>
 									<span className={styles.spent}>
 										{fromChain ? "" : "≈ "}
-										{formatXlm(
-											fromChain ? fromChain.spentXlm : (spent ?? 0),
-										)} / {formatXlm(limits.cap30d)}
-										<span className={styles.unit}>XLM</span>
+										<Amount
+											xlm={fromChain ? fromChain.spentXlm : (spent ?? 0)}
+										/>{" "}
+										/ <Amount xlm={limits.cap30d} />
+										<span className={styles.unit}><AmountUnit /></span>
 									</span>
 									<span className={styles.caption}>
 										{fromChain

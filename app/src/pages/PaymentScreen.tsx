@@ -22,6 +22,7 @@ import {
 	readControlState,
 	type ControlState,
 } from "../lib/stellar"
+import { Amount, AmountUnit } from "../components/Amount"
 import ui from "../styles/ui.module.css"
 import {
 	UNKNOWN_SUPPLIER_DEMO,
@@ -474,12 +475,10 @@ export default function PaymentScreen() {
 					</div>
 					<div className={styles.summary}>
 						<span className={styles.amountFigure}>
-							{amountIsValid
-								? numericAmount.toLocaleString("en-US", {
-										maximumFractionDigits: 7,
-									})
-								: "—"}
-							<small>XLM</small>
+							{amountIsValid ? <Amount xlm={numericAmount} /> : "—"}
+							<small>
+								<AmountUnit />
+							</small>
 						</span>
 						<span className={styles.summaryTo}>
 							{recipient ? (

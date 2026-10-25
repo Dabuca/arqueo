@@ -31,6 +31,7 @@ import {
 	supplierDeps,
 	type ControlState,
 } from "../lib/stellar"
+import { Amount, AmountUnit } from "../components/Amount"
 import ui from "../styles/ui.module.css"
 import styles from "./Settings.module.css"
 
@@ -261,8 +262,35 @@ export default function Settings() {
 		return (
 			<div className={styles.loading} role="status" aria-label="Loading">
 				<span className={ui.srOnly}>Reading the rules from the chain…</span>
-				<div className={styles.skeleton} />
-				<div className={styles.skeleton} />
+				<div className={`${ui.card} ${styles.skelCard}`} aria-hidden="true">
+					<div className={styles.skelHead}>
+						<span className={`${styles.bone} ${styles.boneTitle}`} />
+						<span className={`${styles.bone} ${styles.boneLine}`} />
+					</div>
+					<div className={styles.figures}>
+						{[0, 1, 2, 3, 4].map((i) => (
+							<div key={i}>
+								<span className={`${styles.bone} ${styles.boneLabel}`} />
+								<span className={`${styles.bone} ${styles.boneFigure}`} />
+							</div>
+						))}
+					</div>
+					<span className={`${styles.bone} ${styles.boneBar}`} />
+				</div>
+				<div className={`${ui.card} ${styles.skelCard}`} aria-hidden="true">
+					<span className={`${styles.bone} ${styles.boneTitle}`} />
+					<div className={styles.fields}>
+						<span className={`${styles.bone} ${styles.boneField}`} />
+						<span className={`${styles.bone} ${styles.boneField}`} />
+					</div>
+					<span className={`${styles.bone} ${styles.boneLine}`} />
+				</div>
+				<div className={`${ui.card} ${styles.skelCard}`} aria-hidden="true">
+					<span className={`${styles.bone} ${styles.boneTitle}`} />
+					{[0, 1, 2].map((i) => (
+						<span key={i} className={`${styles.bone} ${styles.boneRow}`} />
+					))}
+				</div>
 			</div>
 		)
 	}
@@ -401,29 +429,37 @@ export default function Settings() {
 					<div>
 						<dt>Max per payment</dt>
 						<dd>
-							{limits.maxPerPayment}
-							<span className={styles.unit}>XLM</span>
+							<Amount xlm={limits.maxPerPayment} />
+							<span className={styles.unit}>
+								<AmountUnit />
+							</span>
 						</dd>
 					</div>
 					<div>
 						<dt>{limits.periodDays}-day cap</dt>
 						<dd>
-							{limits.cap30d}
-							<span className={styles.unit}>XLM</span>
+							<Amount xlm={limits.cap30d} />
+							<span className={styles.unit}>
+								<AmountUnit />
+							</span>
 						</dd>
 					</div>
 					<div>
 						<dt>Spent this period</dt>
 						<dd>
-							{state.spentXlm}
-							<span className={styles.unit}>XLM</span>
+							<Amount xlm={state.spentXlm} />
+							<span className={styles.unit}>
+								<AmountUnit />
+							</span>
 						</dd>
 					</div>
 					<div>
 						<dt>Left this period</dt>
 						<dd>
-							{remaining}
-							<span className={styles.unit}>XLM</span>
+							<Amount xlm={remaining} />
+							<span className={styles.unit}>
+								<AmountUnit />
+							</span>
 						</dd>
 					</div>
 					<div>
@@ -483,7 +519,7 @@ export default function Settings() {
 						<p className={styles.hint}>
 							A payment above the maximum needs the manager&apos;s second
 							signature. The cap cannot be set below what was already spent in
-							the period ({state.spentXlm} XLM now), and what was spent carries
+							the period (<Amount xlm={state.spentXlm} /> <AmountUnit /> now), and what was spent carries
 							over when it changes.
 						</p>
 					</section>

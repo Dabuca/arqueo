@@ -194,6 +194,23 @@
 	transition: background-color 150ms ease;
 }
 
+/* Rows that enter the list (a filter was loosened, or the journal updated) slide in, staggered. */
+.row {
+	animation: rowIn 320ms var(--ease-out) both;
+	animation-delay: calc(var(--i, 0) * 30ms);
+}
+
+.fadeIn {
+	animation: rowIn 260ms var(--ease-out) both;
+}
+
+@keyframes rowIn {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+}
+
 .tableWrap tbody tr:hover {
 	background: var(--surface-low);
 }
@@ -322,7 +339,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.skeletons span {
+	.skeletons span,
+	.row,
+	.fadeIn {
 		animation: none;
 	}
 }
