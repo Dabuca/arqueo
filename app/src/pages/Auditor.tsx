@@ -48,7 +48,7 @@ const shortAddress = (address: string) =>
 const shortHash = (hash: string) => `${hash.slice(0, 8)}…${hash.slice(-6)}`
 
 const downloadCsv = (filename: string, csv: string) => {
-	const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }))
+	const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }))
 	const link = document.createElement("a")
 	link.href = url
 	link.download = filename
@@ -339,6 +339,7 @@ export default function Auditor() {
 										<tr>
 											<th scope="col">Date</th>
 											<th scope="col">Setting</th>
+											<th scope="col">Rule</th>
 											<th scope="col">Previous</th>
 											<th scope="col">New</th>
 											<th scope="col">Spent at change</th>
@@ -352,6 +353,7 @@ export default function Auditor() {
 											<tr key={change.id}>
 												<td data-label="Date">{formatDate(change.at)}</td>
 												<td data-label="Setting">{FIELD_LABELS[change.field] ?? change.field}</td>
+												<td data-label="Rule">{change.rule ?? "—"}</td>
 												<td data-label="Previous" className={styles.value}>
 													{change.previous || "—"}
 												</td>

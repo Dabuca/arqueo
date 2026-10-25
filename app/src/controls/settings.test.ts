@@ -145,9 +145,9 @@ describe("describeValue", () => {
 		expect(describeValue("cap30d", config)).toBe("1000")
 	})
 
-	it("writes suppliers as label and shortened address", () => {
+	it("writes suppliers as label and the whole address", () => {
 		expect(describeValue("suppliers", config)).toBe(
-			"Acme (GBZXN7…DNMADI); Globex (GBZXN7…DNMADA)",
+			`Acme (${A}); Globex (${B})`,
 		)
 		expect(describeValue("suppliers", { ...config, suppliers: [] })).toBe(
 			"none",

@@ -194,7 +194,7 @@ P0 bloquea la demo · P1 completa el MVP · P2 solo si sobra tiempo. **Marcad la
 
 ### P1 — MVP completo
 
-- [ ] **R11 [C]** CSV del auditor.
+- [x] **R11 [C]** CSV del auditor. `/auditor` descarga el CSV de pagos y el de cambios de Ajustes; el segundo lleva BOM, neutraliza fórmulas y guarda la dirección completa de cada proveedor.
 - [x] **R12 [A+C]** Errores legibles (§6.3).
 - [ ] **R13 [C]** El auditor ve también los firmantes y la regla aplicada.
 - [ ] **R14 [B]** Script de demo reproducible que crea cuenta, firmantes, reglas y proveedores de una vez. Cada ensayo gasta el tope mensual: cuenta nueva por ensayo.
