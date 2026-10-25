@@ -8,13 +8,11 @@ import { test, expect } from "@playwright/test"
 //
 // First run fails, generating an initial png.
 
-test("home page visual", async ({ page }) => {
-	await page.goto("/")
+test("treasury page visual", async ({ page }) => {
+	await page.goto("/app")
 	// ensure the app has mounted before snapshotting
 	await expect(page.getByRole("button", { name: /connect/i })).toBeVisible()
-	await expect(
-		page.getByPlaceholder("Guess a number from 1 to 10!"),
-	).toBeVisible()
+	await expect(page.getByRole("heading", { name: "Prepare a payment" })).toBeVisible()
 	await expect(page).toHaveScreenshot("home.png", {
 		fullPage: true,
 		animations: "disabled",
