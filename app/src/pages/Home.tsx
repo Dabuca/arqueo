@@ -93,6 +93,9 @@ const Home: React.FC = () => (
 
 		<section className={styles.tools} aria-label="Development tools">
 			<div className={`card ${styles.tool}`}>
+				<p>Review the read-only payment history in the <Link to="/auditor">Auditor journal</Link></p>
+			</div>
+			<div className={`card ${styles.tool}`}>
 				<p>
 					Invoke your smart contract using the{" "}
 					<Link to="/debug">Contract Explorer</Link>
