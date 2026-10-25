@@ -4,6 +4,7 @@ import {
 	createEd25519Signer,
 	createSpendingLimitParams,
 	createThresholdParams,
+	createWebAuthnSigner,
 	type ContractSigner,
 	type SelectedSigner,
 } from "smart-account-kit"
@@ -45,6 +46,41 @@ export function ordinaryRuleParams() {
 			ORDINARY_SPENDING_LIMIT_XLM * STROOPS_PER_XLM,
 			ORDINARY_PERIOD_DAYS * LEDGERS_PER_DAY,
 		),
+	}
+}
+
+/** Install params of the large rule's threshold policy: 2 of 2 signers (AGENTS.md §3). */
+export function largeRuleParams() {
+	return { threshold: createThresholdParams(2) }
+}
+
+/**
+ * The manager's passkey as an on-chain signer. The public key is the base64
+ * of the uncompressed secp256r1 key the kit returned at setup: 0x04, then X and Y.
+ */
+export function managerSigner(
+	webauthnVerifierAddress: string,
+	publicKeyBase64: string,
+	credentialId: string,
+): ContractSigner {
+	const raw = Uint8Array.from(atob(publicKeyBase64), (c) => c.charCodeAt(0))
+	if (raw.length !== 65 || raw[0] !== 0x04) {
+		throw new Error("Manager public key must be an uncompressed key of 65 bytes")
+	}
+	return createWebAuthnSigner(webauthnVerifierAddress, raw, credentialId)
+}
+
+/** The manager's passkey as a multi-signer selection: the kit asks the browser to sign with it. */
+export function managerSelectedSigner(
+	webauthnVerifierAddress: string,
+	publicKeyBase64: string,
+	credentialId: string,
+): SelectedSigner {
+	return {
+		type: "passkey",
+		credentialId,
+		signer: managerSigner(webauthnVerifierAddress, publicKeyBase64, credentialId),
+		label: "manager",
 	}
 }
 
