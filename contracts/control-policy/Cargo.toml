@@ -1,0 +1,24 @@
+[package]
+name = "control-policy"
+edition.workspace = true
+license.workspace = true
+publish = false
+version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[package.metadata.stellar]
+# Set contract metadata for authors, homepage, and version based on the Cargo.toml package values
+cargo_inherit = true
+
+[lib]
+crate-type = ["cdylib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+stellar-accounts = "0.8.0"
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
