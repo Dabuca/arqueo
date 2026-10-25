@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import { Link } from "react-router-dom"
+import { PaymentsCsvDownloadButton } from "../components/PaymentsCsvDownloadButton"
 import type { Payment } from "../lib/stellar"
 import { listPayments } from "../lib/stellar"
 import styles from "./Auditor.module.css"
@@ -70,9 +71,16 @@ export default function Auditor() {
 						rejected. Successful transactions link to Stellar Expert.
 					</p>
 				</div>
-				<button className={styles.refresh} type="button" onClick={() => void refresh()}>
-					Refresh journal
-				</button>
+				<div className={styles.actions}>
+					<button className={styles.refresh} type="button" onClick={() => void refresh()}>
+						Refresh journal
+					</button>
+					<PaymentsCsvDownloadButton
+						className={styles.refresh}
+						disabled={loading || Boolean(error)}
+						payments={payments}
+					/>
+				</div>
 				</div>
 
 				<div className={styles.summary}>

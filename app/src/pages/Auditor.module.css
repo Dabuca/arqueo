@@ -31,11 +31,14 @@
 
 .main { width: min(1200px, calc(100% - clamp(32px, 8vw, 96px))); margin: 0 auto; padding: clamp(2.5rem, 6vw, 5rem) 0 5rem; }
 .titleRow { display: flex; align-items: end; justify-content: space-between; gap: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--ink); }
+.actions { display: flex; flex: 0 0 auto; flex-wrap: wrap; gap: 0.75rem; }
 .eyebrow { margin: 0 0 0.75rem; color: var(--muted); font-size: 0.7rem; letter-spacing: 0.08em; }
 .titleRow h1 { margin: 0; font-size: clamp(2.5rem, 5vw, 4rem); font-weight: 500; letter-spacing: -0.04em; line-height: 1; }
 .intro { max-width: 58ch; margin: 1rem 0 0; color: var(--muted); line-height: 1.55; }
 .refresh { flex: 0 0 auto; padding: 0.8rem 1rem; border: 1px solid var(--ink); border-radius: 3px; background: transparent; color: var(--ink); font: inherit; cursor: pointer; }
 .refresh:hover { background: var(--ink); color: var(--ground); }
+.refresh:disabled { cursor: not-allowed; opacity: 0.55; }
+.refresh:disabled:hover { background: transparent; color: var(--ink); }
 
 .summary { display: flex; justify-content: space-between; gap: 1rem; padding: 1.15rem 0; color: var(--muted); font-size: 0.76rem; }
 .summary strong { color: var(--ink); font-size: 1rem; }
