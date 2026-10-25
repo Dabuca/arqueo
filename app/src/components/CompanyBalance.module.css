@@ -1,0 +1,259 @@
+/* Company account card: first-run call to action, or the account's health and its next setup step. */
+
+.card {
+	display: grid;
+	gap: 20px;
+}
+
+.head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+/* First visit: one clear thing to do. */
+
+.first {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 20px 40px;
+	padding-top: 20px;
+	border-top: 1px solid var(--line);
+}
+
+.firstCopy {
+	display: grid;
+	gap: 6px;
+	max-width: 56ch;
+}
+
+.firstCopy h3 {
+	margin: 0;
+	font-family: var(--font-display);
+	font-size: 1.5rem;
+	font-weight: 600;
+	letter-spacing: -0.02em;
+	line-height: 1.2;
+}
+
+.firstCopy p {
+	margin: 0;
+	color: var(--muted);
+	font-size: 0.9375rem;
+}
+
+.big {
+	min-height: 48px;
+	padding: 12px 24px;
+	font-size: 0.9375rem;
+}
+
+/* Account, balance and spend */
+
+.summary {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	gap: 16px 56px;
+	margin: 0;
+}
+
+.item {
+	display: grid;
+	gap: 4px;
+	min-width: 0;
+}
+
+.item dt {
+	margin: 0;
+}
+
+.item dd {
+	margin: 0;
+	min-width: 0;
+}
+
+.addressRow {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.address {
+	font-family: var(--font-mono);
+	font-size: 0.9375rem;
+	color: var(--ink);
+}
+
+.iconButton {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	border: 0;
+	border-radius: 8px;
+	background: none;
+	color: var(--muted);
+	cursor: pointer;
+	transition:
+		background-color 150ms ease,
+		color 150ms ease;
+}
+
+.iconButton:hover:not(:disabled) {
+	background: var(--surface-high);
+	color: var(--ink);
+}
+
+.balance,
+.spent {
+	font-family: var(--font-display);
+	font-size: 1.75rem;
+	font-weight: 600;
+	letter-spacing: -0.02em;
+	line-height: 1.1;
+	color: var(--ink);
+	font-variant-numeric: tabular-nums;
+}
+
+.spent {
+	font-size: 1.25rem;
+	line-height: 1.4;
+}
+
+.unit {
+	margin-left: 6px;
+	font-family: var(--font-mono);
+	font-size: 0.8125rem;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	color: var(--muted);
+}
+
+.muted {
+	color: var(--muted);
+	font-size: 0.9375rem;
+}
+
+.caption {
+	display: block;
+	margin-top: 2px;
+	color: var(--muted);
+	font-size: 0.75rem;
+}
+
+.skeleton {
+	display: block;
+	width: 9rem;
+	height: 1.75rem;
+	border-radius: 8px;
+	background: var(--surface-high);
+	animation: pulse 1.4s ease-in-out infinite;
+}
+
+/* Rules readiness and the next step */
+
+.setup {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px 32px;
+	padding-top: 20px;
+	border-top: 1px solid var(--line);
+}
+
+.rules {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px 32px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.rules li {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+}
+
+.ruleIcon {
+	display: flex;
+	flex: none;
+	margin-top: 1px;
+	color: var(--muted);
+	transition: color 150ms ease;
+}
+
+.done {
+	color: var(--ok-ink);
+}
+
+.ruleText {
+	display: grid;
+	gap: 1px;
+	font-size: 0.8125rem;
+	color: var(--muted);
+}
+
+.ruleText strong {
+	font-size: 0.875rem;
+	color: var(--ink);
+}
+
+.next {
+	display: grid;
+	justify-items: end;
+	gap: 4px;
+	margin-left: auto;
+}
+
+.txLink {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	justify-self: start;
+	color: var(--ink);
+	font-size: 0.8125rem;
+	font-weight: 600;
+	text-underline-offset: 0.2em;
+}
+
+@keyframes pulse {
+	50% {
+		opacity: 0.45;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.skeleton {
+		animation: none;
+	}
+}
+
+@media (max-width: 640px) {
+	.summary {
+		gap: 16px 32px;
+	}
+
+	.next {
+		width: 100%;
+		margin-left: 0;
+		justify-items: stretch;
+	}
+
+	.next .caption {
+		text-align: center;
+	}
+
+	.first > button,
+	.next > button {
+		width: 100%;
+	}
+}

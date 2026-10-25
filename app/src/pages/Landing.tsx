@@ -30,6 +30,7 @@ import { Link } from "react-router-dom"
 // Logo asset derived from the brand file arqueo1.jpeg: the symbol with a cream ground.
 import { BrandOrbit } from "../components/BrandOrbit"
 import { OrbitRings, OrbitSystem } from "../components/OrbitField"
+import { SiteFooter } from "../components/SiteFooter"
 import symbol from "../images/arqueo-symbol.jpg"
 import styles from "./Landing.module.css"
 
@@ -579,17 +580,7 @@ export default function Landing() {
 				</section>
 			</main>
 
-			<footer className={styles.footer}>
-				<div className={styles.footerInner}>
-					<p>© 2026 Arqueo. Built by Maker-Checker for HackMeridian 2026.</p>
-					<nav className={styles.footerNav} aria-label="Footer">
-						<a href="#architecture">Docs</a>
-						<a href={REPO_URL} target="_blank" rel="noreferrer">
-							Source code
-						</a>
-					</nav>
-				</div>
-			</footer>
+			<SiteFooter docsHref="#architecture" />
 		</div>
 	)
 }
