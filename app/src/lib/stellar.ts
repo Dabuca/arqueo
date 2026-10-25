@@ -13,6 +13,9 @@ import { SmartAccountKit, createCallContractContext } from "smart-account-kit"
 import {
 	employeeSelectedSigner,
 	employeeSigner,
+	largeRuleParams,
+	managerSelectedSigner,
+	managerSigner,
 	ORDINARY_MAX_PER_PAYMENT_XLM,
 	controlPolicyParams,
 	ordinaryRuleParams,
@@ -356,14 +359,64 @@ export async function setupOrdinaryRule(): Promise<{
 }
 
 /**
+ * Adds the `large` rule (AGENTS.md §3): the employee's Ed25519 key and the
+ * manager's passkey, threshold 2 of 2, and control-policy without a maximum.
+ * No spending limit. The admin passkey signs it under the admin rule.
+ */
+export async function setupLargeRule(): Promise<{
+	ruleId: number
+	hash?: string
+}> {
+	const company = requireCompany()
+	const existing = company.rules?.large
+	if (existing !== undefined) return { ruleId: existing }
+
+	const kit = await connectedKit(company)
+	const params = largeRuleParams()
+	const unsorted = new Map<string, unknown>([
+		[
+			required("PUBLIC_THRESHOLD_POLICY_ADDRESS"),
+			kit.convertPolicyParams("threshold", params.threshold),
+		],
+	])
+	addControlPolicy(unsorted)
+	const policies = sortedPolicies(unsorted)
+	const tx = await kit.rules.add(
+		createCallContractContext(required("PUBLIC_NATIVE_TOKEN_CONTRACT")),
+		"large",
+		[
+			employeeSigner(
+				required("PUBLIC_ED25519_VERIFIER_ADDRESS"),
+				company.employee.publicKey,
+			),
+			managerSigner(
+				required("PUBLIC_WEBAUTHN_VERIFIER_ADDRESS"),
+				company.manager.publicKey,
+				company.manager.credentialId,
+			),
+		],
+		policies,
+	)
+	// The simulated result is the rule the transaction creates.
+	const ruleId = tx.result.id
+	const result = await kit.signAndSubmit(tx, {
+		credentialId: company.adminCredentialId,
+		resolveContextRuleIds: () => [ADMIN_RULE_ID],
+	})
+	if (!result.success) {
+		throw new Error(`Large rule setup failed: ${result.error.message}`)
+	}
+	saveCompany({ ...company, rules: { ...company.rules, large: ruleId } })
+	return { ruleId, hash: result.hash }
+}
+
+/**
  * Pays from the company account. The rule follows from who signs. A payment
  * the account rules reject resolves to `{ ok: false }` and is logged too.
  */
 export async function pay(p: PayInput): Promise<PayResult> {
 	const rule = ruleFor(p.signers)
 	if (!rule) throw new Error(`No rule for signers: ${p.signers.join(", ")}`)
-	// TODO(R7): the large rule also needs the manager passkey signature.
-	if (rule === "large") throw new Error("Large payments are not ready yet (R7)")
 
 	const company = requireCompany()
 	const ruleId = company.rules?.[rule]
@@ -371,16 +424,27 @@ export async function pay(p: PayInput): Promise<PayResult> {
 
 	const kit = await connectedKit(company)
 	kit.externalSigners.addEd25519FromSecret(company.employee.secret)
+	const signers = [
+		employeeSelectedSigner(
+			required("PUBLIC_ED25519_VERIFIER_ADDRESS"),
+			company.employee.publicKey,
+		),
+	]
+	// The large rule also needs the manager's passkey: the browser asks for it.
+	if (rule === "large") {
+		signers.push(
+			managerSelectedSigner(
+				required("PUBLIC_WEBAUTHN_VERIFIER_ADDRESS"),
+				company.manager.publicKey,
+				company.manager.credentialId,
+			),
+		)
+	}
 	const result = await kit.multiSigners.transfer(
 		required("PUBLIC_NATIVE_TOKEN_CONTRACT"),
 		p.to,
 		p.amount,
-		[
-			employeeSelectedSigner(
-				required("PUBLIC_ED25519_VERIFIER_ADDRESS"),
-				company.employee.publicKey,
-			),
-		],
+		signers,
 		{ resolveContextRuleIds: () => [ruleId] },
 	)
 	// TODO(R12): map contract error codes to the AGENTS.md §6.3 messages.
@@ -394,4 +458,18 @@ export async function pay(p: PayInput): Promise<PayResult> {
 /** MVP: the local payment log; P1 rebuilds it from the chain. */
 export async function listPayments(): Promise<Payment[]> {
 	return paymentLog(localStorage).list()
+}
+
+// Development only: the rules and payments from the browser console, until the
+// payment screen (R8) lets the team exercise them.
+if (import.meta.env.DEV) {
+	Object.assign(window, {
+		arqueo: {
+			loadCompany,
+			setupOrdinaryRule,
+			setupLargeRule,
+			pay,
+			listPayments,
+		},
+	})
 }
