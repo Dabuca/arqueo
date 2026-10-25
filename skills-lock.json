@@ -13,6 +13,18 @@
       "skillPath": "skills/assets/SKILL.md",
       "computedHash": "4760ec044c75d6a854e004d8f4081c34ef3eeb653c0af845f6252ac653f85230"
     },
+    "copywriting": {
+      "source": "coreyhaines31/marketingskills",
+      "sourceType": "github",
+      "skillPath": "skills/copywriting/SKILL.md",
+      "computedHash": "b62e532dd34dc666288b241ea05e4e1f36f011d4f65d5d3129e85603064ac1c4"
+    },
+    "cro": {
+      "source": "coreyhaines31/marketingskills",
+      "sourceType": "github",
+      "skillPath": "skills/cro/SKILL.md",
+      "computedHash": "f1974581536c4c860a0f7da4b663e2520dfc79a065327b576b12013dd62ad45e"
+    },
     "cross-chain": {
       "source": "stellar/stellar-dev-skill",
       "sourceType": "github",
@@ -30,6 +42,12 @@
       "sourceType": "github",
       "skillPath": "skills/data/SKILL.md",
       "computedHash": "8c66a3ad82ad9d1c91871fdc357e67d54a492c5beaebedaee43ae824c976a263"
+    },
+    "impeccable": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/impeccable/SKILL.md",
+      "computedHash": "e3bb18720f45bb007f97042d0eaf0253531af1f85f9425a89f87bc22708bc3b4"
     },
     "smart-contracts": {
       "source": "stellar/stellar-dev-skill",

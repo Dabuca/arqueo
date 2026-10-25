@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-25T17:00:00Z",
+  "title": "Design System: Arqueo",
+  "extensions": {
+    "scope": "Recorded from the landing at / (src/pages/Landing.tsx, src/components/AuditTape.tsx). The /app and /debug routes still use the Scaffold Stellar template styles (app-lib/styles.css) and are not yet migrated.",
+    "colorMeta": {
+      "cream-ground": { "role": "neutral", "displayName": "Cream Ground", "canonical": "#ede8df", "tonalRamp": ["oklch(25% 0.012 80)", "oklch(36% 0.014 80)", "oklch(48% 0.016 80)", "oklch(60% 0.017 80)", "oklch(72% 0.017 80)", "oklch(83% 0.016 80)", "oklch(93% 0.014 80)", "oklch(97% 0.008 80)"] },
+      "tape-stock": { "role": "neutral", "displayName": "Tape Stock", "canonical": "#fbfaf6", "tonalRamp": ["oklch(25% 0.006 95)", "oklch(36% 0.007 95)", "oklch(48% 0.008 95)", "oklch(60% 0.008 95)", "oklch(72% 0.008 95)", "oklch(84% 0.007 95)", "oklch(93% 0.006 95)", "oklch(98.5% 0.005 95)"] },
+      "ledger-green": { "role": "primary", "displayName": "Ledger Green", "canonical": "#0f3b30", "tonalRamp": ["oklch(18% 0.035 170)", "oklch(26% 0.045 170)", "oklch(32% 0.05 170)", "oklch(44% 0.06 170)", "oklch(56% 0.06 170)", "oklch(68% 0.05 170)", "oklch(82% 0.03 170)", "oklch(94% 0.012 170)"] },
+      "ledger-green-deep": { "role": "primary", "displayName": "Ledger Green Deep", "canonical": "#0a2a22", "tonalRamp": ["oklch(15% 0.03 170)", "oklch(20% 0.035 170)", "oklch(26% 0.04 170)", "oklch(38% 0.05 170)", "oklch(50% 0.055 170)", "oklch(64% 0.045 170)", "oklch(80% 0.028 170)", "oklch(94% 0.01 170)"] },
+      "moss-muted": { "role": "neutral", "displayName": "Moss Muted", "canonical": "#46645a", "tonalRamp": ["oklch(20% 0.025 165)", "oklch(30% 0.03 165)", "oklch(40% 0.033 165)", "oklch(46% 0.035 165)", "oklch(58% 0.032 165)", "oklch(70% 0.027 165)", "oklch(83% 0.018 165)", "oklch(94% 0.008 165)"] },
+      "oxblood-reject": { "role": "tertiary", "displayName": "Oxblood Reject", "canonical": "#8a2a1e", "tonalRamp": ["oklch(20% 0.06 32)", "oklch(30% 0.09 32)", "oklch(40% 0.12 32)", "oklch(48% 0.13 32)", "oklch(60% 0.12 32)", "oklch(72% 0.08 32)", "oklch(85% 0.04 32)", "oklch(95% 0.015 32)"] },
+      "green-rule": { "role": "neutral", "displayName": "Green Rule", "canonical": "rgb(15 59 48 / 22%)", "tonalRamp": ["rgb(15 59 48 / 90%)", "rgb(15 59 48 / 70%)", "rgb(15 59 48 / 55%)", "rgb(15 59 48 / 40%)", "rgb(15 59 48 / 30%)", "rgb(15 59 48 / 22%)", "rgb(15 59 48 / 12%)", "rgb(15 59 48 / 6%)"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero headline only, max 15ch, balanced." },
+      "headline": { "displayName": "Headline", "purpose": "Section titles." },
+      "title": { "displayName": "Title", "purpose": "Step titles in the green band; small section titles." },
+      "lead": { "displayName": "Lead", "purpose": "Hero explainer and pending-slot sentence." },
+      "body": { "displayName": "Body", "purpose": "Running text, max 62ch." },
+      "label": { "displayName": "Label", "purpose": "Ledger column headers in Moss Muted." },
+      "tape": { "displayName": "Tape", "purpose": "Printed data on the journal tape; tabular figures; uppercase field names." },
+      "tape-status": { "displayName": "Tape Status", "purpose": "APPROVED / REJECTED status lines on the tape." }
+    },
+    "shadows": [
+      { "name": "button-lift", "value": "0 8px 18px -10px rgb(15 59 48 / 60%)", "purpose": "Under the primary button." },
+      { "name": "print-head", "value": "0 10px 24px -12px rgb(15 59 48 / 55%)", "purpose": "Under the journal printer body." },
+      { "name": "hanging-paper", "value": "0 18px 32px -20px rgb(15 59 48 / 45%)", "purpose": "Under the tape stock hanging from the print head." }
+    ],
+    "motion": [
+      { "name": "tape-feed", "value": "900ms cubic-bezier(0.16, 1, 0.3, 1), staggered 1200ms", "purpose": "Each tape entry expands its row and fades in under the print head." },
+      { "name": "led-blink", "value": "1200ms steps(2, jump-none) x4, 500ms delay", "purpose": "Print-head status light while lines print." },
+      { "name": "button-hover", "value": "160ms ease-out", "purpose": "Primary button background shift." },
+      { "name": "reduced-motion", "value": "animation: none", "purpose": "All tape motion stops under prefers-reduced-motion; final state shown." }
+    ],
+    "breakpoints": [
+      { "name": "phone", "value": "640px" },
+      { "name": "stack", "value": "900px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one solid action per region, usually 'Open the testnet demo'.",
+      "html": "<a class=\"ds-btn-primary\" href=\"#\">Open the testnet demo</a>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; padding: 0.85rem 1.4rem; border-radius: 10px; background: #0f3b30; color: #ede8df; font-family: Jost, Futura, system-ui, sans-serif; font-size: 1.0625rem; font-weight: 500; text-decoration: none; box-shadow: 0 8px 18px -10px rgb(15 59 48 / 60%); transition: background-color 160ms ease-out; } .ds-btn-primary:hover { background: #0a2a22; } .ds-btn-primary:focus-visible { outline: 2px solid #0f3b30; outline-offset: 3px; }"
+    },
+    {
+      "name": "Secondary Link",
+      "kind": "button",
+      "refersTo": "link-secondary",
+      "description": "Underlined text link beside the primary button; there is no ghost button.",
+      "html": "<a class=\"ds-link\" href=\"#\">Watch the demo video</a>",
+      "css": ".ds-link { color: #0f3b30; font-family: Jost, Futura, system-ui, sans-serif; font-size: 1.0625rem; font-weight: 500; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 0.25em; } .ds-link:hover { color: #0a2a22; } .ds-link:focus-visible { outline: 2px solid #0f3b30; outline-offset: 3px; border-radius: 4px; }"
+    },
+    {
+      "name": "Header Navigation",
+      "kind": "nav",
+      "refersTo": "navigation",
+      "description": "Section links at the right of the header, underlined on hover, followed by the header action.",
+      "html": "<nav class=\"ds-nav\"><a href=\"#\">Controls</a><a href=\"#\">How it works</a><a href=\"#\">Demo video</a><a class=\"ds-nav-action\" href=\"#\">Open the testnet demo</a></nav>",
+      "css": ".ds-nav { display: flex; gap: 1.75rem; align-items: center; padding: 1rem 0; background: #ede8df; font-family: Jost, Futura, system-ui, sans-serif; font-size: 1.0625rem; } .ds-nav a { color: #0f3b30; text-decoration: none; text-underline-offset: 0.25em; } .ds-nav a:hover { text-decoration: underline; } .ds-nav a:focus-visible { outline: 2px solid #0f3b30; outline-offset: 3px; border-radius: 4px; } .ds-nav .ds-nav-action { margin-left: 1rem; font-weight: 500; }"
+    },
+    {
+      "name": "Ledger Table",
+      "kind": "card",
+      "refersTo": "ledger-table",
+      "description": "Matrices and comparisons as ruled tables instead of cards.",
+      "html": "<table class=\"ds-ledger\"><thead><tr><th>Rule</th><th>Signers</th><th>Policies</th></tr></thead><tbody><tr><th>Ordinary</th><td>Employee</td><td>Allowlisted suppliers, 500 XLM per payment</td></tr><tr><th>Large</th><td>Employee and manager</td><td>Allowlisted suppliers, 2 of 2 signatures</td></tr></tbody></table>",
+      "css": ".ds-ledger { width: 100%; border-collapse: collapse; text-align: left; font-family: Jost, Futura, system-ui, sans-serif; font-size: 1.0625rem; line-height: 1.6; color: #0f3b30; background: #ede8df; font-variant-numeric: tabular-nums; } .ds-ledger th, .ds-ledger td { padding: 0.85rem 1rem 0.85rem 0; border-bottom: 1px solid rgb(15 59 48 / 22%); vertical-align: top; } .ds-ledger thead th { color: #46645a; font-size: 0.9rem; font-weight: 500; border-bottom-color: #0f3b30; } .ds-ledger tbody th { font-weight: 500; white-space: nowrap; } .ds-ledger tbody tr:hover td, .ds-ledger tbody tr:hover th { background: rgb(15 59 48 / 4%); }"
+    },
+    {
+      "name": "Journal Tape Entries",
+      "kind": "custom",
+      "refersTo": "tape-entry",
+      "description": "Signature component: payments printed on perforated stock under a print head; rejections in oxblood.",
+      "html": "<div class=\"ds-tape\"><div class=\"ds-head\"><span class=\"ds-slot\"></span></div><div class=\"ds-paper\"><details class=\"ds-entry\"><summary><span class=\"ds-line\"><span>10:02</span><span>PAY 100.00 XLM</span></span><span class=\"ds-line\"><span>TO GBXQ…unknown</span><span>RULE ORDINARY</span></span><span class=\"ds-reject\"><strong>REJECTED</strong> Supplier not authorized</span></summary><ul class=\"ds-checks\"><li>Recipient is not on the allowlist</li></ul></details><details class=\"ds-entry\"><summary><span class=\"ds-line\"><span>09:14</span><span>PAY 200.00 XLM</span></span><span class=\"ds-line\"><span>TO Supplier 1</span><span>RULE ORDINARY</span></span><span class=\"ds-ok\"><strong>APPROVED</strong> tx 3f9c…a21e</span></summary><ul class=\"ds-checks\"><li>Supplier is on the allowlist</li></ul></details></div></div>",
+      "css": ".ds-tape { display: flex; flex-direction: column; align-items: center; padding: 1rem; background: #ede8df; } .ds-head { display: grid; justify-items: center; width: 20rem; padding: 1.1rem 1.25rem; border-radius: 14px 14px 6px 6px; background: #0f3b30; box-shadow: 0 10px 24px -12px rgb(15 59 48 / 55%); position: relative; z-index: 1; } .ds-slot { display: block; width: calc(100% - 2.5rem); height: 4px; border-radius: 2px; background: rgb(0 0 0 / 45%); } .ds-paper { position: relative; width: 17rem; margin-top: -4px; padding: 0.5rem 1.6rem 1rem; background: #fbfaf6; color: #0f3b30; box-shadow: 0 18px 32px -20px rgb(15 59 48 / 45%); font-family: 'Spline Sans Mono', ui-monospace, monospace; font-size: 0.8rem; line-height: 1.5; font-variant-numeric: tabular-nums; } .ds-paper::before, .ds-paper::after { content: ''; position: absolute; top: 0; bottom: 0; width: 10px; background: radial-gradient(circle, #ede8df 2.5px, transparent 3px) center top / 10px 16px repeat-y; } .ds-paper::before { left: 4px; } .ds-paper::after { right: 4px; } .ds-entry { border-bottom: 2px dotted rgb(15 59 48 / 40%); } .ds-entry summary { display: grid; gap: 0.1rem; padding: 0.85rem 0; cursor: pointer; list-style: none; } .ds-entry summary::-webkit-details-marker { display: none; } .ds-entry summary:focus-visible { outline: 2px solid #0f3b30; outline-offset: 2px; } .ds-entry:first-child { margin-inline: -0.6rem; padding-inline: 0.6rem; background: rgb(15 59 48 / 6%); } .ds-line { display: flex; justify-content: space-between; gap: 1rem; } .ds-ok, .ds-reject { display: grid; margin-top: 0.35rem; } .ds-ok strong, .ds-reject strong { font-weight: 700; letter-spacing: 0.04em; } .ds-reject { color: #8a2a1e; } .ds-checks { margin: 0 0 0.85rem; padding-left: 1rem; list-style: '- '; opacity: 0.85; }"
+    },
+    {
+      "name": "Green Band Steps",
+      "kind": "custom",
+      "refersTo": "green-band",
+      "description": "The single drenched section per page: numbered mechanism steps in cream on Ledger Green.",
+      "html": "<section class=\"ds-band\"><ol class=\"ds-steps\"><li><h3>The account checks its rules</h3><p>The transaction is simulated against the smart account.</p></li><li><h3>A failed rule stops the payment</h3><p>The attempt is logged with the reason.</p></li></ol></section>",
+      "css": ".ds-band { padding: 3rem 2rem; background: #0f3b30; color: #ede8df; font-family: Jost, Futura, system-ui, sans-serif; } .ds-steps { margin: 0; padding: 0; list-style: none; counter-reset: step; } .ds-steps li { display: grid; grid-template-columns: 4rem minmax(0, 1fr); column-gap: 1.5rem; padding: 1.5rem 0; border-top: 1px solid rgb(243 240 233 / 25%); counter-increment: step; } .ds-steps li::before { content: counter(step); grid-row: 1 / span 2; font-size: 2.5rem; font-weight: 400; line-height: 1; font-variant-numeric: tabular-nums; } .ds-steps h3 { margin: 0; font-size: 1.35rem; font-weight: 500; line-height: 1.3; } .ds-steps p { margin: 0.35rem 0 0; color: rgb(243 240 233 / 82%); }"
+    },
+    {
+      "name": "Pending Slot",
+      "kind": "card",
+      "refersTo": "pending-slot",
+      "description": "Dashed placeholder for content that does not exist yet, with a working alternative.",
+      "html": "<div class=\"ds-pending\"><p>The demo video is on its way. Until then, run the four scenes yourself on testnet.</p><a class=\"ds-pending-btn\" href=\"#\">Open the testnet demo</a></div>",
+      "css": ".ds-pending { display: grid; justify-items: start; gap: 1.25rem; max-width: 40rem; padding: 1.75rem 2rem; border: 1px dashed #0f3b30; border-radius: 14px; background: #ede8df; color: #0f3b30; font-family: Jost, Futura, system-ui, sans-serif; } .ds-pending p { margin: 0; font-size: 1.2rem; line-height: 1.55; } .ds-pending-btn { padding: 0.85rem 1.4rem; border-radius: 10px; background: #0f3b30; color: #ede8df; font-weight: 500; text-decoration: none; box-shadow: 0 8px 18px -10px rgb(15 59 48 / 60%); transition: background-color 160ms ease-out; } .ds-pending-btn:hover { background: #0a2a22; } .ds-pending-btn:focus-visible { outline: 2px solid #0f3b30; outline-offset: 3px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Treasury Journal",
+    "overview": "Arqueo looks like the paper journal roll of a cash register that never gets torn off. The page is warm cream paper taken from the logo, set in deep green ink; every payment prints as a line, approved or refused, and stays on the record. The voice is a calm geometric sans; the evidence is a receipt-printer mono that appears only where data is being printed.\n\nDensity is relaxed and editorial: one wide column with a 1200px measure, generous vertical rhythm between sections, and tables ruled like a ledger rather than boxed into cards. Ornament is limited to the material of the journal itself: the print head, its slot, the punched feed holes, the dotted tear lines between entries and the torn end of the roll. Colour does very little work; the single non-brand hue is reserved for refusals.\n\nThe system rejects the fintech split hero with a product screenshot and three feature cards. The proof is the tape, not a dashboard image.",
+    "keyCharacteristics": [
+      "Cream paper ground, deep green ink, one oxblood note for rejections only.",
+      "Jost for every word of voice; Spline Sans Mono for printed data and inline code.",
+      "Ledger tables with hairline green rules instead of cards.",
+      "One full-bleed green band per page, used for the mechanism.",
+      "The journal tape (print head, perforated stock, torn end) as the signature object.",
+      "Soft, green-tinted ambient shadows only on physical objects."
+    ],
+    "rules": [
+      { "name": "The Oxblood Is a Verdict Rule", "body": "Oxblood marks a payment the account refused. It never appears on buttons, links, headings, alerts unrelated to a refusal, or decoration.", "section": "colors" },
+      { "name": "The One Drench Rule", "body": "A page carries at most one full-bleed Ledger Green band, reserved for explaining the mechanism. Every other section sits on Cream Ground.", "section": "colors" },
+      { "name": "The Printer Speaks Mono Rule", "body": "Spline Sans Mono is for printed data (tape entries, hashes, amounts) and inline `code`. Headings, buttons, navigation and prose are always Jost.", "section": "typography" },
+      { "name": "The Tabular Figures Rule", "body": "Any column of amounts or times uses tabular numerals so the ledger lines up.", "section": "typography" },
+      { "name": "The Only Objects Cast Shadows Rule", "body": "A shadow means the thing is a physical object (button, printer, paper). Sections, tables and text blocks never get one.", "section": "elevation" }
+    ],
+    "dos": [
+      "**Do** set every surface on Cream Ground (#ede8df) with Ledger Green (#0f3b30) ink; use Tape Stock (#fbfaf6) only for the journal paper.",
+      "**Do** reserve Oxblood (#8a2a1e) for refused payments, per The Oxblood Is a Verdict Rule.",
+      "**Do** present matrices, comparisons and payment lists as ruled ledger tables with tabular numerals.",
+      "**Do** print payment data (amounts, hashes, rules, signers) in Spline Sans Mono, and everything else in Jost at weight 400 or 500.",
+      "**Do** show rejected attempts alongside approved ones wherever payments are listed; the record is never trimmed.",
+      "**Do** mark unfinished content with the dashed pending slot and a working alternative.",
+      "**Do** honour `prefers-reduced-motion` by stopping print animations and showing the final state."
+    ],
+    "donts": [
+      "**Don't** build a split hero with a product screenshot and a row of three feature cards.",
+      "**Don't** use oxblood, red or any warning hue for anything other than a refusal.",
+      "**Don't** add a second full-bleed green band to a page.",
+      "**Don't** set headings, buttons or prose in the mono face.",
+      "**Don't** put shadows on sections, tables or text blocks, or use black or hard offset shadows.",
+      "**Don't** add ornament beyond the journal's own material (print head, feed holes, dotted tear lines, torn edge).",
+      "**Don't** carry the Scaffold Stellar template styles into new Arqueo screens."
+    ]
+  }
+}

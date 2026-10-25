@@ -1,0 +1,783 @@
+/* Arqueo landing. Cream paper ground with deep green ink, both from the logo.
+   Red appears only on a refused payment. */
+
+.landing {
+	--ground: #ede8df;
+	--stock: #fbfaf6;
+	--ink: #0f3b30;
+	--ink-deep: #0a2a22;
+	--panel: #e3dccf;
+	--soft: #2a4f45;
+	--muted: #46645a;
+	--alert-on-cream: #8a2a1e;
+	--line: rgb(15 59 48 / 22%);
+	--gutter: clamp(16px, 4vw, 48px);
+	--measure: 1200px;
+	--inline: max(var(--gutter), (100% - var(--measure)) / 2);
+
+	min-height: 100vh;
+	background: var(--ground);
+	color: var(--ink);
+	font-family: Jost, "Futura", system-ui, sans-serif;
+	font-size: 1.0625rem;
+	line-height: 1.6;
+}
+
+.landing ::selection {
+	background: var(--ink);
+	color: var(--ground);
+}
+
+:where(.landing) a {
+	color: inherit;
+	text-underline-offset: 0.25em;
+	text-decoration-thickness: 1px;
+}
+
+.landing a:focus-visible {
+	outline: 2px solid var(--ink);
+	outline-offset: 3px;
+	border-radius: 4px;
+}
+
+.landing h1,
+.landing h2,
+.landing h3 {
+	margin: 0;
+	font-weight: 500;
+	text-wrap: balance;
+}
+
+.landing h2 {
+	font-size: clamp(1.9rem, 3.4vw, 2.75rem);
+	line-height: 1.1;
+	letter-spacing: -0.02em;
+	margin-bottom: 1rem;
+}
+
+.landing h3 {
+	font-size: 1.2rem;
+	line-height: 1.3;
+	margin-bottom: 0.4rem;
+}
+
+.landing p {
+	max-width: 62ch;
+	margin: 0;
+}
+
+.landing code {
+	font-family: "Spline Sans Mono", ui-monospace, monospace;
+	font-size: 0.92em;
+	padding: 0.05em 0.35em;
+	border: 1px solid var(--line);
+	border-radius: 4px;
+}
+
+.skip {
+	position: absolute;
+	left: 16px;
+	top: -100px;
+	padding: 0.5rem 1rem;
+	background: var(--ink);
+	color: var(--ground);
+	border-radius: 6px;
+}
+
+.skip:focus {
+	top: 16px;
+}
+
+.srOnly {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+
+/* Buttons: the outline and primary pair from the hero style. */
+
+.primary,
+.outline,
+.closeAction {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	height: 3.125rem;
+	padding: 0 1.5rem;
+	border-radius: 8px;
+	font-size: 1.05rem;
+	font-weight: 500;
+	text-decoration: none;
+	white-space: nowrap;
+	transition:
+		background-color 160ms ease-out,
+		border-color 160ms ease-out;
+}
+
+.primary {
+	background: linear-gradient(to bottom, #1d5143, var(--ink) 70%, #0c3129);
+	color: var(--ground) !important;
+	transition:
+		transform 160ms ease-out,
+		filter 160ms ease-out;
+}
+
+.primary:hover {
+	transform: scale(1.03);
+	filter: brightness(1.08);
+}
+
+.primary:active {
+	transform: scale(0.97);
+}
+
+.outline {
+	border: 1px solid var(--line);
+	background: var(--ground);
+	color: var(--ink);
+}
+
+.outline:hover {
+	background: var(--panel);
+	border-color: var(--ink);
+}
+
+.buttonArrow {
+	flex: none;
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.75;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	transition: transform 160ms ease-out;
+}
+
+.primary:hover .buttonArrow,
+.closeAction:hover .buttonArrow {
+	transform: translateX(2px);
+}
+
+/* Header */
+
+.header {
+	position: sticky;
+	top: 0;
+	z-index: 50;
+	border-bottom: 1px solid var(--line);
+	background: rgb(237 232 223 / 85%);
+	backdrop-filter: blur(12px);
+}
+
+.headerBar {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1.5rem;
+	padding: 1rem var(--inline);
+}
+
+.brand {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.75rem;
+	text-decoration: none;
+}
+
+.symbol {
+	width: 52px;
+	height: 52px;
+	border-radius: 50%;
+	object-fit: cover;
+	transition: transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* A slight tilt on hover or keyboard focus; the wordmark stays still. */
+.brand:hover .symbol,
+.brand:focus-visible .symbol {
+	transform: rotate(15deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.symbol {
+		transition: none;
+	}
+}
+
+.wordmark {
+	display: block;
+	width: 110px;
+	height: 18px;
+	background: var(--ink);
+	-webkit-mask: center / contain no-repeat;
+	mask: center / contain no-repeat;
+}
+
+/* Header navigation, centred on the bar. Shown from 768px, as in the reference. */
+
+.links {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	display: none;
+	gap: 2rem;
+	transform: translate(-50%, -50%);
+	font-size: 0.875rem;
+}
+
+.link {
+	color: var(--muted);
+	text-decoration: none;
+	transition: color 160ms ease-out;
+}
+
+.link:hover {
+	color: var(--ink);
+}
+
+.headerActions {
+	display: none;
+	align-items: center;
+	gap: 1rem;
+}
+
+.solid {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	height: 2.5rem;
+	padding: 0 1.25rem;
+	border-radius: 6px;
+	font-size: 0.875rem;
+	font-weight: 500;
+	text-decoration: none;
+	white-space: nowrap;
+	transition:
+		background-color 160ms ease-out,
+		color 160ms ease-out;
+}
+
+.solid {
+	background: var(--ink);
+	color: var(--ground) !important;
+}
+
+.solid:hover {
+	background: var(--ink-deep);
+}
+
+.menuButton {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.5rem;
+	height: 2.5rem;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--ink);
+	cursor: pointer;
+}
+
+.icon {
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 2;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+/* Phone menu: the links and the two header actions, stacked. */
+
+.mobilePanel {
+	display: grid;
+	gap: 0.25rem;
+	padding: 1rem var(--gutter) 1.25rem;
+	border-top: 1px solid var(--line);
+	background: var(--ground);
+}
+
+.mobileLink {
+	padding: 0.6rem 0;
+	color: var(--muted);
+	font-size: 0.95rem;
+	text-decoration: none;
+}
+
+.mobileLink:hover {
+	color: var(--ink);
+}
+
+.mobileActions {
+	display: grid;
+	gap: 0.5rem;
+	margin-top: 0.75rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--line);
+}
+
+.mobileActions a {
+	justify-content: center;
+}
+
+@media (min-width: 768px) {
+	.links,
+	.headerActions {
+		display: flex;
+	}
+
+	.menuButton,
+	.mobilePanel {
+		display: none;
+	}
+}
+
+/* Hero: the width of the reference, max-w-5xl, with the copy in a max-w-2xl
+   column and the image bleeding off the right edge on phones. */
+
+.hero {
+	position: relative;
+	overflow: hidden;
+	padding: 2.5rem var(--inline) 0;
+	text-align: center;
+	background-image: radial-gradient(
+		20% 80% at 20% 0%,
+		rgb(15 59 48 / 8%),
+		transparent
+	);
+}
+
+.pitch {
+	position: relative;
+	z-index: 1;
+	display: grid;
+	justify-items: center;
+	gap: 1.75rem;
+	max-width: 46rem;
+	margin: 0 auto;
+}
+
+.badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.75rem;
+	justify-self: center;
+	padding: 0.25rem 0.5rem 0.25rem 0.25rem;
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	background: var(--stock);
+	font-size: 0.85rem;
+	text-decoration: none;
+}
+
+.badgeTag {
+	padding: 0.1rem 0.4rem;
+	border: 1px solid var(--line);
+	border-radius: 2px;
+	background: var(--ground);
+	font-family: "Spline Sans Mono", ui-monospace, monospace;
+	font-size: 0.72rem;
+}
+
+.badgeRule {
+	width: 1px;
+	height: 1.1rem;
+	background: var(--line);
+}
+
+.badgeArrow {
+	flex: none;
+	width: 12px;
+	height: 12px;
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.75;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	transition: transform 160ms ease-out;
+}
+
+.badge:hover .badgeArrow {
+	transform: translateX(2px);
+}
+
+.pitch h1 {
+	font-size: clamp(2.25rem, 4.5vw, 3.75rem);
+	font-weight: 500;
+	line-height: 1.1;
+	letter-spacing: -0.04em;
+	background: linear-gradient(
+		to bottom,
+		var(--ink),
+		var(--ink),
+		rgb(15 59 48 / 60%)
+	);
+	-webkit-background-clip: text;
+	background-clip: text;
+	-webkit-text-fill-color: transparent;
+}
+
+.lead {
+	max-width: 40rem;
+	font-size: clamp(1rem, 1.6vw, 1.125rem);
+	line-height: 1.6;
+	color: var(--muted);
+}
+
+.actions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	align-items: center;
+	gap: 1rem;
+}
+
+/* The stage: the hero image, fading out at 60% of its height. The negative
+   right margin on phones lets it bleed off the edge, as in the reference. */
+
+.stage {
+	position: relative;
+	margin-top: 2.5rem;
+	margin-right: 0;
+	padding: 0 0.5rem;
+}
+
+.glow {
+	position: absolute;
+	inset: -12% -18% 10%;
+	border-radius: 50%;
+	background: radial-gradient(
+		ellipse at center,
+		rgb(15 59 48 / 14%),
+		transparent 70%
+	);
+	filter: blur(50px);
+	pointer-events: none;
+}
+
+/* The payment check: the one object in the flow, on a stock card. */
+
+.payment {
+	position: relative;
+	z-index: 1;
+	max-width: 40rem;
+	margin: 0 auto;
+	text-align: left;
+	padding: clamp(1.25rem, 3vw, 2rem);
+	background: var(--stock);
+	color: var(--ink);
+	border: 1px solid var(--line);
+	border-radius: 14px;
+	box-shadow: 0 30px 60px -36px rgb(15 59 48 / 45%);
+	display: grid;
+	gap: 1.1rem;
+}
+
+.paymentHead {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 1rem;
+	font-size: 1.5rem;
+	font-weight: 500;
+	letter-spacing: -0.01em;
+}
+
+.paymentHead span:last-child {
+	font-size: 0.85rem;
+	font-weight: 400;
+	color: var(--muted);
+}
+
+.paymentMeta {
+	color: var(--soft);
+	font-size: 0.98rem;
+}
+
+.checks {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	border-top: 1px solid var(--line);
+}
+
+.checks li {
+	display: grid;
+	grid-template-columns: 1.25rem 1fr;
+	gap: 0.75rem;
+	align-items: center;
+	padding: 0.8rem 0;
+	border-bottom: 1px solid var(--line);
+}
+
+.mark {
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 2;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.failed {
+	color: var(--alert-on-cream);
+	font-weight: 600;
+}
+
+.verdict {
+	display: grid;
+	gap: 0.2rem;
+	max-width: none;
+	color: var(--alert-on-cream);
+}
+
+.verdict strong {
+	font-size: 1.1rem;
+	font-weight: 600;
+}
+
+/* Problem and controls */
+
+.problem,
+.controls,
+.how,
+.video,
+.honest {
+	padding: clamp(4rem, 10vh, 7rem) var(--inline) 0;
+}
+
+.compare {
+	width: 100%;
+	margin-top: 2rem;
+	border-collapse: collapse;
+	text-align: left;
+}
+
+.compare th,
+.compare td {
+	padding: 1rem 1.25rem 1rem 0;
+	border-bottom: 1px solid var(--line);
+	vertical-align: top;
+}
+
+.compare thead th {
+	color: var(--muted);
+	font-size: 0.9rem;
+	font-weight: 500;
+}
+
+.compare tbody th {
+	font-weight: 500;
+	width: 30%;
+}
+
+.compare tbody td:last-child {
+	color: var(--ink);
+}
+
+.compare tbody td:nth-child(2) {
+	color: var(--muted);
+}
+
+.tiles {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+	gap: 1px;
+	margin-top: 2rem;
+	background: var(--line);
+	border: 1px solid var(--line);
+	border-radius: 14px;
+	overflow: hidden;
+}
+
+.tiles + .tiles {
+	margin-top: 1rem;
+}
+
+.tile {
+	padding: 1.5rem;
+	background: var(--stock);
+}
+
+.tile p + p {
+	margin-top: 0.4rem;
+}
+
+.signs {
+	color: var(--muted);
+	font-size: 0.95rem;
+}
+
+/* How it works: a rail with one dot per step. */
+
+.steps {
+	display: grid;
+	gap: 0;
+	margin: 2.5rem 0 0;
+	padding: 0;
+	list-style: none;
+	border-left: 1px solid var(--line);
+}
+
+.steps li {
+	position: relative;
+	padding: 0 0 2rem 2rem;
+}
+
+.steps li::before {
+	content: "";
+	position: absolute;
+	left: -4px;
+	top: 0.55rem;
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--ink);
+}
+
+.steps li:last-child {
+	padding-bottom: 0;
+}
+
+.stack {
+	margin-top: 3rem;
+	color: var(--muted);
+	font-size: 0.98rem;
+}
+
+/* Demo video */
+
+.player {
+	display: block;
+	width: 100%;
+	aspect-ratio: 16 / 9;
+	margin-top: 2rem;
+	border: 0;
+	border-radius: 14px;
+}
+
+.pending {
+	display: grid;
+	justify-items: start;
+	gap: 1.25rem;
+	margin-top: 2rem;
+	padding: 2rem;
+	border: 1px dashed var(--line);
+	border-radius: 14px;
+	color: var(--soft);
+}
+
+.honest p {
+	margin-top: 1rem;
+	color: var(--soft);
+}
+
+/* Closing: the one dark block, drawn in the logo's deep green. */
+
+.close {
+	padding: clamp(4rem, 10vh, 7rem) var(--inline) 0;
+}
+
+.closePanel {
+	display: grid;
+	justify-items: start;
+	gap: 1.75rem;
+	padding: clamp(2.5rem, 6vw, 4.5rem);
+	background: var(--ink);
+	color: var(--ground);
+	border-radius: 14px;
+}
+
+.closeSymbol {
+	width: 150px;
+	height: 150px;
+	border-radius: 50%;
+	object-fit: cover;
+}
+
+.closeWordmark {
+	display: block;
+	width: min(360px, 100%);
+	height: 60px;
+	background: var(--ground);
+	-webkit-mask: left / contain no-repeat;
+	mask: left / contain no-repeat;
+}
+
+.closeAction {
+	background: var(--ground);
+	color: var(--ink);
+}
+
+.closeAction:hover {
+	background: var(--panel);
+}
+
+/* Footer */
+
+.footer {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	gap: 0.75rem 2rem;
+	margin-top: clamp(4rem, 10vh, 6rem);
+	padding: 1.5rem var(--inline) 2rem;
+	border-top: 1px solid var(--line);
+	color: var(--muted);
+	font-size: 0.95rem;
+}
+
+/* Responsive: the reference widens the image bleed and spacing from 640px. */
+
+@media (min-width: 640px) {
+	.stage {
+		margin-top: 2.5rem;
+		margin-right: 0;
+	}
+}
+
+@media (max-width: 640px) {
+	.nav {
+		display: none;
+	}
+
+	.pitch h1 {
+		font-size: clamp(2.4rem, 11vw, 3.25rem);
+	}
+
+	.compare thead {
+		display: none;
+	}
+
+	.compare,
+	.compare tbody,
+	.compare tr,
+	.compare th,
+	.compare td {
+		display: block;
+		width: 100%;
+	}
+
+	.compare tr {
+		padding: 0.9rem 0;
+		border-bottom: 1px solid var(--line);
+	}
+
+	.compare th,
+	.compare td {
+		padding: 0.15rem 0;
+		border: 0;
+	}
+
+	.compare td:nth-child(2)::before {
+		content: "Today: ";
+		color: var(--muted);
+	}
+
+	.compare td:last-child::before {
+		content: "With Arqueo: ";
+		color: var(--muted);
+	}
+}
