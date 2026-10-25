@@ -1,4 +1,10 @@
-import { Address, Keypair, nativeToScVal, xdr } from "@stellar/stellar-sdk"
+import {
+	Address,
+	Keypair,
+	StrKey,
+	nativeToScVal,
+	xdr,
+} from "@stellar/stellar-sdk"
 import {
 	LEDGERS_PER_DAY,
 	createEd25519Signer,
@@ -193,4 +199,21 @@ function errorText(error: unknown): string {
 	} catch {
 		return String(error)
 	}
+}
+
+/**
+ * Supplier addresses from PUBLIC_SUPPLIERS (comma separated). An invalid entry
+ * throws: a typo must not silently leave a supplier off the allowlist.
+ */
+export function parseSuppliers(raw: string | undefined): string[] {
+	return (raw ?? "")
+		.split(",")
+		.map((s) => s.trim())
+		.filter(Boolean)
+		.map((address) => {
+			if (!StrKey.isValidEd25519PublicKey(address)) {
+				throw new Error(`Invalid supplier address: ${address}`)
+			}
+			return address
+		})
 }

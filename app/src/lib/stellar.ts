@@ -16,6 +16,7 @@ import {
 	ORDINARY_MAX_PER_PAYMENT_XLM,
 	controlPolicyParams,
 	ordinaryRuleParams,
+	parseSuppliers,
 	paymentLog,
 	paymentRecord,
 	rejectionReason,
@@ -68,6 +69,7 @@ export interface CompanyAccount {
 	employee: { publicKey: string; secret: string }
 	manager: { credentialId: string; publicKey: string } // public key in base64
 	rules?: Partial<Record<RuleName, number>> // on-chain context rule ids
+	controlPolicy?: { ruleId: number; hash: string } // installed on that rule
 }
 
 export function loadCompany(): CompanyAccount | undefined {
@@ -292,10 +294,7 @@ function addControlPolicy(
 	maxPerPaymentXlm?: bigint,
 ): void {
 	const address = import.meta.env.PUBLIC_CONTROL_POLICY_ADDRESS
-	const suppliers = (import.meta.env.PUBLIC_SUPPLIERS ?? "")
-		.split(",")
-		.map((s: string) => s.trim())
-		.filter(Boolean)
+	const suppliers = parseSuppliers(import.meta.env.PUBLIC_SUPPLIERS)
 	if (!address || suppliers.length === 0) {
 		console.warn(
 			"control-policy skipped: set PUBLIC_CONTROL_POLICY_ADDRESS and PUBLIC_SUPPLIERS",
@@ -354,6 +353,44 @@ export async function setupOrdinaryRule(): Promise<{
 	}
 	saveCompany({ ...company, rules: { ...company.rules, ordinary: ruleId } })
 	return { ruleId, hash: result.hash }
+}
+
+/**
+ * Adds control-policy to the existing `ordinary` rule (R6, AGENTS.md §6.2). The
+ * rule was created before the policy existed, so it cannot get it at creation.
+ * The admin passkey signs the change under the admin rule.
+ */
+export async function installControlPolicy(): Promise<{ hash: string }> {
+	const company = requireCompany()
+	const ruleId = company.rules?.ordinary
+	if (ruleId === undefined) throw new Error("Set up the ordinary rule first")
+	if (company.controlPolicy?.ruleId === ruleId) {
+		return { hash: company.controlPolicy.hash }
+	}
+
+	const address = import.meta.env.PUBLIC_CONTROL_POLICY_ADDRESS
+	const suppliers = parseSuppliers(import.meta.env.PUBLIC_SUPPLIERS)
+	if (!address || suppliers.length === 0) {
+		throw new Error(
+			"Set PUBLIC_CONTROL_POLICY_ADDRESS and PUBLIC_SUPPLIERS in app/.env.local",
+		)
+	}
+
+	const kit = await connectedKit(company)
+	const tx = await kit.policies.add(
+		ruleId,
+		address,
+		controlPolicyParams(suppliers, ORDINARY_MAX_PER_PAYMENT_XLM),
+	)
+	const result = await kit.signAndSubmit(tx, {
+		credentialId: company.adminCredentialId,
+		resolveContextRuleIds: () => [ADMIN_RULE_ID],
+	})
+	if (!result.success) {
+		throw new Error(`control-policy install failed: ${result.error.message}`)
+	}
+	saveCompany({ ...company, controlPolicy: { ruleId, hash: result.hash } })
+	return { hash: result.hash }
 }
 
 /**
