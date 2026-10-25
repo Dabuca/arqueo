@@ -8,6 +8,7 @@ import {
 	paymentRecord,
 	ruleFor,
 	sortedPolicies,
+	rejectionReason,
 } from "./payments"
 
 describe("sortedPolicies", () => {
@@ -175,5 +176,50 @@ describe("controlPolicyParams", () => {
 		const keys = Object.keys(native)
 
 		expect(keys).toEqual(["allowlist", "max_per_payment"])
+	})
+})
+
+describe("rejectionReason", () => {
+	it("maps control-policy code 1 to the supplier message", () => {
+		expect(rejectionReason("HostError: Error(Contract, #1)")).toEqual({
+			reason: "Supplier not authorized",
+		})
+	})
+
+	it("maps control-policy code 2 to the manager-approval message", () => {
+		expect(rejectionReason(new Error("Error(Contract, #2)"))).toEqual({
+			reason: "Amount exceeds the per-payment limit: manager approval required",
+		})
+	})
+
+	it("maps control-policy code 3 to the operation message", () => {
+		expect(rejectionReason({ message: "failed: Error(Contract, #3)" })).toEqual(
+			{
+				reason: "Operation not allowed by the account rules",
+			},
+		)
+	})
+
+	it("reads the code from nested error context", () => {
+		const error = {
+			message: "simulation failed",
+			context: { diagnostic: "Error(Contract, #1)" },
+		}
+		expect(rejectionReason(error).reason).toBe("Supplier not authorized")
+	})
+
+	it("falls back to the generic message and keeps the original error as details", () => {
+		// 3221 is OpenZeppelin's SpendingLimitExceeded, not one of our codes.
+		expect(rejectionReason("HostError: Error(Contract, #3221)")).toEqual({
+			reason: "Rejected by the account rules",
+			details: "HostError: Error(Contract, #3221)",
+		})
+	})
+
+	it("falls back when there is no contract code at all", () => {
+		expect(rejectionReason(new Error("network timeout"))).toEqual({
+			reason: "Rejected by the account rules",
+			details: "Error: network timeout",
+		})
 	})
 })

@@ -18,6 +18,7 @@ import {
 	ordinaryRuleParams,
 	paymentLog,
 	paymentRecord,
+	rejectionReason,
 	ruleFor,
 	sortedPolicies,
 	type PayInput,
@@ -383,10 +384,9 @@ export async function pay(p: PayInput): Promise<PayResult> {
 		],
 		{ resolveContextRuleIds: () => [ruleId] },
 	)
-	// TODO(R12): map contract error codes to the AGENTS.md §6.3 messages.
 	const outcome: PayResult = result.success
 		? { ok: true, hash: result.hash }
-		: { ok: false, reason: result.error.message }
+		: { ok: false, ...rejectionReason(result.error) }
 	paymentLog(localStorage).add(paymentRecord(p, rule, outcome))
 	return outcome
 }
