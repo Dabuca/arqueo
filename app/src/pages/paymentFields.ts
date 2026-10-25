@@ -20,3 +20,10 @@ export function fieldErrors(values: FieldValues): FieldErrors {
 	}
 	return errors
 }
+
+/**
+ * Account for the "unknown supplier" demo scene (scene 3): a real testnet
+ * account that is not on the supplier list.
+ */
+export const UNKNOWN_SUPPLIER_DEMO =
+	"GBHX3Z3BW27ORH4VFKVP36FGRJGAEADYDWCIW3HGXQQGPWC6LEUCYIGK"
