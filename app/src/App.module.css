@@ -1,60 +1,80 @@
+/* App shell: warm paper ground, one measure shared by the header, the screens and the footer. */
+
 .AppLayout {
-	--ground: #ede8df;
-	--stock: #fbfaf6;
-	--ink: #0f3b30;
-	--ink-deep: #0a2a22;
-	--muted: #46645a;
-	--rule: rgb(15 59 48 / 22%);
 	position: relative;
 	isolation: isolate;
 	min-height: 100vh;
 	display: flex;
 	flex-direction: column;
-	background: var(--ground);
+	background: var(--background);
 	color: var(--ink);
-	font-family: Jost, Futura, system-ui, sans-serif;
+	font-family: var(--font-body);
+	font-size: 1rem;
+	line-height: 1.6;
+}
+
+.AppLayout :focus-visible {
+	outline: 2px solid var(--ink);
+	outline-offset: 3px;
+	border-radius: 4px;
+}
+
+.AppLayout ::selection {
+	background: var(--ink-container);
+	color: var(--background);
 }
 
 .main {
 	position: relative;
 	z-index: 1;
 	flex: 1;
-	padding: clamp(2rem, 5vw, 4rem) max(24px, calc((100% - 1200px) / 2));
-	max-width: 1200px;
-	margin: 0 auto;
 	width: 100%;
-}
-
-.footer {
-	position: relative;
-	z-index: 1;
-	border-top: 1px solid var(--rule);
-	padding: 1rem max(24px, calc((100% - 1200px) / 2));
-}
-
-.footerNav {
-	display: flex;
-	gap: 1.5rem;
-	justify-content: flex-end;
-}
-
-.footerNav a {
-	color: var(--muted);
-	text-decoration: none;
-	font-size: 0.875rem;
-}
-
-.footerNav a:hover {
-	color: var(--ink);
-}
-
-.footerNav a.active {
-	color: var(--ink);
-	font-weight: 500;
+	max-width: 1280px;
+	margin: 0 auto;
+	padding: 48px clamp(16px, 4vw, 48px) 80px;
 }
 
 @media (max-width: 760px) {
 	.main {
-		padding-top: 1.5rem;
+		padding-top: 32px;
+	}
+}
+
+/* Orbit backdrop of the treasury page: fixed to the window, behind the content. */
+.AppLayout .orbitBg {
+	position: fixed;
+	z-index: 0;
+}
+
+/* Route change: the page eases in so moving between Treasury and Auditor reads as one place. */
+.route {
+	animation: routeIn 200ms var(--ease-out) both;
+}
+
+@keyframes routeIn {
+	from {
+		opacity: 0;
+		transform: translateY(6px);
+	}
+
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.route {
+		animation-name: routeFade;
+	}
+
+	@keyframes routeFade {
+		from {
+			opacity: 0;
+		}
+
+		to {
+			opacity: 1;
+		}
 	}
 }

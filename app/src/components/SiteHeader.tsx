@@ -1,35 +1,23 @@
-import { useState, type ReactNode } from "react"
-import { Link } from "react-router-dom"
+import { Menu, X } from "lucide-react"
+import { type ReactNode, useState } from "react"
+import { Link, NavLink } from "react-router-dom"
 // Same symbol asset as the Landing page.
 import symbol from "../images/arqueo-symbol.jpg"
 import styles from "./SiteHeader.module.css"
 
-const ICONS = {
-	arrow: "M5 12h14M13 6l6 6-6 6",
-	menu: "M4 6h16M4 12h16M4 18h16",
-	close: "M18 6 6 18M6 6l12 12",
-} as const
+const NAV = [
+	{ to: "/app", label: "Treasury" },
+	{ to: "/auditor", label: "Auditor" },
+	{ to: "/debug", label: "Contracts" },
+] as const
 
-type IconName = keyof typeof ICONS
-
-function Icon({ name, className }: { name: IconName; className?: string }) {
-	return (
-		<svg
-			className={className ?? styles.icon}
-			viewBox="0 0 24 24"
-			width="24"
-			height="24"
-			aria-hidden="true"
-		>
-			<path d={ICONS[name]} />
-		</svg>
-	)
-}
-
-// Shared header. `wallet` is rendered beside the demo button on every screen size.
+// App header: brand on the left, the app's pages in the middle, the wallet on the right.
 export function SiteHeader({ wallet }: { wallet?: ReactNode }) {
 	const [menuOpen, setMenuOpen] = useState(false)
 	const closeMenu = () => setMenuOpen(false)
+
+	const linkClass = (isActive: boolean) =>
+		isActive ? `${styles.link} ${styles.linkActive}` : styles.link
 
 	return (
 		<header className={styles.header}>
@@ -39,29 +27,15 @@ export function SiteHeader({ wallet }: { wallet?: ReactNode }) {
 					<span className={styles.brandName}>Arqueo</span>
 				</Link>
 
-				<nav className={styles.links} aria-label="Sections">
-					<a href="/#solution" className={`${styles.link} ${styles.linkActive}`}>
-						Solution
-					</a>
-					<a href="/#safeguards" className={styles.link}>
-						Safeguards
-					</a>
-					<a href="/#roles" className={styles.link}>
-						Roles
-					</a>
-					<a href="/#architecture" className={styles.link}>
-						Docs
-					</a>
+				<nav className={styles.links} aria-label="App pages">
+					{NAV.map(({ to, label }) => (
+						<NavLink key={to} to={to} className={({ isActive }) => linkClass(isActive)}>
+							{label}
+						</NavLink>
+					))}
 				</nav>
 
 				<div className={styles.end}>
-					<div className={styles.headerActions}>
-						<Link to="/app" className={styles.headerCta}>
-							Launch Demo
-							<Icon name="arrow" className={styles.inlineIcon} />
-						</Link>
-					</div>
-
 					{wallet}
 
 					<button
@@ -72,29 +46,26 @@ export function SiteHeader({ wallet }: { wallet?: ReactNode }) {
 						aria-label="Toggle menu"
 						onClick={() => setMenuOpen((open) => !open)}
 					>
-						<Icon name={menuOpen ? "close" : "menu"} />
+						{menuOpen ? <X size={24} strokeWidth={1.8} /> : <Menu size={24} strokeWidth={1.8} />}
 					</button>
 				</div>
 			</div>
 
 			{menuOpen && (
-				<div id="mobile-menu" className={styles.mobilePanel}>
-					<a href="/#solution" className={styles.mobileLink} onClick={closeMenu}>
-						Solution
-					</a>
-					<a href="/#safeguards" className={styles.mobileLink} onClick={closeMenu}>
-						Safeguards
-					</a>
-					<a href="/#roles" className={styles.mobileLink} onClick={closeMenu}>
-						Roles
-					</a>
-					<a href="/#architecture" className={styles.mobileLink} onClick={closeMenu}>
-						Docs
-					</a>
-					<Link to="/app" className={styles.headerCta} onClick={closeMenu}>
-						Launch Demo
-					</Link>
-				</div>
+				<nav id="mobile-menu" className={styles.mobilePanel} aria-label="App pages">
+					{NAV.map(({ to, label }) => (
+						<NavLink
+							key={to}
+							to={to}
+							className={({ isActive }) =>
+								isActive ? `${styles.mobileLink} ${styles.mobileActive}` : styles.mobileLink
+							}
+							onClick={closeMenu}
+						>
+							{label}
+						</NavLink>
+					))}
+				</nav>
 			)}
 		</header>
 	)

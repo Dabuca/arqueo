@@ -1,18 +1,13 @@
-/* Site header, copied from the Landing page so every page shares it.
-   Tokens are the Landing palette, set here so the header works outside .landing. */
+/* App header: the landing's bar, with the app's pages in the middle and the wallet on the right. */
 
 .header {
-	--background: #fbf9f6;
-	--ink: #00110c;
-	--ink-container: #0d2821;
-	--muted: #635e50;
-	--line: rgb(193 200 196 / 60%);
-	--gutter: clamp(16px, 4vw, 48px);
-	--measure: 1280px;
-
-	font-family: "Plus Jakarta Sans", system-ui, sans-serif;
-	font-size: 16px;
-	line-height: 1.6;
+	position: sticky;
+	top: 0;
+	z-index: 50;
+	background: rgb(251 249 246 / 92%);
+	backdrop-filter: blur(12px);
+	border-bottom: 1px solid var(--line);
+	font-family: var(--font-body);
 	color: var(--ink);
 }
 
@@ -21,70 +16,12 @@
 	text-decoration: none;
 }
 
-.icon {
-	display: block;
-	fill: none;
-	stroke: currentColor;
-	stroke-width: 1.8;
-	stroke-linecap: round;
-	stroke-linejoin: round;
-}
-
-.inlineIcon {
-	width: 18px;
-	height: 18px;
-	flex: none;
-	fill: none;
-	stroke: currentColor;
-	stroke-width: 2;
-	stroke-linecap: round;
-	stroke-linejoin: round;
-}
-
-.headerCta {
-	display: inline-flex;
-	align-items: center;
-	gap: 8px;
-	padding: 8px 16px;
-	border-radius: 8px;
-	background: var(--ink-container);
-	color: var(--background);
-	box-shadow: 0 1px 2px rgb(0 17 12 / 12%);
-	font-family: "Plus Jakarta Sans", system-ui, sans-serif;
-	font-size: 14px;
-	font-weight: 500;
-	transition:
-		opacity 200ms ease,
-		transform 200ms ease;
-}
-
-.headerCta .inlineIcon {
-	width: 16px;
-	height: 16px;
-}
-
-.headerCta:hover {
-	opacity: 0.95;
-}
-
-.headerCta:active {
-	transform: scale(0.95);
-}
-
-.header {
-	position: sticky;
-	top: 0;
-	z-index: 50;
-	background: rgb(251 249 246 / 90%);
-	backdrop-filter: blur(12px);
-	border-bottom: 1px solid rgb(193 200 196 / 40%);
-}
-
-/* Same outer padding as the app's .main, so the header and content share one edge. */
 /* Three columns: the links sit in the middle whatever the width of the two sides. */
 .headerBar {
-	padding: 0 max(24px, calc((100% - 1200px) / 2));
-	height: 80px;
+	max-width: 1280px;
+	margin: 0 auto;
+	padding: 0 clamp(16px, 4vw, 48px);
+	height: 72px;
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
 	align-items: center;
@@ -98,19 +35,10 @@
 	gap: 12px;
 }
 
-.end {
-	justify-self: end;
-	display: flex;
-	align-items: center;
-	gap: 16px;
-}
-
 .brandName {
-	font-family: "Plus Jakarta Sans", system-ui, sans-serif;
-	font-size: 18px;
+	font-size: 1.125rem;
 	font-weight: 600;
 	letter-spacing: -0.01em;
-	color: var(--ink);
 }
 
 .symbol {
@@ -118,12 +46,6 @@
 	height: 36px;
 	object-fit: contain;
 	border-radius: 8px;
-	transition: transform 300ms ease;
-}
-
-.brand:hover .symbol,
-.brand:focus-visible .symbol {
-	transform: rotate(12deg);
 }
 
 .links {
@@ -132,25 +54,131 @@
 }
 
 .link {
+	position: relative;
+	padding: 4px 0;
 	color: var(--muted);
-	font-size: 14px;
-	font-weight: 400;
-	padding-bottom: 4px;
-	border-bottom: 2px solid transparent;
-	transition: color 150ms ease;
+	font-size: 0.875rem;
+	font-weight: 500;
+	transition: color 200ms ease;
 }
 
-.link:hover {
-	color: var(--ink);
+/* The underline grows from the left on hover and focus, and stays on the current page. */
+.link::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 2px;
+	background: var(--ink);
+	transform: scaleX(0);
+	transform-origin: left center;
+	transition: transform 320ms var(--ease-out);
 }
 
+.link:hover,
+.link:focus-visible,
 .linkActive {
 	color: var(--ink);
-	border-bottom-color: var(--ink);
 }
 
-.headerActions {
+.link:hover::after,
+.link:focus-visible::after,
+.linkActive::after {
+	transform: scaleX(1);
+}
+
+.end {
+	justify-self: end;
 	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+/* The wallet controls come from the scaffold library; they are restyled here to the app's buttons. */
+.end :global(.connect-account),
+.end :global(.wallet-connected) {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.end :global(.network-pill) {
+	padding: 3px 10px;
+	border-radius: 999px;
+	background: var(--surface-high);
+	color: var(--body);
+	font-family: var(--font-mono);
+	font-size: 0.6875rem;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.end :global(.wallet-balance) {
+	font-family: var(--font-mono);
+	font-size: 0.75rem;
+	color: var(--muted);
+}
+
+.end :global(.connect-account) button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	min-height: 40px;
+	padding: 8px 16px;
+	border: 1px solid var(--outline);
+	border-radius: 10px;
+	background: var(--stock);
+	color: var(--ink);
+	font-family: var(--font-body);
+	font-size: 0.875rem;
+	font-weight: 600;
+	line-height: 1.2;
+	white-space: nowrap;
+	cursor: pointer;
+	transition:
+		border-color 150ms ease,
+		background-color 150ms ease,
+		transform 150ms ease;
+}
+
+.end :global(.connect-account) button:hover:not(:disabled) {
+	border-color: var(--ink);
+}
+
+.end :global(.connect-account) button:active:not(:disabled) {
+	transform: scale(0.98);
+}
+
+.end :global(.connect-account) button:disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+
+.end :global(.connect-account) button:focus-visible {
+	outline: 2px solid var(--ink);
+	outline-offset: 3px;
+}
+
+/* Connect is the header's one call to action: the primary button. */
+.end :global(.connect-account) :global(.wallet-connect) {
+	border-color: var(--ink-container);
+	background: var(--ink-container);
+	color: var(--background);
+}
+
+.end :global(.connect-account) :global(.wallet-connect):hover:not(:disabled) {
+	border-color: var(--ink-container);
+	background: #143a30;
+}
+
+/* Connected: the address reads as data, in mono. */
+.end :global(.wallet-profile) {
+	font-family: var(--font-mono) !important;
+	font-size: 0.8125rem !important;
+	letter-spacing: 0.02em;
 }
 
 .menuButton {
@@ -159,41 +187,77 @@
 	height: 44px;
 	align-items: center;
 	justify-content: center;
-	margin-left: auto;
-	background: none;
+	padding: 0;
 	border: 0;
+	border-radius: 8px;
+	background: none;
 	color: var(--ink);
 	cursor: pointer;
-	border-radius: 8px;
+}
+
+.menuButton:hover:not(:disabled) {
+	background: var(--surface);
 }
 
 .mobilePanel {
 	display: grid;
-	gap: 6px;
-	padding: 12px var(--gutter) 20px;
+	padding: 4px clamp(16px, 4vw, 48px) 16px;
 	border-top: 1px solid var(--line);
 	background: var(--background);
+	animation: drop 200ms var(--ease-out) both;
 }
 
 .mobileLink {
-	padding: 12px 0;
-	font-size: 16px;
-	font-weight: 500;
+	padding: 14px 0;
 	border-bottom: 1px solid var(--line);
+	color: var(--muted);
+	font-size: 1rem;
+	font-weight: 500;
 }
 
-.mobilePanel .headerCta {
-	justify-content: center;
-	margin-top: 12px;
+.mobileActive {
+	color: var(--ink);
+	font-weight: 600;
+}
+
+@keyframes drop {
+	from {
+		opacity: 0;
+		transform: translateY(-8px);
+	}
+
+	to {
+		opacity: 1;
+		transform: none;
+	}
 }
 
 @media (max-width: 900px) {
-	.links,
-	.headerActions {
+	.headerBar {
+		grid-template-columns: minmax(0, 1fr) auto;
+	}
+
+	.links {
 		display: none;
 	}
 
 	.menuButton {
 		display: inline-flex;
+	}
+}
+
+@media (max-width: 640px) {
+	.end :global(.wallet-balance) {
+		display: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.mobilePanel {
+		animation: none;
+	}
+
+	.link::after {
+		transition: none;
 	}
 }

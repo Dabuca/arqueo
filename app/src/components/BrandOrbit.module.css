@@ -29,7 +29,10 @@
 .track {
 	fill: none;
 	stroke: #0f3b30;
-	stroke-width: 2;
+	stroke-width: 3;
+	stroke-linecap: butt;
+	stroke-dasharray: 12 10.191;
+	animation: track-flow 40s linear infinite;
 }
 
 .planet,
@@ -52,6 +55,13 @@
 
 .star {
 	animation: star-orbit 38s linear infinite reverse;
+}
+
+/* The dots drift along the ellipse, so the orbit reads as moving even when the planet is far away. */
+@keyframes track-flow {
+	to {
+		stroke-dashoffset: -1331.47;
+	}
 }
 
 @keyframes planet-orbit {
@@ -80,7 +90,8 @@
 
 @media (prefers-reduced-motion: reduce) {
 	.planet,
-	.star {
+	.star,
+	.track {
 		animation: none;
 	}
 }
