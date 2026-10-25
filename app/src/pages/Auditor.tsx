@@ -104,6 +104,8 @@ export default function Auditor() {
 									<th scope="col">Recipient</th>
 									<th scope="col">Concept</th>
 									<th scope="col">Amount</th>
+									<th scope="col">Signers</th>
+									<th scope="col">Rule</th>
 									<th scope="col">Status</th>
 									<th scope="col">Transaction</th>
 								</tr>
@@ -115,6 +117,8 @@ export default function Auditor() {
 										<td data-label="Recipient" title={payment.to} className={styles.address}>{shortAddress(payment.to)}</td>
 										<td data-label="Concept">{payment.concept || "—"}</td>
 										<td data-label="Amount" className={styles.amount}>{formatAmount(payment.amount)} XLM</td>
+										<td data-label="Signers" className={styles.signers}>{payment.signers.join(" + ")}</td>
+										<td data-label="Rule"><span className={styles.rule}>{payment.rule}</span></td>
 										<td data-label="Status">
 											<span className={`${styles.status} ${payment.status === "ok" ? styles.settled : styles.rejected}`}>
 												<span aria-hidden="true" />{payment.status === "ok" ? "Settled" : "Rejected"}
