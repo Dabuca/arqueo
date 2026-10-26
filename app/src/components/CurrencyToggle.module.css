@@ -6,6 +6,18 @@
 	border: 1px solid var(--line);
 	border-radius: 999px;
 	background: var(--surface-low);
+	font: inherit;
+	cursor: pointer;
+}
+
+.toggle:focus-visible {
+	outline: 2px solid var(--ink);
+	outline-offset: 2px;
+}
+
+.toggle:disabled {
+	cursor: not-allowed;
+	opacity: 0.5;
 }
 
 .thumb {
@@ -26,30 +38,15 @@
 .option {
 	position: relative;
 	padding: 4px 12px;
-	border: 0;
-	border-radius: 999px;
-	background: transparent;
 	color: var(--muted);
-	font: inherit;
 	font-size: 0.75rem;
 	font-weight: 600;
 	letter-spacing: 0.04em;
-	cursor: pointer;
 	transition: color 280ms var(--ease-out);
-}
-
-.option:focus-visible {
-	outline: 2px solid var(--ink);
-	outline-offset: 1px;
 }
 
 .active {
 	color: var(--background);
-}
-
-.option:disabled {
-	cursor: not-allowed;
-	opacity: 0.5;
 }
 
 @media (prefers-reduced-motion: reduce) {
