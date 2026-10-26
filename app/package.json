@@ -15,7 +15,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@simplewebauthn/browser": "13.3.0",
+    "@simplewebauthn/browser": "14.0.0",
     "@stellar-scaffold/app-lib": "*",
     "@stellar/stellar-sdk": "16.4.1",
     "@tanstack/react-query": "^5.90.17",
