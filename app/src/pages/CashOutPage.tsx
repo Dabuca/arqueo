@@ -70,7 +70,7 @@ function AmountStep({ state, dispatch }: StepProps) {
 				<Rows
 					rows={[
 						["Fee", usdc(result.fee)],
-						["You receive (USDC)", usdc(result.net)],
+						["Net after fee (USDC)", usdc(result.net)],
 						[`Paid to your bank (EUR), at ${USDC_TO_EUR} EUR per USDC, demo rate`, eur(result.eur)],
 					]}
 				/>
@@ -159,7 +159,7 @@ function SendStep({ state, dispatch }: StepProps) {
 			</h2>
 			{result.ok && (
 				<p>
-					You are about to send <strong className={ui.mono}>{usdc(result.net)}</strong> to {ANCHOR_NAME}.
+					You are about to send <strong className={ui.mono}>{usdc(result.amount)}</strong> to {ANCHOR_NAME}. The anchor keeps its {usdc(result.fee)} fee.
 				</p>
 			)}
 			{state.reference ? (

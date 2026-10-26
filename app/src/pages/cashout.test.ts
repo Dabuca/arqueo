@@ -19,7 +19,7 @@ describe("quote", () => {
 		expect(quote(10.01)).toEqual({ ok: true, amount: 10.01, fee: 1.05, net: 8.96, eur: 8.24 })
 	})
 
-	it.each([0, -5, 1, Number.NaN, Number.POSITIVE_INFINITY])("refuses %s", (a) => {
+	it.each([0, -5, 1, 1.01, Number.NaN, Number.POSITIVE_INFINITY])("refuses %s", (a) => {
 		expect(quote(a)).toEqual({ ok: false, error: "Enter an amount greater than the anchor fee" })
 	})
 })

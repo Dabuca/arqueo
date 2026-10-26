@@ -67,7 +67,7 @@ skipped.
   - `CashOutState` and `next(state, event)` — the step machine (`amount` →
     `bank` → `send` → `done`, plus `restart`). Invalid events leave the state
     unchanged.
-- `app/src/pages/CashOut.tsx` + `CashOut.module.css` — renders the state,
+- `app/src/pages/CashOutPage.tsx` + `CashOutPage.module.css` — renders the state,
   following the look of the existing pages.
 - `app/src/App.tsx` — route `/cashout` inside `AppLayout`.
 - `app/src/components/SiteHeader.tsx` — `{ to: "/cashout", label: "Supplier" }`.

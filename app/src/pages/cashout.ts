@@ -21,6 +21,9 @@ export function quote(amount: number): Quote {
 		return { ok: false, error: "Enter an amount greater than the anchor fee" }
 	}
 	const net = cents(amount - fee)
+	if (net <= 0) {
+		return { ok: false, error: "Enter an amount greater than the anchor fee" }
+	}
 	return { ok: true, amount, fee: cents(fee), net, eur: cents(net * USDC_TO_EUR) }
 }
 
