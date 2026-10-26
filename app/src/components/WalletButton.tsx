@@ -3,6 +3,7 @@ import {
 	profileModal,
 	shortAddress,
 } from "@stellar-scaffold/app-lib"
+import { Wallet } from "lucide-react"
 import { useWallet } from "../hooks/useWallet"
 
 export const WalletButton = () => {
@@ -10,8 +11,13 @@ export const WalletButton = () => {
 
 	if (!address) {
 		return (
-			<button onClick={() => void connectWallet()} disabled={isPending}>
-				{isPending ? "Loading..." : "Connect"}
+			<button
+				className="wallet-connect"
+				onClick={() => void connectWallet()}
+				disabled={isPending}
+			>
+				<Wallet size={16} strokeWidth={1.8} aria-hidden="true" />
+				{isPending ? "Connecting…" : "Connect wallet"}
 			</button>
 		)
 	}

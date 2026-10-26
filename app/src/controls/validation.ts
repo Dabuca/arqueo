@@ -1,5 +1,6 @@
 import { type CheckResult, type ControlsConfig, type Limits } from "./types"
-import { roundToStroops, stroopsToXlm, xlmToStroops } from "./units"
+import { formatXlm } from "./format"
+import { roundToStroops, xlmToStroops } from "./units"
 
 /**
  * Format check only (G + 55 base32 characters). The full checksum is checked
@@ -12,6 +13,9 @@ export function looksLikeStellarAddress(address: string): boolean {
 export function isSupplier(address: string, config: ControlsConfig): boolean {
 	return config.suppliers.some((supplier) => supplier.address === address)
 }
+
+/** Longest cap period the contract accepts (30 days). */
+export const MAX_PERIOD_DAYS = 30
 
 const isPositive = (value: number) => Number.isFinite(value) && value > 0
 
@@ -36,6 +40,7 @@ const rejected = (reason: string): CheckResult => ({ ok: false, reason })
 export function validateLimitsChange(
 	next: Limits,
 	spentInPeriod: number,
+	priceUsd?: number,
 ): CheckResult {
 	if (!isPositive(next.maxPerPayment)) {
 		return rejected("The per-payment maximum must be a positive number")
@@ -55,14 +60,18 @@ export function validateLimitsChange(
 	if (!Number.isInteger(next.periodDays)) {
 		return rejected("The period must be a whole number of days")
 	}
+	// The account keeps what was spent for 30 days after its last use, so a
+	// longer period could forget it before the period ends.
+	if (next.periodDays > MAX_PERIOD_DAYS) {
+		return rejected(`The period cannot be longer than ${MAX_PERIOD_DAYS} days`)
+	}
 	// Without a valid spent amount the cap check below could not be trusted.
 	if (!Number.isFinite(spentInPeriod) || spentInPeriod < 0) {
 		return rejected("The amount already spent must be a number of zero or more")
 	}
 	if (roundToStroops(next.cap30d) < roundToStroops(spentInPeriod)) {
-		const spent = stroopsToXlm(BigInt(roundToStroops(spentInPeriod)))
 		return rejected(
-			`The 30-day cap cannot be below the amount already spent (${spent} XLM)`,
+			`The 30-day cap cannot be below the amount already spent (${formatXlm(spentInPeriod, priceUsd)} XLM)`,
 		)
 	}
 	if (roundToStroops(next.maxPerPayment) > roundToStroops(next.cap30d)) {

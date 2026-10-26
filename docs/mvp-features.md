@@ -84,8 +84,7 @@ Priority: **P0** blocks the demo, **P1** completes the MVP, **P2** only if time 
 
 ### F3 — Ordinary rule and first payment (P0, R4)
 
-- The `ordinary` rule is created with threshold 1 and the OpenZeppelin `spending_limit` (default cap: 1,000 XLM every 30 days).
-- Pending decision: the 30-day cap may move from OpenZeppelin's `spending_limit` into `control-policy`, which would change this requirement (see F11).
+- The `ordinary` rule is created with threshold 1 and `control-policy`, which holds the suppliers, the per-payment maximum and the 30-day cap (default: 1,000 XLM every 30 days). It no longer uses OpenZeppelin's `spending_limit` (see F11).
 - The first payment is signed by the employee alone through the kit's `multiSigners` path.
 - **Done when:** a transaction hash appears on testnet. This is the 14:00 control.
 
@@ -162,7 +161,7 @@ The rules below are already implemented and tested as code in `app/src/controls/
   - It can never be set below the amount already spent: that change is rejected.
   - Every change leaves an audit trail the auditor can see: previous cap, new cap, amount spent at that moment, period start, and the hashes of the remove and add transactions.
 
-> **Pending decision (owners: A = Carlos, B = DavidB; not decided).** OpenZeppelin's `spending_limit` starts from zero when it is reinstalled, so it cannot keep the amount spent across a change. The proposal is to move the 30-day cap into our own `control-policy`: store the amount spent per account and check on-chain that the new cap is not below it (a new error 4). This would change the `ControlParams` interface (`AGENTS.md` §6.2) and R4. Still open: whether it lands in R5 (P0) or in R17 (P1, keeping OpenZeppelin's cap fixed until then). Until it is decided, F3, F4 and F7 stay as written.
+> **Decided in R17 (A = Carlos and B = DavidB confirm in the PR).** OpenZeppelin's `spending_limit` starts from zero when it is reinstalled, so the 30-day cap moved into our own `control-policy`. The amount spent and the period start are stored per account, so they survive replacing a rule, and a new cap below the amount spent is rejected on chain (error 4). A payment that would pass the cap is rejected (error 5). `ControlParams` gained `cap_per_period` and `period_ledgers` (`AGENTS.md` §6.2). A change adds the new rule before retiring the old one, so the account is never left open.
 
 ### F12 — Reproducible demo script (P1, R14)
 
@@ -177,7 +176,9 @@ The rules below are already implemented and tested as code in `app/src/controls/
 
 ### F14 — Architecture diagram (P1, R16)
 
-- One diagram used in the README and the deck, showing the app, the `stellar.ts` boundary, the smart account, the rules and the policies.
+- One diagram in the README (source in `docs/architecture.md`), showing the app, the `stellar.ts` boundary, the smart account, the rules and the policies.
+- The deck shows a condensed version of the same path in larger type (`docs/architecture-deck.png`), because the full diagram is not legible on a slide.
+- **Done when:** both are in the repository and the deck slide shows the image.
 
 ### F15 — Delivery package (P0, R10)
 

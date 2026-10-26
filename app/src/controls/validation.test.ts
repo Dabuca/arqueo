@@ -144,6 +144,7 @@ describe("validateLimitsChange", () => {
 		["a zero period", { periodDays: 0 }, "period"],
 		["a negative period", { periodDays: -30 }, "period"],
 		["a fractional period", { periodDays: 30.5 }, "whole number of days"],
+		["a period longer than 30 days", { periodDays: 31 }, "longer than 30 days"],
 	])("rejects %s", (_label, over, mention) => {
 		const result = validateLimitsChange(limits(over), 0)
 		expect(result.ok).toBe(false)
@@ -186,5 +187,25 @@ describe("validateLimitsChange", () => {
 				0,
 			),
 		).toEqual({ ok: true })
+	})
+})
+
+describe("the spent amount in the cap message", () => {
+	it("uses the same decimals as the other amounts", () => {
+		expect(validateLimitsChange({ ...DEFAULT_LIMITS, cap30d: 1000 }, 1422.2345178)).toEqual({
+			ok: false,
+			reason:
+				"The 30-day cap cannot be below the amount already spent (1,422.23 XLM)",
+		})
+	})
+
+	it("follows the USD price when there is one", () => {
+		expect(
+			validateLimitsChange({ ...DEFAULT_LIMITS, cap30d: 1000 }, 1422.2345178, 0.12),
+		).toEqual({
+			ok: false,
+			reason:
+				"The 30-day cap cannot be below the amount already spent (1,422.2345 XLM)",
+		})
 	})
 })

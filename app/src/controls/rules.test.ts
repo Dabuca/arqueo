@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest"
-import { requiredRule, ruleForSigners, signersFor } from "./rules"
+import {
+	capShortfall,
+	remainingCap,
+	requiredRule,
+	ruleForSigners,
+	signersFor,
+} from "./rules"
 import { type Limits, type Role } from "./types"
 
 const LIMITS: Limits = { maxPerPayment: 500, cap30d: 1000, periodDays: 30 }
@@ -72,5 +78,45 @@ describe("requiredRule", () => {
 
 	it("never gives the ordinary hint to an amount that is not a number", () => {
 		expect(requiredRule(NaN, LIMITS, 0)).toBe("large")
+	})
+})
+
+describe("remainingCap", () => {
+	it("is the cap when nothing was spent", () => {
+		expect(remainingCap(LIMITS, 0)).toBe(1000)
+	})
+
+	it("is what is left after spending", () => {
+		expect(remainingCap(LIMITS, 600)).toBe(400)
+	})
+
+	it("is zero at the cap and never negative above it", () => {
+		expect(remainingCap(LIMITS, 1000)).toBe(0)
+		expect(remainingCap(LIMITS, 1200)).toBe(0)
+	})
+
+	it("is not thrown off by float noise", () => {
+		expect(remainingCap({ ...LIMITS, cap30d: 0.3 }, 0.1 + 0.2)).toBe(0)
+		expect(remainingCap({ ...LIMITS, cap30d: 1 }, 0.1 + 0.2)).toBe(0.7)
+	})
+})
+
+describe("capShortfall", () => {
+	it("is zero when the payment fits in what is left", () => {
+		expect(capShortfall(400, LIMITS, 600)).toBe(0)
+		expect(capShortfall(1000, LIMITS, 0)).toBe(0)
+	})
+
+	it("is how far the payment passes what is left", () => {
+		expect(capShortfall(450, LIMITS, 600)).toBe(50)
+		expect(capShortfall(1, LIMITS, 1000)).toBe(1)
+	})
+
+	it("counts a cap that is already used up as the whole amount", () => {
+		expect(capShortfall(10, LIMITS, 5000)).toBe(10)
+	})
+
+	it("keeps decimals exact to the stroop", () => {
+		expect(capShortfall(0.0000002, LIMITS, 999.9999999)).toBe(0.0000001)
 	})
 })

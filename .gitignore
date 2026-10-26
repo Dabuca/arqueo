@@ -29,6 +29,7 @@ lerna-debug.log*
 .env
 .env.*
 !.env.example
+!app/.env.production
 
 # easy way to create temporary local-only files and folders
 *.local.*
@@ -40,8 +41,13 @@ lerna-debug.log*
 app-lib/clients/*
 !app-lib/clients/.gitkeep
 
-# Agent/editor scratch
-.claude/
+# Agent/editor scratch (project skills in .claude/skills are shared)
+.claude/*
+!.claude/skills/
 
 # TypeScript incremental build info
 *.tsbuildinfo
+
+# Impeccable local review captures and decision pages
+app/.impeccable/review/
+app/.impeccable/questions/

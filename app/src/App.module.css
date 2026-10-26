@@ -1,74 +1,80 @@
+/* App shell: warm paper ground, one measure shared by the header, the screens and the footer. */
+
 .AppLayout {
+	position: relative;
+	isolation: isolate;
 	min-height: 100vh;
 	display: flex;
 	flex-direction: column;
+	background: var(--background);
+	color: var(--ink);
+	font-family: var(--font-body);
+	font-size: 1rem;
+	line-height: 1.6;
 }
 
-.header {
-	display: flex;
-	align-items: center;
-	gap: 2rem;
-	padding: 1rem 3rem;
-	border-bottom: 1px solid var(--color-border);
+.AppLayout :focus-visible {
+	outline: 2px solid var(--ink);
+	outline-offset: 3px;
+	border-radius: 4px;
 }
 
-.logo {
-	font-weight: 600;
-	font-size: 1.1rem;
-	color: var(--color-text);
-	text-decoration: none;
-	white-space: nowrap;
-}
-
-.headerNav {
-	display: flex;
-	gap: 0.5rem;
-	flex: 1;
-}
-
-.headerNav a {
-	color: var(--color-text-muted);
-	text-decoration: none;
-	padding: 0.25rem 0.5rem;
-	border-radius: var(--radius);
-	font-size: 0.9rem;
-}
-
-.headerNav a:hover {
-	color: var(--color-text);
-	background: var(--color-surface);
-}
-
-.headerNav a.active {
-	color: var(--color-text);
-	font-weight: 500;
+.AppLayout ::selection {
+	background: var(--ink-container);
+	color: var(--background);
 }
 
 .main {
+	position: relative;
+	z-index: 1;
 	flex: 1;
-	padding: 2rem 3rem;
-	max-width: 1200px;
-	margin: 0 auto;
 	width: 100%;
+	max-width: 1280px;
+	margin: 0 auto;
+	padding: 48px clamp(16px, 4vw, 48px) 80px;
 }
 
-.footer {
-	border-top: 1px solid var(--color-border);
-	padding: 1rem 3rem;
+@media (max-width: 760px) {
+	.main {
+		padding-top: 32px;
+	}
 }
 
-.footerNav {
-	display: flex;
-	gap: 1.5rem;
-	justify-content: flex-end;
+/* Orbit backdrop of the treasury page: fixed to the window, behind the content. */
+.AppLayout .orbitBg {
+	position: fixed;
+	z-index: 0;
 }
 
-.footerNav a {
-	color: var(--color-text-muted);
-	text-decoration: none;
-	font-size: 0.875rem;
+/* Route change: the page eases in so moving between Treasury and Auditor reads as one place. */
+.route {
+	animation: routeIn 200ms var(--ease-out) both;
 }
 
-.footerNav a:hover {
-	color: var(--color-text);
+@keyframes routeIn {
+	from {
+		opacity: 0;
+		transform: translateY(6px);
+	}
+
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.route {
+		animation-name: routeFade;
+	}
+
+	@keyframes routeFade {
+		from {
+			opacity: 0;
+		}
+
+		to {
+			opacity: 1;
+		}
+	}
 }

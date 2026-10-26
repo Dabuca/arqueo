@@ -13,6 +13,7 @@ const CSV_COLUMNS = [
 	"periodStart",
 	"removeTxHash",
 	"addTxHash",
+	"rule",
 ] as const
 
 function defaultStorage(): ChangeStorage | null {
@@ -78,7 +79,13 @@ export function createChangeLog(storage?: ChangeStorage | null) {
 
 function csvField(value: string | number | undefined): string {
 	if (value === undefined) return ""
-	const text = String(value)
+	// A text cell that starts like a formula would run in a spreadsheet: supplier
+	// names are typed by the admin. Same rule as the payments CSV. Numbers are
+	// not text, so a negative one stays a number.
+	const text =
+		typeof value === "string" && /^[\t\r ]*[=+\-@]/.test(value)
+			? `'${value}`
+			: String(value)
 	return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
 }
 
