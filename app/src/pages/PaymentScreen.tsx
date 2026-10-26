@@ -30,7 +30,7 @@ import {
 	type FieldErrors,
 } from "./paymentFields"
 import { outcomeFromResult, type Outcome } from "./paymentOutcome"
-import { formatXlm } from "../components/format"
+import { formatXlm } from "../controls/format"
 import { useCurrency } from "../providers/CurrencyProvider"
 import styles from "./PaymentScreen.module.css"
 

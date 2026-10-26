@@ -1,5 +1,5 @@
 import { type CheckResult, type ControlsConfig, type Limits } from "./types"
-import { formatXlm } from "../components/format"
+import { formatXlm } from "./format"
 import { roundToStroops, xlmToStroops } from "./units"
 
 /**

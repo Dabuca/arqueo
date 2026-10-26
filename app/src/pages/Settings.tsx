@@ -32,7 +32,7 @@ import {
 	type ControlState,
 } from "../lib/stellar"
 import { Amount, AmountUnit } from "../components/Amount"
-import { formatXlm } from "../components/format"
+import { formatXlm } from "../controls/format"
 import { useCurrency } from "../providers/CurrencyProvider"
 import ui from "../styles/ui.module.css"
 import styles from "./Settings.module.css"
