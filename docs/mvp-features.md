@@ -176,7 +176,9 @@ The rules below are already implemented and tested as code in `app/src/controls/
 
 ### F14 — Architecture diagram (P1, R16)
 
-- One diagram used in the README and the deck, showing the app, the `stellar.ts` boundary, the smart account, the rules and the policies.
+- One diagram in the README (source in `docs/architecture.md`), showing the app, the `stellar.ts` boundary, the smart account, the rules and the policies.
+- The deck shows a condensed version of the same path in larger type (`docs/architecture-deck.png`), because the full diagram is not legible on a slide.
+- **Done when:** both are in the repository and the deck slide shows the image.
 
 ### F15 — Delivery package (P0, R10)
 
