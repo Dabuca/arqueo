@@ -6,7 +6,7 @@ import { SiteFooter } from "./components/SiteFooter"
 import { SiteHeader } from "./components/SiteHeader"
 import { TestnetBanner } from "./components/TestnetBanner"
 import Auditor from "./pages/Auditor"
-import CashOut from "./pages/CashOut.tsx"
+import CashOutPage from "./pages/CashOutPage"
 import Debug from "./pages/Debug"
 import Home from "./pages/Home"
 import Landing from "./pages/Landing"
@@ -20,7 +20,7 @@ function App() {
 				<Route path="/app" element={<Home />} />
 				<Route path="/auditor" element={<Auditor />} />
 				<Route path="/settings" element={<Settings />} />
-				<Route path="/cashout" element={<CashOut />} />
+				<Route path="/cashout" element={<CashOutPage />} />
 				<Route path="/debug" element={<Debug />} />
 				<Route path="/debug/:contractName" element={<Debug />} />
 			</Route>

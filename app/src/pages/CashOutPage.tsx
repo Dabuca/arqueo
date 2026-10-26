@@ -1,6 +1,6 @@
 import { useState } from "react"
 import ui from "../styles/ui.module.css"
-import styles from "./CashOut.module.css"
+import styles from "./CashOutPage.module.css"
 import {
 	ANCHOR_NAME,
 	type CashOutEvent,
@@ -227,7 +227,7 @@ function DoneStep({ state, dispatch }: StepProps) {
 	)
 }
 
-export default function CashOut() {
+export default function CashOutPage() {
 	const [state, setState] = useState(initialState)
 	const dispatch = (event: CashOutEvent) => setState((current) => next(current, event))
 
