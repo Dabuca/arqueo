@@ -1,6 +1,6 @@
 <!--
 PENDING before submission (R10). Each gap is marked TODO(R10) below. Remove this block when done.
-- App URL (R15, needs the team's Vercel account), video URL (D) and design screenshots (C).
+- Video URL (D) and design screenshots (C).
 - Optional: a deliberately sent, failed on-chain transaction for scenes 2 and 3 (B).
 - Final pass after the 20:00 freeze (D).
 -->
@@ -17,7 +17,8 @@ HackMeridian 2026 · Track Genesis · Stellar Composed
 
 ## Try it / Watch it
 
-- **App:** <!-- TODO(R10): app URL (R15) -->not published yet
+- **App:** [arqueo-arqueo2.vercel.app](https://arqueo-arqueo2.vercel.app)
+  (testnet only)
 - **Video:** <!-- TODO(R10): video URL -->not recorded yet
 - **Pitch deck and submission pack:**
   [docs/submission](docs/submission/README.md)
@@ -68,7 +69,7 @@ earlier rehearsal account.
 
 <!-- TODO(R10): record the final demo account ID after the last rehearsal (B) -->
 
-Not built yet: the demo script (R14) and a hosted URL (R15).
+Not built yet: the demo script (R14).
 
 ## How Stellar is composed
 
@@ -203,3 +204,11 @@ Warnings:
 ## License
 
 [Apache-2.0](LICENSE)
+
+## Links
+
+- [Live app (testnet only)](https://arqueo-arqueo2.vercel.app)
+- [Source repository](https://github.com/Dabuca/arqueo)
+- [HackMeridian 2026](https://www.hackmeridian.com/)
+- [Stellar testnet explorer](https://stellar.expert/explorer/testnet)
+- [Submission materials](docs/submission/README.md)
