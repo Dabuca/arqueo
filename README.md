@@ -192,7 +192,9 @@ Warnings:
   derived from a public seed. That is fine on testnet and unsafe anywhere else.
 - **Demo shortcut.** In production each person signs with their own passkey on
   their own device. The employee key stored in the browser exists only for the
-  demo.
+  demo. The manager's passkey can already be created on a phone (a QR code and
+  the WebAuthn cross-device flow, with the phone near the computer); a payment
+  signed from a real phone is not tested yet (R20).
 - Never commit secret keys (`S...`), not even testnet ones. Use `.env.local`.
 
 ## Team

@@ -45,6 +45,29 @@
 	font-size: 0.9375rem;
 }
 
+.phoneOption {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	min-height: 44px;
+	padding-top: 8px;
+	font-size: 0.9375rem;
+	cursor: pointer;
+}
+
+.phoneOption input {
+	flex: none;
+	width: 20px;
+	height: 20px;
+	margin: 2px 0 0;
+}
+
+.phoneHint {
+	display: block;
+	color: var(--muted);
+	font-size: 0.8125rem;
+}
+
 .big {
 	min-height: 48px;
 	padding: 12px 24px;
@@ -166,6 +189,42 @@
 	gap: 16px 32px;
 	padding-top: 20px;
 	border-top: 1px solid var(--line);
+}
+
+.recovery {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px 24px;
+	padding-top: 16px;
+	border-top: 1px solid var(--line);
+}
+
+.recovery p {
+	margin-bottom: 0;
+}
+
+.guardians {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 16px;
+	margin: 8px 0 0;
+	padding: 0;
+	border: 0;
+	color: var(--muted);
+	font-size: 0.8125rem;
+}
+
+.guardians legend {
+	margin-bottom: 6px;
+	color: var(--ink);
+}
+
+.guardians label {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
 }
 
 .rules {
