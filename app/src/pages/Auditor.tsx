@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { downloadPaymentsCsv } from "../components/paymentsCsv"
 import { changesToCsv, createChangeLog } from "../controls/changeLog"
+import { describeApproval } from "../controls/approval"
 import  { type ControlChange, type ControlField } from "../controls/types"
 import { type Payment, type RuleName, listPayments } from "../lib/stellar"
 import ui from "../styles/ui.module.css"
@@ -256,7 +257,9 @@ export default function Auditor() {
 										</tr>
 									</thead>
 									<tbody>
-										{visible.map((payment, index) => (
+										{visible.map((payment, index) => {
+											const approval = describeApproval(payment)
+											return (
 											<tr key={`${payment.at}-${payment.hash ?? payment.reason ?? index}`}>
 												<td data-label="Date">{formatDate(payment.at)}</td>
 												<td data-label="Recipient" title={payment.to} className={styles.address}>
@@ -268,9 +271,14 @@ export default function Auditor() {
 												</td>
 												<td data-label="Signers" className={styles.signers}>
 													{payment.signers.join(" + ")}
+														{approval.missing.length > 0 && (
+															<span className={styles.missing}>
+																Missing: {approval.missing.join(", ")}
+															</span>
+														)}
 												</td>
 												<td data-label="Rule">
-													<span className={ui.pill}>{payment.rule}</span>
+													<span className={ui.pill}>{approval.ruleLabel}</span>
 												</td>
 												<td data-label="Status">
 													<span
@@ -290,7 +298,8 @@ export default function Auditor() {
 													)}
 												</td>
 											</tr>
-										))}
+											)
+										})}
 									</tbody>
 								</table>
 							</div>

@@ -237,6 +237,14 @@
 	text-transform: capitalize;
 }
 
+.missing {
+	display: block;
+	margin-top: 4px;
+	color: var(--alert-ink);
+	font-size: 0.8125rem;
+	text-transform: none;
+}
+
 .reason {
 	display: block;
 	max-width: 28ch;
