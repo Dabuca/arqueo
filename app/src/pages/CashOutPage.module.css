@@ -1,0 +1,145 @@
+/* Supplier cash-out: a four-step simulated anchor flow in the app's card vocabulary. */
+
+.page {
+	display: grid;
+	gap: 16px;
+	max-width: 720px;
+	margin: 0 auto;
+}
+
+.titleLine {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+
+.steps {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.step {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 12px;
+	border: 1px solid var(--stone-line);
+	border-radius: 999px;
+	color: var(--muted);
+	font-size: 0.8125rem;
+	font-weight: 600;
+}
+
+.stepNumber {
+	font-family: var(--font-mono);
+	font-size: 0.6875rem;
+}
+
+.stepActive {
+	border-color: var(--ink-container);
+	background: var(--ink-container);
+	color: var(--background);
+}
+
+.card {
+	display: grid;
+	gap: 16px;
+}
+
+.field {
+	display: grid;
+	gap: 6px;
+}
+
+.input {
+	min-height: 44px;
+	padding: 8px 12px;
+	border: 1px solid var(--outline);
+	border-radius: 10px;
+	background: var(--stock);
+	color: var(--ink);
+	font-family: var(--font-body);
+	font-size: 0.875rem;
+	transition: border-color 150ms ease;
+}
+
+.input:hover {
+	border-color: var(--ink);
+}
+
+.input:focus-visible,
+.check input:focus-visible {
+	outline: 2px solid var(--ink);
+	outline-offset: 3px;
+}
+
+.check {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 0.875rem;
+	color: var(--body);
+}
+
+.check input {
+	width: 18px;
+	height: 18px;
+}
+
+.rows {
+	display: grid;
+	gap: 8px;
+	margin: 0;
+}
+
+.row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: baseline;
+	gap: 16px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid var(--line);
+}
+
+.row:last-child {
+	border-bottom: 0;
+	padding-bottom: 0;
+}
+
+.row dd {
+	margin: 0;
+	color: var(--ink);
+	font-size: 0.875rem;
+	overflow-wrap: anywhere;
+	text-align: right;
+}
+
+.error,
+.errors {
+	margin: 0;
+	color: var(--alert-ink);
+	font-size: 0.8125rem;
+}
+
+.errors {
+	padding-left: 18px;
+}
+
+.actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.note {
+	margin: 0;
+	padding: 0;
+	min-height: 0;
+	max-width: 62ch;
+	color: var(--muted);
+}
