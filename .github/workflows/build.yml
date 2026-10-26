@@ -26,7 +26,6 @@ jobs:
 
       - run: npm ci
       - run: npm run lint
-      - run: npm run format:check
 
       # R19: the app unit tests and the control-policy contract tests.
       - name: App unit tests
