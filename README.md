@@ -10,8 +10,9 @@ PENDING before submission (R10). Each gap is marked TODO(R10) below. Remove this
 **Internal controls for stablecoin treasuries on Stellar: payment rules are
 enforced by the account itself, not by a PDF.**
 
-> **Testnet only.** Arqueo runs on Stellar testnet with test funds. Do not use
-> it with real money.
+> **Testnet only.** Arqueo runs on Stellar testnet with test funds. The token is
+> a test USDC issued by Arqueo, not Circle's USDC. Do not use it with real
+> money.
 
 HackMeridian 2026 · Track Genesis · Stellar Composed
 
@@ -42,7 +43,9 @@ or rejected, leaves a record the auditor can read and export.
 
 The MVP is done when these four scenes run on testnet from start to finish.
 Amounts depend on the limits the admin sets. With the defaults (500 XLM per
-payment, 1,000 XLM per 30 days) the demo uses 200, 800 and 100 XLM.
+payment, 1,000 XLM per 30 days) the demo uses 200, 800 and 100 of the test
+token. The two transactions below were paid in XLM, before the team switched the
+MVP token to a test USDC.
 
 | #   | Scene                                                                                    | What happens                                                                               | Proof (testnet)                                                                                                                                                          |
 | --- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -73,15 +76,15 @@ Not built yet: the demo script (R14).
 
 ## How Stellar is composed
 
-| Piece                                                                                                    | What it gives Arqueo                                                                                                                                    |
-| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [OpenZeppelin Stellar Contracts](https://docs.openzeppelin.com/stellar-contracts/accounts/context-rules) | The smart account, context rules (`admin`, `ordinary`, `large`), the threshold policy (how many signatures a rule needs) and the account's rule engine  |
-| [`smart-account-kit`](https://cdn.jsdelivr.net/npm/smart-account-kit@0.6.1/README.md) 0.6.1              | Creates the account, WebAuthn passkey signers (admin, manager), an Ed25519 signer (employee) and multi-signer transactions                              |
-| [Scaffold Stellar](https://developers.stellar.org/docs/tools/scaffold-stellar)                           | Project template, contract build and generated TypeScript clients                                                                                       |
-| `contracts/control-policy` (ours, Rust/Soroban)                                                          | A custom policy: only `transfer` calls, only to listed suppliers, up to a maximum per payment and a 30-day cap whose spent amount survives rule changes |
-| Native XLM through its Stellar Asset Contract                                                            | The token that moves. Amounts are in stroops (1 XLM = 10,000,000)                                                                                       |
-| Friendbot                                                                                                | Funds the testnet accounts                                                                                                                              |
-| stellar.expert                                                                                           | Public proof of every transaction                                                                                                                       |
+| Piece                                                                                                    | What it gives Arqueo                                                                                                                                                                            |
+| -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [OpenZeppelin Stellar Contracts](https://docs.openzeppelin.com/stellar-contracts/accounts/context-rules) | The smart account, context rules (`admin`, `ordinary`, `large`), the threshold policy (how many signatures a rule needs) and the account's rule engine                                          |
+| [`smart-account-kit`](https://cdn.jsdelivr.net/npm/smart-account-kit@0.6.1/README.md) 0.6.1              | Creates the account, WebAuthn passkey signers (admin, manager), an Ed25519 signer (employee) and multi-signer transactions                                                                      |
+| [Scaffold Stellar](https://developers.stellar.org/docs/tools/scaffold-stellar)                           | Project template, contract build and generated TypeScript clients                                                                                                                               |
+| `contracts/control-policy` (ours, Rust/Soroban)                                                          | A custom policy: only `transfer` calls, only to listed suppliers, up to a maximum per payment and a 30-day cap whose spent amount survives rule changes                                         |
+| Test USDC through its Stellar Asset Contract                                                             | The token that moves, issued by Arqueo on testnet (not Circle's USDC). A server function funds accounts; the issuer key never reaches the browser. Amounts are in stroops (1 unit = 10,000,000) |
+| Friendbot                                                                                                | Funds the testnet accounts                                                                                                                                                                      |
+| stellar.expert                                                                                           | Public proof of every transaction                                                                                                                                                               |
 
 ## Controls matrix
 
@@ -159,9 +162,9 @@ documentation.
 For small companies, startups and associations that hold stablecoins and need
 more than one key.
 
-Planned, not built: USDC instead of XLM, paying suppliers into their bank
-through an anchor, a 2-of-3 recovery rule, the manager's passkey on a phone, and
-applying to the Stellar Community Fund.
+Planned, not built: Circle's USDC instead of the test token, paying suppliers
+into their bank through an anchor, a 2-of-3 recovery rule, the manager's passkey
+on a phone, and applying to the Stellar Community Fund.
 
 ## Run it locally
 

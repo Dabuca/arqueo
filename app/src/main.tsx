@@ -5,7 +5,8 @@ import { BrowserRouter } from "react-router-dom"
 import "@stellar-scaffold/app-lib/styles.css"
 import "./styles/tokens.css"
 import App from "./App.tsx"
-import { CurrencyProvider } from "./providers/CurrencyProvider.tsx"
+import { ErrorBoundary } from "./components/ErrorBoundary.tsx"
+import "./lib/wallets"
 import { NotificationProvider } from "./providers/NotificationProvider.tsx"
 import { WalletProvider } from "./providers/WalletProvider.tsx"
 
@@ -20,16 +21,16 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById("root") as HTMLElement).render(
 	<StrictMode>
-		<NotificationProvider>
-			<QueryClientProvider client={queryClient}>
-				<WalletProvider>
-					<CurrencyProvider>
+		<ErrorBoundary>
+			<NotificationProvider>
+				<QueryClientProvider client={queryClient}>
+					<WalletProvider>
 						<BrowserRouter>
 							<App />
 						</BrowserRouter>
-					</CurrencyProvider>
-				</WalletProvider>
-			</QueryClientProvider>
-		</NotificationProvider>
+					</WalletProvider>
+				</QueryClientProvider>
+			</NotificationProvider>
+		</ErrorBoundary>
 	</StrictMode>,
 )

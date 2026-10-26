@@ -32,8 +32,7 @@ import {
 	type ControlState,
 } from "../lib/stellar"
 import { Amount, AmountUnit } from "../components/Amount"
-import { formatXlm } from "../controls/format"
-import { useCurrency } from "../providers/CurrencyProvider"
+import { formatUsdc } from "../controls/format"
 import ui from "../styles/ui.module.css"
 import styles from "./Settings.module.css"
 
@@ -42,8 +41,8 @@ import styles from "./Settings.module.css"
 // replaces the affected rules and the admin passkey signs every step.
 
 const FIELD_LABELS: Record<ControlField, string> = {
-	maxPerPayment: "Max per payment (XLM)",
-	cap30d: "30-day cap (XLM)",
+	maxPerPayment: "Max per payment (USDC)",
+	cap30d: "30-day cap (USDC)",
 	suppliers: "Suppliers",
 }
 
@@ -56,11 +55,8 @@ const shortAddress = (address: string) =>
 const shortHash = (hash: string) => `${hash.slice(0, 8)}…${hash.slice(-6)}`
 
 // Amounts read better rounded. The stored values stay exact.
-const shownChangeValue = (
-	field: ControlField,
-	value: string,
-	rate: number | undefined,
-) => (field === "suppliers" || !value ? value : formatXlm(Number(value), rate))
+const shownChangeValue = (field: ControlField, value: string) =>
+	field === "suppliers" || !value ? value : formatUsdc(Number(value))
 
 const formatDate = (iso: string) =>
 	new Date(iso).toLocaleString(undefined, { timeZoneName: "short" })
@@ -101,7 +97,6 @@ function Steps({ pending }: { pending: PendingChange }) {
 }
 
 export default function Settings() {
-	const { rate } = useCurrency()
 	const [state, setState] = useState<ControlState>()
 	const [loading, setLoading] = useState(true)
 	const [pending, setPending] = useState<PendingChange | null>(() =>
@@ -159,7 +154,7 @@ export default function Settings() {
 	const check = useMemo(
 		() =>
 			state && draft
-				? validateSettings(draft, state.spentXlm, rate)
+				? validateSettings(draft, state.spentXlm)
 				: ({ ok: false, reason: "Enter the two limits as numbers" } as const),
 		[state, draft],
 	)
@@ -439,7 +434,7 @@ export default function Settings() {
 					<div>
 						<dt>Max per payment</dt>
 						<dd>
-							<Amount xlm={limits.maxPerPayment} />
+							<Amount usdc={limits.maxPerPayment} />
 							<span className={styles.unit}>
 								<AmountUnit />
 							</span>
@@ -448,7 +443,7 @@ export default function Settings() {
 					<div>
 						<dt>{limits.periodDays}-day cap</dt>
 						<dd>
-							<Amount xlm={limits.cap30d} />
+							<Amount usdc={limits.cap30d} />
 							<span className={styles.unit}>
 								<AmountUnit />
 							</span>
@@ -457,7 +452,7 @@ export default function Settings() {
 					<div>
 						<dt>Spent this period</dt>
 						<dd>
-							<Amount xlm={state.spentXlm} />
+							<Amount usdc={state.spentXlm} />
 							<span className={styles.unit}>
 								<AmountUnit />
 							</span>
@@ -466,7 +461,7 @@ export default function Settings() {
 					<div>
 						<dt>Left this period</dt>
 						<dd>
-							<Amount xlm={remaining} />
+							<Amount usdc={remaining} />
 							<span className={styles.unit}>
 								<AmountUnit />
 							</span>
@@ -504,7 +499,7 @@ export default function Settings() {
 						<h2 className={ui.sectionTitle}>Limits</h2>
 						<div className={styles.fields}>
 							<label className={styles.field}>
-								Max per payment (XLM)
+								Max per payment (USDC)
 								<input
 									type="number"
 									min="0"
@@ -515,7 +510,7 @@ export default function Settings() {
 								/>
 							</label>
 							<label className={styles.field}>
-								{limits.periodDays}-day cap (XLM)
+								{limits.periodDays}-day cap (USDC)
 								<input
 									type="number"
 									min="0"
@@ -529,7 +524,7 @@ export default function Settings() {
 						<p className={styles.hint}>
 							A payment above the maximum needs the manager&apos;s second
 							signature. The cap cannot be set below what was already spent in
-							the period (<Amount xlm={state.spentXlm} /> <AmountUnit /> now), and what was spent carries
+							the period (<Amount usdc={state.spentXlm} /> <AmountUnit /> now), and what was spent carries
 							over when it changes.
 						</p>
 					</section>
@@ -752,13 +747,13 @@ export default function Settings() {
 										</td>
 										<td data-label="Rule">{change.rule ?? "—"}</td>
 										<td data-label="Previous" className={styles.num}>
-											{shownChangeValue(change.field, change.previous, rate)}
+											{shownChangeValue(change.field, change.previous)}
 										</td>
 										<td data-label="New" className={styles.num}>
-											{shownChangeValue(change.field, change.next, rate)}
+											{shownChangeValue(change.field, change.next)}
 										</td>
 										<td data-label="Spent then" className={styles.num}>
-											{change.spentAtChange === undefined ? "—" : formatXlm(change.spentAtChange, rate)}
+											{change.spentAtChange === undefined ? "—" : formatUsdc(change.spentAtChange)}
 										</td>
 										<td data-label="Transactions">
 											<span className={styles.txLinks}>

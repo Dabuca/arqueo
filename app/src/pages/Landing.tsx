@@ -367,11 +367,11 @@ export default function Landing() {
 							<div className={styles.thresholds}>
 								<div>
 									<span>Per payment</span>
-									<span className={styles.pillDark}>500 XLM</span>
+									<span className={styles.pillDark}>500 USDC</span>
 								</div>
 								<div>
 									<span>Per 30 days</span>
-									<span className={styles.pillDark}>1,000 XLM</span>
+									<span className={styles.pillDark}>1,000 USDC</span>
 								</div>
 							</div>
 						</article>
@@ -384,11 +384,11 @@ export default function Landing() {
 							<p>Larger payments use the large rule, which needs the manager as well.</p>
 							<div className={styles.thresholds}>
 								<div>
-									<span>Up to 500 XLM</span>
+									<span>Up to 500 USDC</span>
 									<span className={styles.pillOk}>1 signature · Ordinary</span>
 								</div>
 								<div>
-									<span>Above 500 XLM</span>
+									<span>Above 500 USDC</span>
 									<span className={styles.pillDark}>2 of 2 · Large</span>
 								</div>
 							</div>
@@ -496,7 +496,7 @@ export default function Landing() {
 						<div>
 							<h3 id="testnet-title">Testnet only</h3>
 							<p>
-								This demo uses test XLM with no real value. In production every
+								This demo uses test USDC with no real value. In production every
 								person signs with a passkey on their own device.
 							</p>
 						</div>
@@ -508,7 +508,7 @@ export default function Landing() {
 					<div className={styles.closePanel}>
 						<div className={styles.closeCopy}>
 							<h2 id="close-title">Try the rules yourself, on testnet.</h2>
-							<p>Four scenes, test XLM, no real funds.</p>
+							<p>Four scenes, test USDC, no real funds.</p>
 							<div className={styles.closeActions}>
 								<Link to="/app" className={styles.closeAction}>
 									Launch Demo (Testnet)
