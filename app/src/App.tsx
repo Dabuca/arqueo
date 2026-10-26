@@ -4,6 +4,7 @@ import ConnectAccount from "./components/ConnectAccount"
 import { OrbitSystem } from "./components/OrbitField"
 import { SiteFooter } from "./components/SiteFooter"
 import { SiteHeader } from "./components/SiteHeader"
+import { TestnetBanner } from "./components/TestnetBanner"
 import Auditor from "./pages/Auditor"
 import Debug from "./pages/Debug"
 import Home from "./pages/Home"
@@ -33,6 +34,7 @@ const AppLayout = () => {
 		{pathname === "/app" && (
 			<OrbitSystem variant="roles" className={styles.orbitBg} x="84%" y="42vh" />
 		)}
+		<TestnetBanner />
 		<SiteHeader wallet={<ConnectAccount />} />
 
 		<main className={styles.main}>

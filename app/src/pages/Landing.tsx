@@ -37,18 +37,6 @@ import styles from "./Landing.module.css"
 
 const REPO_URL = "https://github.com/Dabuca/arqueo"
 
-const STATUS_QUO = [
-	"Whoever holds the key can move every balance in one transaction.",
-	"Approvals arrive as messages in a group chat.",
-	"The auditor receives screenshots weeks later.",
-]
-
-const WITH_ARQUEO = [
-	"The account refuses payments that break its rules, before they execute.",
-	"Larger payments need a second signature the account itself requires.",
-	"Every payment and every refused attempt is recorded with its transaction.",
-]
-
 const BENEFITS: { icon: IconName; title: string; body: string }[] = [
 	{
 		icon: "ruleDualControl",
@@ -321,40 +309,8 @@ export default function Landing() {
 					</div>
 				</section>
 
-				<section id="solution" className={styles.diagnostic} aria-labelledby="solution-title">
+				<section id="solution" className={styles.diagnostic} aria-labelledby="audience-title">
 					<OrbitSystem variant="single" className={styles.orbitBg} x="82%" y="26%" />
-					<div className={styles.sectionHead}>
-						<h2 id="solution-title">One key should not move all the money.</h2>
-					</div>
-					<div className={styles.twoCols}>
-						<article className={styles.card}>
-							<span className={styles.pillError}>Today</span>
-							<h3>Single key, chat approvals</h3>
-							<ul className={styles.bullets}>
-								{STATUS_QUO.map((line) => (
-									<li key={line}>
-										<Icon name="cancel" className={styles.iconError} />
-										<span>{line}</span>
-									</li>
-								))}
-							</ul>
-						</article>
-						<article className={`${styles.card} ${styles.cardStrong}`}>
-							<span className={styles.pillOk}>With Arqueo</span>
-							<h3>Rules the account enforces</h3>
-							<ul className={styles.bullets}>
-								{WITH_ARQUEO.map((line) => (
-									<li key={line}>
-										<Icon name="check" className={styles.iconOk} />
-										<span>{line}</span>
-									</li>
-								))}
-							</ul>
-						</article>
-					</div>
-				</section>
-
-				<section className={styles.diagnostic} aria-labelledby="audience-title">
 					<div className={styles.sectionHead}>
 						<h2 id="audience-title">Built for teams that share a treasury</h2>
 						<p>
@@ -477,7 +433,7 @@ export default function Landing() {
 					</div>
 				</section>
 
-				<section className={styles.diagnostic} aria-labelledby="stellar-title">
+				<section className={styles.blockers} aria-labelledby="stellar-title">
 					<div className={styles.sectionHead}>
 						<h2 id="stellar-title">What stops a team from keeping its treasury on Stellar</h2>
 						<p>
@@ -485,15 +441,15 @@ export default function Landing() {
 							on-chain. The account answers them.
 						</p>
 					</div>
-					<div className={styles.threeCols}>
+					<ol className={styles.questions}>
 						{HOLD_BLOCKERS.map(({ icon, question, answer }) => (
-							<article key={question} className={styles.card}>
-								<Icon name={icon} className={styles.cardIcon} />
+							<li key={question}>
+								<Icon name={icon} className={styles.questionIcon} />
 								<h3>{question}</h3>
 								<p>{answer}</p>
-							</article>
+							</li>
 						))}
-					</div>
+					</ol>
 				</section>
 
 				<section id="architecture" className={styles.architecture} aria-labelledby="arch-title">
