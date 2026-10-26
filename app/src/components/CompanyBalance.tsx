@@ -7,7 +7,6 @@ import {
 	Minus,
 } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
-import { formatXlm } from "../controls/format"
 import {
 	createCompanyAccount,
 	fundCompanyAccount,
@@ -27,7 +26,6 @@ import {
 	type ControlState,
 	type Payment,
 } from "../lib/stellar"
-import { useCurrency } from "../providers/CurrencyProvider"
 import ui from "../styles/ui.module.css"
 import { Amount, AmountUnit } from "./Amount"
 import styles from "./CompanyBalance.module.css"
