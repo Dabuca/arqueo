@@ -65,6 +65,7 @@ If it were sent anyway, the network would reject it.
 
 Each browser creates its own company account, so scenes 1 and 2b come from an
 earlier rehearsal account.
+
 <!-- TODO(R10): record the final demo account ID after the last rehearsal (B) -->
 
 Not built yet: the demo script (R14) and a hosted URL (R15).
