@@ -14,6 +14,8 @@ import {
 import {
 	SmartAccountKit,
 	createCallContractContext,
+	createDefaultContext,
+	createThresholdParams,
 	type ContractSigner,
 } from "smart-account-kit"
 import { createChangeLog } from "../controls/changeLog"
@@ -87,6 +89,7 @@ const required = (name: string): string => {
 
 const COMPANY_KEY = "arqueo.company"
 const DEPLOYER_KEY = "arqueo.deployer"
+const RECOVERY_PACKAGE_KEY = "arqueo.recovery-package"
 const FRIENDBOT_URL = "https://friendbot.stellar.org"
 
 /**
@@ -97,10 +100,113 @@ const FRIENDBOT_URL = "https://friendbot.stellar.org"
 export interface CompanyAccount {
 	address: string
 	adminCredentialId: string
+	adminRuleId?: number
 	employee: { publicKey: string; secret: string }
 	manager: { credentialId: string; publicKey: string } // public key in base64
+	recovery?: {
+		ruleId: number
+		guardians: Array<{ credentialId: string; publicKey: string }>
+	}
+	pendingAdminRecovery?: {
+		ruleId: number
+		credentialId: string
+		publicKey: string
+	}
+	recoveredFromPackage?: boolean
 	rules?: Partial<Record<RuleName, number>> // on-chain context rule ids
 	controlPolicy?: { ruleId: number; hash: string } // installed on that rule
+}
+
+export interface RecoveryPackage {
+	version: 1
+	network: "testnet"
+	companyAddress: string
+	adminRuleId: number
+	recovery: NonNullable<CompanyAccount["recovery"]>
+	rules: Partial<Record<RuleName, number>>
+}
+
+export function loadRecoveryPackage(): RecoveryPackage | undefined {
+	const raw = localStorage.getItem(RECOVERY_PACKAGE_KEY)
+	if (!raw) return undefined
+	try {
+		return JSON.parse(raw) as RecoveryPackage
+	} catch {
+		localStorage.removeItem(RECOVERY_PACKAGE_KEY)
+		return undefined
+	}
+}
+
+/** Export the public information guardians need to recover from another device. */
+export function createRecoveryPackage(): RecoveryPackage {
+	const company = requireCompany()
+	if (!company.recovery) throw new Error("Set up the recovery rule first")
+	return {
+		version: 1,
+		network: "testnet",
+		companyAddress: company.address,
+		adminRuleId: company.adminRuleId ?? ADMIN_RULE_ID,
+		recovery: company.recovery,
+		rules: company.rules ?? {},
+	}
+}
+
+/** Import a public recovery package on a new browser profile. */
+export function importRecoveryPackage(json: string): RecoveryPackage {
+	let value: unknown
+	try {
+		value = JSON.parse(json)
+	} catch {
+		throw new Error("Recovery package is not valid JSON")
+	}
+	if (!value || typeof value !== "object") {
+		throw new Error("Recovery package has an invalid format")
+	}
+	const data = value as Partial<RecoveryPackage>
+	const publicKeysAreValid = (guardians: unknown): boolean => {
+		if (!Array.isArray(guardians) || guardians.length !== 3) return false
+		try {
+			const isGuardian = (
+				guardian: unknown,
+			): guardian is { credentialId: string; publicKey: string } => {
+				if (!guardian || typeof guardian !== "object") return false
+				const candidate = guardian as Record<string, unknown>
+				if (
+					typeof candidate.credentialId !== "string" ||
+					!/^[A-Za-z0-9_-]+$/.test(candidate.credentialId) ||
+					typeof candidate.publicKey !== "string"
+				)
+					return false
+				const key = Uint8Array.from(atob(candidate.publicKey), (char) =>
+					char.charCodeAt(0),
+				)
+				return key.length === 65 && key[0] === 0x04
+			}
+			return (
+				guardians.every(isGuardian) &&
+				new Set(guardians.map((guardian) => guardian.credentialId)).size === 3
+			)
+		} catch {
+			return false
+		}
+	}
+	if (
+		data.version !== 1 ||
+		data.network !== "testnet" ||
+		!data.companyAddress ||
+		!StrKey.isValidContract(data.companyAddress) ||
+		!Number.isInteger(data.adminRuleId) ||
+		!data.recovery ||
+		!Number.isInteger(data.recovery.ruleId) ||
+		!publicKeysAreValid(data.recovery.guardians)
+	) {
+		throw new Error(
+			"Recovery package is incomplete or is not for Stellar testnet",
+		)
+	}
+	localStorage.setItem(RECOVERY_PACKAGE_KEY, JSON.stringify(data))
+	window.dispatchEvent(new Event("arqueo:company-updated"))
+	return data as RecoveryPackage
 }
 
 export function loadCompany(): CompanyAccount | undefined {
@@ -407,7 +513,7 @@ async function addRule(
 	const ruleId = tx.result.id
 	const result = await kit.signAndSubmit(tx, {
 		credentialId: company.adminCredentialId,
-		resolveContextRuleIds: () => [ADMIN_RULE_ID],
+		resolveContextRuleIds: () => [company.adminRuleId ?? ADMIN_RULE_ID],
 	})
 	if (!result.success) {
 		throw new Error(
@@ -426,7 +532,7 @@ async function removeRule(
 	const tx = await kit.rules.remove(ruleId)
 	const result = await kit.signAndSubmit(tx, {
 		credentialId: company.adminCredentialId,
-		resolveContextRuleIds: () => [ADMIN_RULE_ID],
+		resolveContextRuleIds: () => [company.adminRuleId ?? ADMIN_RULE_ID],
 	})
 	if (!result.success) {
 		throw new Error(
@@ -434,6 +540,185 @@ async function removeRule(
 		)
 	}
 	return result.hash
+}
+
+const RECOVERY_POLICY_NAME = "recovery"
+
+/** Create a 2-of-3 recovery rule. Each guardian enrolls a separate passkey. */
+export async function setupRecoveryRule(): Promise<{
+	ruleId: number
+	hash: string
+}> {
+	const company = requireCompany()
+	if (company.recovery) return { ruleId: company.recovery.ruleId, hash: "" }
+	const kit = await connectedKit(company)
+	const guardians = []
+	for (let index = 1; index <= 3; index++) {
+		const credential = await kit.credentials.create({
+			nickname: `Recovery guardian ${index}`,
+			appName: "Arqueo recovery",
+		})
+		await kit.credentials.save({
+			credentialId: credential.credentialId,
+			publicKey: credential.publicKey,
+			contractId: company.address,
+			isPrimary: false,
+		})
+		guardians.push({
+			credentialId: credential.credentialId,
+			publicKey: toBase64(credential.publicKey),
+		})
+	}
+	const signers = guardians.map((guardian) =>
+		managerSigner(
+			required("PUBLIC_WEBAUTHN_VERIFIER_ADDRESS"),
+			guardian.publicKey,
+			guardian.credentialId,
+		),
+	)
+	const tx = await kit.rules.add(
+		createDefaultContext(),
+		RECOVERY_POLICY_NAME,
+		signers,
+		new Map([
+			[
+				required("PUBLIC_THRESHOLD_POLICY_ADDRESS"),
+				kit.convertPolicyParams("threshold", createThresholdParams(2)),
+			],
+		]),
+	)
+	const result = await kit.signAndSubmit(tx, {
+		credentialId: company.adminCredentialId,
+		resolveContextRuleIds: () => [company.adminRuleId ?? ADMIN_RULE_ID],
+	})
+	if (!result.success) {
+		throw new Error(`Recovery setup failed: ${describeFailure(result.error)}`)
+	}
+	saveCompany({ ...company, recovery: { ruleId: tx.result.id, guardians } })
+	window.dispatchEvent(new Event("arqueo:company-updated"))
+	return { ruleId: tx.result.id, hash: result.hash }
+}
+
+/** Replace the admin rule after two of its three recovery guardians approve. */
+export async function recoverAdminAccess(
+	guardianIndexes: number[] = [0, 1],
+): Promise<{ ruleId: number; hash: string }> {
+	const localCompany = loadCompany()
+	const recoveryPackage = loadRecoveryPackage()
+	const company =
+		localCompany ??
+		(recoveryPackage
+			? {
+					address: recoveryPackage.companyAddress,
+					adminCredentialId: "",
+					adminRuleId: recoveryPackage.adminRuleId,
+					employee: { publicKey: "", secret: "" },
+					manager: { credentialId: "", publicKey: "" },
+					recovery: recoveryPackage.recovery,
+					rules: recoveryPackage.rules,
+					recoveredFromPackage: true,
+				}
+			: undefined)
+	if (!company)
+		throw new Error(
+			"Create a recovery package on the original device and import it here",
+		)
+	const recovery = company.recovery
+	if (!recovery) throw new Error("Set up the 2-of-3 recovery rule first")
+	if (
+		guardianIndexes.length !== 2 ||
+		new Set(guardianIndexes).size !== 2 ||
+		guardianIndexes.some(
+			(index) =>
+				!Number.isInteger(index) ||
+				index < 0 ||
+				index >= recovery.guardians.length,
+		)
+	) {
+		throw new Error("Choose exactly two of the three recovery guardians")
+	}
+	const selectedGuardians = guardianIndexes.map(
+		(index) => recovery.guardians[index],
+	)
+	if (selectedGuardians.some((guardian) => guardian === undefined)) {
+		throw new Error("Recovery guardian data is incomplete")
+	}
+	const kit = getKit()
+	await kit.connectWallet({
+		contractId: company.address,
+		credentialId: selectedGuardians[0]!.credentialId,
+	})
+	const selected = selectedGuardians.map((guardian) =>
+		managerSelectedSigner(
+			required("PUBLIC_WEBAUTHN_VERIFIER_ADDRESS"),
+			guardian!.publicKey,
+			guardian!.credentialId,
+		),
+	)
+	const authorize = {
+		resolveContextRuleIds: () => [recovery.ruleId],
+	}
+	let pending = company.pendingAdminRecovery
+	if (!pending) {
+		const replacement = await kit.credentials.create({
+			nickname: "Replacement admin",
+			appName: "Arqueo",
+		})
+		await kit.credentials.save({
+			credentialId: replacement.credentialId,
+			publicKey: replacement.publicKey,
+			contractId: company.address,
+			isPrimary: false,
+		})
+		const newAdminSigner = managerSigner(
+			required("PUBLIC_WEBAUTHN_VERIFIER_ADDRESS"),
+			toBase64(replacement.publicKey),
+			replacement.credentialId,
+		)
+		const newRule = await kit.rules.add(
+			createDefaultContext(),
+			"admin",
+			[newAdminSigner],
+			new Map(),
+		)
+		const added = await kit.multiSigners.operation(newRule, selected, authorize)
+		if (!added.success) {
+			throw new Error(
+				`Replacement admin could not be added: ${describeFailure(added.error)}`,
+			)
+		}
+		pending = {
+			ruleId: newRule.result.id,
+			credentialId: replacement.credentialId,
+			publicKey: toBase64(replacement.publicKey),
+		}
+		saveCompany({ ...company, pendingAdminRecovery: pending })
+	}
+	const oldAdminRuleId = company.adminRuleId ?? ADMIN_RULE_ID
+	const removed = await kit.multiSigners.operation(
+		await kit.rules.remove(oldAdminRuleId),
+		selected,
+		authorize,
+	)
+	if (!removed.success) {
+		throw new Error(
+			`New admin rule ${pending.ruleId} is installed, but the old rule could not be retired: ${describeFailure(removed.error)}`,
+		)
+	}
+	saveCompany({
+		...company,
+		adminCredentialId: pending.credentialId,
+		adminRuleId: pending.ruleId,
+		pendingAdminRecovery: undefined,
+	})
+	if (recoveryPackage) {
+		localStorage.setItem(
+			RECOVERY_PACKAGE_KEY,
+			JSON.stringify({ ...recoveryPackage, adminRuleId: pending.ruleId }),
+		)
+	}
+	window.dispatchEvent(new Event("arqueo:company-updated"))
+	return { ruleId: pending.ruleId, hash: removed.hash }
 }
 
 /**
@@ -908,6 +1193,8 @@ if (import.meta.env.DEV) {
 			loadCompany,
 			loadDemoOutsider,
 			setupDemoEnvironment,
+			setupRecoveryRule,
+			recoverAdminAccess,
 			setupOrdinaryRule,
 			setupLargeRule,
 			readControlState,

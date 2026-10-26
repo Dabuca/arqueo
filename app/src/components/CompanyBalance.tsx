@@ -7,6 +7,7 @@ import {
 	Minus,
 } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
+import { formatXlm } from "../controls/format"
 import {
 	createCompanyAccount,
 	fundCompanyAccount,
@@ -14,18 +15,22 @@ import {
 	installControlPolicy,
 	listPayments,
 	loadCompany,
+	loadRecoveryPackage,
 	loadControlsConfig,
+	createRecoveryPackage,
+	importRecoveryPackage,
 	readControlState,
+	recoverAdminAccess,
+	setupRecoveryRule,
 	setupLargeRule,
 	setupOrdinaryRule,
 	type ControlState,
 	type Payment,
 } from "../lib/stellar"
+import { useCurrency } from "../providers/CurrencyProvider"
 import ui from "../styles/ui.module.css"
 import { Amount, AmountUnit } from "./Amount"
 import styles from "./CompanyBalance.module.css"
-import { formatXlm } from "../controls/format"
-import { useCurrency } from "../providers/CurrencyProvider"
 import { Spinner, useChanged } from "./Spinner"
 
 type BalanceState =
@@ -33,7 +38,15 @@ type BalanceState =
 	| { status: "ok"; xlm: number }
 	| { status: "error"; message: string }
 
-type Step = "create" | "fund" | "ordinary" | "suppliers" | "manager"
+type Step =
+	| "create"
+	| "fund"
+	| "ordinary"
+	| "suppliers"
+	| "manager"
+	| "recovery-setup"
+	| "recovery"
+	| "recovery-import"
 
 const errorMessage = (error: unknown) =>
 	error instanceof Error ? error.message : String(error)
@@ -79,6 +92,21 @@ const STEP_COPY: Record<
 		note: "Optional. Needs the admin passkey.",
 		optional: true,
 	},
+	"recovery-setup": {
+		label: "Set up 2-of-3 recovery",
+		busy: "Setting up recovery passkeys…",
+		note: "Enroll three guardian passkeys.",
+	},
+	recovery: {
+		label: "Recover admin access",
+		busy: "Recovering admin access…",
+		note: "Two selected guardians must approve.",
+	},
+	"recovery-import": {
+		label: "Import recovery package",
+		busy: "Checking recovery package…",
+		note: "Public account data only.",
+	},
 }
 
 function RuleIcon({ done, optional }: { done: boolean; optional?: boolean }) {
@@ -102,6 +130,9 @@ function RuleIcon({ done, optional }: { done: boolean; optional?: boolean }) {
 export function CompanyBalance() {
 	const { rate } = useCurrency()
 	const [company, setCompany] = useState(() => loadCompany())
+	const [recoveryPackage, setRecoveryPackage] = useState(() =>
+		loadRecoveryPackage(),
+	)
 	const [balance, setBalance] = useState<BalanceState>({ status: "loading" })
 	const [spent, setSpent] = useState<number>()
 	// What the chain enforces, when it can be read: it wins over the journal.
@@ -113,11 +144,15 @@ export function CompanyBalance() {
 	const [lastTx, setLastTx] = useState<string>()
 	const [fundCount, setFundCount] = useState(0)
 	const [copied, setCopied] = useState(false)
+	const [guardianIndexes, setGuardianIndexes] = useState([0, 1])
 
 	const address = company?.address
 
 	useEffect(() => {
-		const refresh = () => setCompany(loadCompany())
+		const refresh = () => {
+			setCompany(loadCompany())
+			setRecoveryPackage(loadRecoveryPackage())
+		}
 		window.addEventListener("arqueo:company-updated", refresh)
 		return () => window.removeEventListener("arqueo:company-updated", refresh)
 	}, [])
@@ -187,6 +222,7 @@ export function CompanyBalance() {
 			setError(errorMessage(cause))
 		} finally {
 			setCompany(loadCompany())
+			setRecoveryPackage(loadRecoveryPackage())
 			window.dispatchEvent(new Event("arqueo:company-updated"))
 			setWorking(undefined)
 		}
@@ -199,6 +235,37 @@ export function CompanyBalance() {
 			setCopied(true)
 		} catch {
 			// Clipboard blocked: the address stays selectable through the explorer link.
+		}
+	}
+
+	const downloadRecoveryPackage = () => {
+		try {
+			const data = createRecoveryPackage()
+			const blob = new Blob([JSON.stringify(data, null, 2)], {
+				type: "application/json",
+			})
+			const url = URL.createObjectURL(blob)
+			const link = document.createElement("a")
+			link.href = url
+			link.download = `arqueo-recovery-${data.companyAddress.slice(0, 8)}.json`
+			link.click()
+			window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+		} catch (cause) {
+			setError(errorMessage(cause))
+		}
+	}
+
+	const importRecoveryFile = async (file: File | undefined) => {
+		if (!file) return
+		setWorking("recovery-import")
+		setError(undefined)
+		try {
+			const imported = importRecoveryPackage(await file.text())
+			setRecoveryPackage(imported)
+		} catch (cause) {
+			setError(errorMessage(cause))
+		} finally {
+			setWorking(undefined)
 		}
 	}
 
@@ -300,6 +367,73 @@ export function CompanyBalance() {
 							? "Creating account…"
 							: "Create company account"}
 					</button>
+					<div className={styles.recovery}>
+						<div>
+							<strong>Recover an existing treasury</strong>
+							<p className={styles.caption}>
+								Import the public recovery package exported from the original
+								profile.
+							</p>
+							<label className={ui.button}>
+								Import recovery package
+								<input
+									type="file"
+									accept="application/json,.json"
+									hidden
+									onChange={(event) => {
+										void importRecoveryFile(event.target.files?.[0])
+										event.target.value = ""
+									}}
+								/>
+							</label>
+							{recoveryPackage && (
+								<>
+									<p className={styles.address}>
+										{recoveryPackage.companyAddress.slice(0, 8)}…
+										{recoveryPackage.companyAddress.slice(-6)}
+									</p>
+									<fieldset className={styles.guardians}>
+										<legend>Choose two guardians to approve recovery</legend>
+										{recoveryPackage.recovery.guardians.map(
+											(guardian, index) => (
+												<label key={guardian.credentialId}>
+													<input
+														type="checkbox"
+														checked={guardianIndexes.includes(index)}
+														onChange={(event) =>
+															setGuardianIndexes((current) =>
+																event.target.checked
+																	? [...current, index].slice(-2)
+																	: current.filter(
+																			(selected) => selected !== index,
+																		),
+															)
+														}
+													/>
+													Guardian {index + 1}
+												</label>
+											),
+										)}
+									</fieldset>
+									<button
+										type="button"
+										className={ui.button}
+										onClick={() =>
+											void run("recovery", () =>
+												recoverAdminAccess(guardianIndexes),
+											)
+										}
+										disabled={
+											working !== undefined || guardianIndexes.length !== 2
+										}
+									>
+										{working === "recovery" && <Spinner />}
+										Recover admin access
+									</button>
+								</>
+							)}
+						</div>
+					</div>
 				</div>
 			) : (
 				<>
@@ -357,7 +491,9 @@ export function CompanyBalance() {
 								{balance.status === "ok" && (
 									<span className={styles.balance}>
 										<Amount xlm={balance.xlm} />
-										<span className={styles.unit}><AmountUnit /></span>
+										<span className={styles.unit}>
+											<AmountUnit />
+										</span>
 									</span>
 								)}
 							</dd>
@@ -373,7 +509,9 @@ export function CompanyBalance() {
 											xlm={fromChain ? fromChain.spentXlm : (spent ?? 0)}
 										/>{" "}
 										/ <Amount xlm={limits.cap30d} />
-										<span className={styles.unit}><AmountUnit /></span>
+										<span className={styles.unit}>
+											<AmountUnit />
+										</span>
 									</span>
 									<span className={styles.caption}>
 										{fromChain
@@ -427,6 +565,74 @@ export function CompanyBalance() {
 							</div>
 						)}
 					</div>
+					<div className={styles.recovery}>
+						<div>
+							<strong>Admin recovery</strong>
+							<p className={styles.caption}>
+								{company.recovery
+									? "Two of three recovery passkeys can replace the admin passkey."
+									: "Enroll three guardian passkeys before you need to recover access. Choose a different authenticator for each guardian."}
+							</p>
+							<p className={styles.caption}>
+								Export the public recovery package and give each guardian a
+								copy. It contains no private keys.
+							</p>
+							{company.recovery && (
+								<fieldset className={styles.guardians}>
+									<legend>Choose two guardians to approve recovery</legend>
+									{company.recovery.guardians.map((guardian, index) => (
+										<label key={guardian.credentialId}>
+											<input
+												type="checkbox"
+												checked={guardianIndexes.includes(index)}
+												onChange={(event) => {
+													setGuardianIndexes((current) =>
+														event.target.checked
+															? [...current, index].slice(-2)
+															: current.filter(
+																	(selected) => selected !== index,
+																),
+													)
+												}}
+											/>
+											Guardian {index + 1}
+										</label>
+									))}
+								</fieldset>
+							)}
+						</div>
+						<button
+							type="button"
+							className={ui.button}
+							onClick={() =>
+								void run(
+									company.recovery ? "recovery" : "recovery-setup",
+									() =>
+										company.recovery
+											? recoverAdminAccess(guardianIndexes)
+											: setupRecoveryRule(),
+								)
+							}
+							disabled={
+								working !== undefined ||
+								(company.recovery !== undefined && guardianIndexes.length !== 2)
+							}
+						>
+							{working?.startsWith("recovery") && <Spinner />}
+							{company.recovery
+								? "Recover admin access"
+								: "Set up 2-of-3 recovery"}
+						</button>
+						{company.recovery && (
+							<button
+								type="button"
+								className={ui.button}
+								onClick={downloadRecoveryPackage}
+							>
+								Export recovery package
+							</button>
+						)}
+					</div>
 				</>
 			)}
 
@@ -440,6 +646,16 @@ export function CompanyBalance() {
 				<p className={ui.alert} role="alert">
 					<strong>Could not read the balance</strong>
 					<span>{balance.message}</span>
+				</p>
+			)}
+			{company?.recoveredFromPackage && (
+				<p className={ui.alert} role="status">
+					<strong>Admin access restored</strong>
+					<span>
+						The public recovery package does not contain the employee's private
+						payment key or the local payment journal. Re-enroll payment signers
+						before sending payments from this device.
+					</span>
 				</p>
 			)}
 			{lastTx && (

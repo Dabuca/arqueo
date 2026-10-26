@@ -32,6 +32,19 @@ export async function setupLargeRule(): Promise<{
 	return { ruleId: 2, hash: "mock-large-rule" }
 }
 
+export async function setupRecoveryRule(): Promise<{
+	ruleId: number
+	hash: string
+}> {
+	return { ruleId: 3, hash: "mock-recovery-rule" }
+}
+
+export async function recoverAdminAccess(
+	_guardianIndexes: number[] = [0, 1],
+): Promise<{ ruleId: number; hash: string }> {
+	return { ruleId: 4, hash: "mock-admin-recovery" }
+}
+
 export async function installControlPolicy(): Promise<{ hash: string }> {
 	return { hash: "mock-control-policy" }
 }
