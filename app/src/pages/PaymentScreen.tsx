@@ -18,6 +18,7 @@ import { capShortfall, remainingCap, ruleForSigners } from "../controls/rules"
 import {
 	loadCompany,
 	loadControlsConfig,
+	loadDemoOutsider,
 	pay,
 	readControlState,
 	type ControlState,
@@ -122,7 +123,7 @@ export default function PaymentScreen() {
 		setOutcome(undefined)
 		if (useUnknownSupplier) {
 			setCustomSupplier(true)
-			setSupplier(UNKNOWN_SUPPLIER_DEMO)
+			setSupplier(loadDemoOutsider() ?? UNKNOWN_SUPPLIER_DEMO)
 		} else if (configuredSuppliers[0]) {
 			setCustomSupplier(false)
 			setSupplier(configuredSuppliers[0])

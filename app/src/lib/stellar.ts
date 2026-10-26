@@ -108,6 +108,10 @@ export function loadCompany(): CompanyAccount | undefined {
 	return raw ? (JSON.parse(raw) as CompanyAccount) : undefined
 }
 
+export function loadDemoOutsider(): string | undefined {
+	return localStorage.getItem("arqueo.demo.outsider") ?? undefined
+}
+
 function saveCompany(company: CompanyAccount): void {
 	localStorage.setItem(COMPANY_KEY, JSON.stringify(company))
 }
@@ -791,6 +795,61 @@ export const supplierDeps: SupplierDeps = {
 	},
 }
 
+/** Creates a fresh, fully configured testnet treasury for one demo run. */
+export async function setupDemoEnvironment(
+	reportProgress: (step: string) => void = () => {},
+): Promise<{
+	companyAddress: string
+	supplierAddress: string
+	outsiderAddress: string
+	rules: { ordinary: number; large: number }
+	transactions: { ordinary: string; large: string }
+}> {
+	if (
+		required("PUBLIC_NETWORK_PASSPHRASE") !==
+		"Test SDF Network ; September 2015"
+	) {
+		throw new Error("R14 demo setup only runs on Stellar testnet")
+	}
+	if (loadCompany()) {
+		throw new Error(
+			"This browser already has a company account; start a fresh demo run",
+		)
+	}
+
+	reportProgress("Creating a new company account and demo passkeys")
+	const { address: companyAddress } = await createCompanyAccount()
+	reportProgress("Creating funded supplier and outsider accounts")
+	const supplierAddress = await supplierDeps.createFundedAccount()
+	const outsiderAddress = await supplierDeps.createFundedAccount()
+	const config: ControlsConfig = {
+		limits: { ...DEFAULT_LIMITS },
+		suppliers: [
+			{ address: supplierAddress, label: "Demo supplier", kind: "demo" },
+		],
+	}
+	controlsStore(localStorage).saveConfig(config)
+	localStorage.setItem("arqueo.demo.outsider", outsiderAddress)
+
+	reportProgress("Installing the ordinary employee rule")
+	const ordinary = await setupOrdinaryRule()
+	reportProgress("Installing the large employee-and-manager rule")
+	const large = await setupLargeRule()
+	if (!ordinary.hash || !large.hash) {
+		throw new Error(
+			"Demo rules were already present; use a fresh browser profile",
+		)
+	}
+	reportProgress("Demo treasury and rules are ready")
+	return {
+		companyAddress,
+		supplierAddress,
+		outsiderAddress,
+		rules: { ordinary: ordinary.ruleId, large: large.ruleId },
+		transactions: { ordinary: ordinary.hash, large: large.hash },
+	}
+}
+
 /**
  * Pays from the company account. The rule follows from who signs. A payment
  * the account rules reject resolves to `{ ok: false }` and is logged too.
@@ -847,6 +906,8 @@ if (import.meta.env.DEV) {
 	Object.assign(window, {
 		arqueo: {
 			loadCompany,
+			loadDemoOutsider,
+			setupDemoEnvironment,
 			setupOrdinaryRule,
 			setupLargeRule,
 			readControlState,
