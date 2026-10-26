@@ -207,7 +207,7 @@ P0 bloquea la demo · P1 completa el MVP · P2 solo si sobra tiempo. **Marcad la
 
 - [x] **R18** USDC de testnet en vez de XLM. Token de prueba emitido por el emisor de Arqueo (no es el USDC de Circle). El fondeo pasa por `api/fund-usdc.ts`, con la clave del emisor solo en el servidor. Ver `docs/deploy.md`. **Pendiente:** (1) añadir `USDC_ISSUER_SECRET` en Vercel (sale de `stellar keys secret usdc-issuer`) y redesplegar; (2) llevar `develop` a `main`, que es la rama que despliega Vercel; (3) probar en la URL pública el flujo completo con passkey: crear cuenta, fondear con USDC y las 4 escenas; (4) ejecutar el script de R14 (`scripts/demo-setup.mjs`) con USDC; (5) que B y C validen el mensaje nuevo de rechazo por falta de trustline (no está en §6.3).
 - [x] **R19** GitHub Actions con `cargo test` y `npm run build`. El workflow `build.yml` ejecuta `npm test --workspace app`, `cargo test -p control-policy` y el build de todos los workspaces.
-- [ ] **R20** Passkey del manager en el móvil.
+- [ ] **R20** Passkey del manager en el móvil. Código y tests unitarios listos en `b/R20-manager-phone`: casilla opcional al crear la cuenta; la passkey del manager se crea en el móvil y la segunda firma es un QR (transporte hybrid de WebAuthn). Comprobado con un móvil real en local: la creación de la passkey del manager por QR. **Pendiente de testear:** la segunda firma de un pago grande (escena 2 con employee + manager) y la cancelación en el móvil, idealmente también en la URL publicada. No marcar hasta entonces.
 - [ ] **R21** Regla de recuperación 2 de 3.
 - [ ] **R22** Cobro del proveedor en su banco a través de un anchor.
 
@@ -270,6 +270,7 @@ P0 bloquea la demo · P1 completa el MVP · P2 solo si sobra tiempo. **Marcad la
 | 26-oct | Carlos (A) | R6 comprobado: la escena 3 se rechaza en testnet con «Supplier not authorized» (`docs/evidence-R6-scene3.md`). Queda por explicar un pago de 100 XLM a `GBHX3Z…` a las 17:36 UTC del 25-oct, anterior a la instalación de la política | evidencia para la escena 3 |
 | 26-oct | Carlos (A); **Jesús (D) no ha confirmado** | Rastro de cambios (`csvField`): la protección contra fórmulas en el CSV solo se aplica a texto, no a números negativos. Cambio en `src/controls/` hecho sin autorización previa y explicado en su PR | un número negativo no debe escribirse como texto |
 | 26-oct | Carlos (A); **Jesús (D) no ha confirmado** | Rastro de cambios (`describeValue`): ya no abrevia las direcciones de proveedor, así que el CSV del auditor muestra la dirección completa. Se deja así hasta que Jesús lo confirme | no hay decisión explícita sobre esto |
+| 26-oct | Propuesta de la IA de la persona que lleva R20; **pendiente de B y D** | R20: la passkey del manager puede vivir en su móvil (casilla opcional al crear la cuenta). Se crea y firma por el QR de WebAuthn (hybrid), sin backend: `createCompanyAccount` gana `{ managerOnPhone? }` (ampliación de §6.1) y `CompanyAccount.manager.device`. `@simplewebauthn/browser` 13.3.0 pasa a dependencia directa de `app` (ya estaba instalada por el kit). Solo cuentas nuevas y con el móvil cerca; la aprobación remota queda fuera | la `webAuthn` del kit es el único punto donde se puede pedir `cross-platform` y la pista `hybrid` |
 
 ## 12. Enlaces
 

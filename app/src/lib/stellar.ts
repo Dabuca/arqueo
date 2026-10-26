@@ -1,3 +1,4 @@
+import { startAuthentication, startRegistration } from "@simplewebauthn/browser"
 import {
 	Account,
 	Address,
@@ -58,6 +59,10 @@ import {
 	type PayInput,
 	type PayResult,
 } from "./payments"
+import {
+	withPhoneAuthentication,
+	withPhoneRegistration,
+} from "./webauthnHybrid"
 
 // The only door to Stellar: every call to the network goes through this file.
 // Interfaces follow AGENTS.md §6.1. Mocks in mocks.ts export the same names.
@@ -101,7 +106,12 @@ export interface CompanyAccount {
 	address: string
 	adminCredentialId: string
 	employee: { publicKey: string; secret: string }
-	manager: { credentialId: string; publicKey: string } // public key in base64
+	manager: {
+		credentialId: string
+		publicKey: string // base64
+		// Where the passkey lives (R20). Missing = this browser's device.
+		device?: "phone" | "this-device"
+	}
 	rules?: Partial<Record<RuleName, number>> // on-chain context rule ids
 	controlPolicy?: { ruleId: number; hash: string } // installed on that rule
 }
@@ -167,6 +177,36 @@ async function fundWithFriendbot(publicKey: string): Promise<Account> {
 const toBase64 = (bytes: Uint8Array): string =>
 	btoa(String.fromCharCode(...bytes))
 
+// True only while the manager passkey is created on a phone (R20): the admin
+// passkey, made by the same kit, stays on this device.
+let registeringOnPhone = false
+
+// The kit's WebAuthn, steered to the phone's QR flow (hybrid transport) for the
+// manager's passkey only. See webauthnHybrid.ts.
+const kitWebAuthn = {
+	startRegistration: (
+		options: Parameters<typeof startRegistration>[0],
+	): ReturnType<typeof startRegistration> =>
+		startRegistration(
+			registeringOnPhone
+				? {
+						...options,
+						optionsJSON: withPhoneRegistration(options.optionsJSON),
+					}
+				: options,
+		),
+	startAuthentication: (
+		options: Parameters<typeof startAuthentication>[0],
+	): ReturnType<typeof startAuthentication> => {
+		const manager = loadCompany()?.manager
+		const phone = manager?.device === "phone" ? [manager.credentialId] : []
+		return startAuthentication({
+			...options,
+			optionsJSON: withPhoneAuthentication(options.optionsJSON, phone),
+		})
+	},
+}
+
 // Read on first use, not at import: a missing .env.local should fail the call
 // that needs it, not the whole app.
 let kitInstance: SmartAccountKit | undefined
@@ -179,6 +219,7 @@ export function getKit(): SmartAccountKit {
 		webauthnVerifierAddress: required("PUBLIC_WEBAUTHN_VERIFIER_ADDRESS"),
 		ed25519VerifierAddress: required("PUBLIC_ED25519_VERIFIER_ADDRESS"),
 		deployerSecret: deployerSecret(),
+		webAuthn: kitWebAuthn,
 	})
 	return kitInstance
 }
@@ -218,18 +259,30 @@ export async function getBalance(): Promise<number> {
  * passkey. They are not added on chain yet: on the default rule they would
  * have to sign every admin operation. R4 and R7 add them to `ordinary` and
  * `large`.
+ *
+ * With `managerOnPhone` (R20) the browser shows a QR code and the manager's
+ * passkey is created on their phone; later, the second signature of a `large`
+ * payment is a QR scan too.
  */
-export async function createCompanyAccount(): Promise<{ address: string }> {
+export async function createCompanyAccount(
+	options: { managerOnPhone?: boolean } = {},
+): Promise<{ address: string }> {
 	const existing = loadCompany()
 	if (existing) return { address: existing.address }
 
 	const kit = getKit()
 	const employee = Keypair.random()
 	// Manager first: if this prompt is cancelled, nothing is deployed.
-	const manager = await kit.credentials.create({
-		nickname: "manager",
-		appName: "Arqueo",
-	})
+	registeringOnPhone = options.managerOnPhone === true
+	let manager: Awaited<ReturnType<typeof kit.credentials.create>>
+	try {
+		manager = await kit.credentials.create({
+			nickname: "manager",
+			appName: "Arqueo",
+		})
+	} finally {
+		registeringOnPhone = false
+	}
 
 	await fundWithFriendbot(Keypair.fromSecret(deployerSecret()).publicKey())
 	const wallet = await kit.createWallet("Arqueo", "admin", {
@@ -249,6 +302,7 @@ export async function createCompanyAccount(): Promise<{ address: string }> {
 		manager: {
 			credentialId: manager.credentialId,
 			publicKey: toBase64(manager.publicKey),
+			device: options.managerOnPhone ? "phone" : "this-device",
 		},
 	}
 	saveCompany(company)

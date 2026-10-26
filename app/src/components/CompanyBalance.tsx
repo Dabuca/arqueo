@@ -111,6 +111,8 @@ export function CompanyBalance() {
 	const [lastTx, setLastTx] = useState<string>()
 	const [fundCount, setFundCount] = useState(0)
 	const [copied, setCopied] = useState(false)
+	// R20: off by default, so the four scenes keep their one-device flow.
+	const [managerOnPhone, setManagerOnPhone] = useState(false)
 
 	const address = company?.address
 
@@ -286,11 +288,28 @@ export function CompanyBalance() {
 							holds the treasury and enforces the payment rules. Test USDC only,
 							no real funds.
 						</p>
+						<label className={styles.phoneOption}>
+							<input
+								type="checkbox"
+								checked={managerOnPhone}
+								onChange={(event) => setManagerOnPhone(event.target.checked)}
+								disabled={working !== undefined}
+							/>
+							<span>
+								Register the manager's passkey on a phone
+								<span className={styles.phoneHint}>
+									Your browser will show a QR code. Scan it with the manager's
+									phone.
+								</span>
+							</span>
+						</label>
 					</div>
 					<button
 						type="button"
 						className={`${ui.button} ${ui.primary} ${styles.big}`}
-						onClick={() => void run("create", createCompanyAccount)}
+						onClick={() =>
+							void run("create", () => createCompanyAccount({ managerOnPhone }))
+						}
 						disabled={working !== undefined}
 					>
 						{working === "create" && <Spinner />}

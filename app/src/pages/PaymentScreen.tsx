@@ -410,7 +410,11 @@ export default function PaymentScreen() {
 								</span>
 								<span className={styles.signerCopy}>
 									<strong>Employee + manager</strong>
-									<small>Two signatures required</small>
+									<small>
+										{company?.manager.device === "phone"
+											? "Two signatures · the manager scans a QR with their phone"
+											: "Two signatures required"}
+									</small>
 								</span>
 								<Check
 									className={styles.signerCheck}
