@@ -2,22 +2,23 @@
 // trail and the CSV exports). Stellar stroops go down to seven decimals, which
 // is too many to read in a table or a sentence.
 
-const CENT_USD = 0.01
+const STEP_USD = 0.00001
 const MAX_XLM_DECIMALS = 7
 const FALLBACK_XLM_DECIMALS = 2
 
 /**
  * How many decimals of XLM to show: the last one has to be worth at least a
- * cent at the given price (USD per XLM). Without a price, two decimals.
+ * thousandth of a cent at the given price (USD per XLM). Without a price,
+ * two decimals.
  */
 export function xlmDecimals(priceUsd: number | undefined): number {
 	if (priceUsd === undefined || priceUsd <= 0) return FALLBACK_XLM_DECIMALS
 	let decimals = 0
-	// The small tolerance keeps a step that is exactly a cent from losing to
+	// The small tolerance keeps a step that is exactly the minimum from losing to
 	// floating-point error.
 	while (
 		decimals < MAX_XLM_DECIMALS &&
-		priceUsd * 10 ** -(decimals + 1) >= CENT_USD - 1e-12
+		priceUsd * 10 ** -(decimals + 1) >= STEP_USD - 1e-12
 	) {
 		decimals++
 	}

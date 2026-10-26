@@ -2,18 +2,18 @@ import { describe, expect, it } from "vitest"
 import { formatUsd, formatXlm, xlmDecimals } from "./format"
 
 describe("xlmDecimals", () => {
-	it("stops at the digit where one step is worth a cent", () => {
-		// At 0.12 USD per XLM, 0.1 XLM is 0.012 USD and 0.01 XLM is 0.0012 USD.
-		expect(xlmDecimals(0.12)).toBe(1)
+	it("stops at the digit where one step is worth a thousandth of a cent", () => {
+		// At 0.12 USD per XLM, 0.0001 XLM is 0.000012 USD and 0.00001 XLM is 0.0000012 USD.
+		expect(xlmDecimals(0.12)).toBe(4)
 	})
 
-	it("shows whole XLM when even 0.1 XLM is below a cent", () => {
-		// 0.1 XLM at 0.05 USD is 0.005 USD.
-		expect(xlmDecimals(0.05)).toBe(0)
+	it("shows three decimals when 0.0001 XLM is below a thousandth of a cent", () => {
+		// At 0.05 USD per XLM, 0.0001 XLM is 0.000005 USD.
+		expect(xlmDecimals(0.05)).toBe(3)
 	})
 
 	it("shows more digits when XLM is worth more", () => {
-		expect(xlmDecimals(2)).toBe(2)
+		expect(xlmDecimals(2)).toBe(5)
 	})
 
 	it("keeps two decimals when there is no price", () => {
@@ -23,15 +23,15 @@ describe("xlmDecimals", () => {
 
 describe("formatXlm with a price", () => {
 	it("rounds to the digits that matter at that price", () => {
-		expect(formatXlm(1234.5678, 0.12)).toBe("1,234.6")
+		expect(formatXlm(1234.5678, 0.12)).toBe("1,234.5678")
 	})
 
 	it("shows the smallest step as a bound, not as zero", () => {
-		expect(formatXlm(0.05, 0.12)).toBe("< 0.1")
+		expect(formatXlm(0.00005, 0.12)).toBe("< 0.0001")
 	})
 
 	it("drops decimals when XLM is cheap", () => {
-		expect(formatXlm(12.7, 0.05)).toBe("13")
+		expect(formatXlm(12.7, 0.05)).toBe("12.7")
 	})
 })
 
