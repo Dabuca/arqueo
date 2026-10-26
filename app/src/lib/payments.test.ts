@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer"
 import { Keypair, StrKey, scValToNative } from "@stellar/stellar-sdk"
 import { describe, expect, it } from "vitest"
 import {
@@ -21,8 +22,8 @@ describe("sortedPolicies", () => {
 	// Soroban rejects maps whose keys are not sorted, and the SDK keeps the
 	// insertion order of a JS Map.
 	it("orders policy addresses by their contract id bytes", () => {
-		const low = StrKey.encodeContract(new Uint8Array(32).fill(0x01))
-		const high = StrKey.encodeContract(new Uint8Array(32).fill(0xf0))
+		const low = StrKey.encodeContract(Buffer.alloc(32, 0x01))
+		const high = StrKey.encodeContract(Buffer.alloc(32, 0xf0))
 
 		const sorted = sortedPolicies(
 			new Map<string, unknown>([
@@ -197,7 +198,7 @@ describe("paymentLog", () => {
 })
 
 describe("controlPolicyParams", () => {
-	const supplier = StrKey.encodeEd25519PublicKey(new Uint8Array(32).fill(0x07))
+	const supplier = StrKey.encodeEd25519PublicKey(Buffer.alloc(32, 0x07))
 
 	const ordinary = {
 		allowlist: [supplier],
@@ -242,7 +243,7 @@ describe("controlPolicyParams", () => {
 })
 
 describe("decodeControlParams", () => {
-	const supplier = StrKey.encodeEd25519PublicKey(new Uint8Array(32).fill(0x07))
+	const supplier = StrKey.encodeEd25519PublicKey(Buffer.alloc(32, 0x07))
 
 	it("reads back what controlPolicyParams wrote", () => {
 		const values = {
