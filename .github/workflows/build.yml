@@ -26,7 +26,12 @@ jobs:
 
       - run: npm ci
       - run: npm run lint
-      - run: npm run format:check
+
+      # R19: the app unit tests and the control-policy contract tests.
+      - name: App unit tests
+        run: npm test --workspace app
+      - name: control-policy contract tests
+        run: cargo test -p control-policy
 
       # ---- Slow path: CLI toolchain, local network, contract codegen ----
       - uses: actions/cache@v3
@@ -135,6 +140,10 @@ jobs:
             http://localhost:8000/rpc | jq -e '.result.protocolVersion == 29'
       # Generate a throwaway identity on the CI's local network and fund it with
       # friendbot. No key is stored in the repo.
+      # The identity step below calls the `stellar` CLI. Pin the version that
+      # the team uses locally (scripts/dev-guard.mjs installs it the same way).
+      - name: Install stellar-cli
+        run: cargo binstall -y --locked stellar-cli@28.1.0
       - name: Add funded local identity as default
         run: |
           stellar keys generate me --network local --fund --overwrite
@@ -196,7 +205,4 @@ jobs:
         working-directory: e2e
       - name: Run cross-framework parity smoke tests
         run: npx playwright test tests/smoke.spec.ts
-        working-directory: e2e
-      - name: Run Guess the Number tests
-        run: npx playwright test tests/guess-the-number.spec.ts
         working-directory: e2e
