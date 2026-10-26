@@ -136,6 +136,10 @@ directly; it never holds an issuer key.
 - **30-day cap:** the payment screen shows what is left of the cap and, when a
   payment is refused for the cap, by how much it goes over. Evidence:
   [docs/evidence-R23-cap.md](docs/evidence-R23-cap.md).
+- **Supplier cash-out (simulated):** `/cashout` shows how a paid supplier would
+  withdraw test USDC to a bank account through a Stellar anchor (SEP-24). No
+  funds move and no anchor is contacted; a real withdrawal needs an asset the
+  anchor accepts and suppliers who hold their own keys.
 - **Not included yet:** a hosted demo URL, and an audit history rebuilt from the
   chain (the journal lives in the browser).
 
