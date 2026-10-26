@@ -24,8 +24,7 @@ import {
 import ui from "../styles/ui.module.css"
 import { Amount, AmountUnit } from "./Amount"
 import styles from "./CompanyBalance.module.css"
-import { formatXlm } from "../controls/format"
-import { useCurrency } from "../providers/CurrencyProvider"
+import { formatUsdc } from "../controls/format"
 import { Spinner, useChanged } from "./Spinner"
 
 type BalanceState =
@@ -59,9 +58,9 @@ const STEP_COPY: Record<
 	{ label: string; busy: string; note: string; optional?: boolean }
 > = {
 	fund: {
-		label: "Fund with testnet XLM",
+		label: "Fund with test USDC",
 		busy: "Funding…",
-		note: "Test XLM from Friendbot.",
+		note: "Test USDC from the Arqueo issuer.",
 	},
 	ordinary: {
 		label: "Set up ordinary rule",
@@ -100,7 +99,6 @@ function RuleIcon({ done, optional }: { done: boolean; optional?: boolean }) {
 }
 
 export function CompanyBalance() {
-	const { rate } = useCurrency()
 	const [company, setCompany] = useState(() => loadCompany())
 	const [balance, setBalance] = useState<BalanceState>({ status: "loading" })
 	const [spent, setSpent] = useState<number>()
@@ -237,7 +235,7 @@ export function CompanyBalance() {
 			name: "Ordinary rule",
 			done: ordinaryReady,
 			text: ordinaryReady
-				? `Employee, up to ${formatXlm(limits.maxPerPayment, rate)} XLM per payment`
+				? `Employee, up to ${formatUsdc(limits.maxPerPayment)} USDC per payment`
 				: "Not set up",
 		},
 		{
@@ -285,7 +283,7 @@ export function CompanyBalance() {
 						<h3>Create the company account</h3>
 						<p>
 							A smart account on Stellar testnet with your passkey as admin. It
-							holds the treasury and enforces the payment rules. Test XLM only,
+							holds the treasury and enforces the payment rules. Test USDC only,
 							no real funds.
 						</p>
 					</div>
@@ -356,7 +354,7 @@ export function CompanyBalance() {
 								)}
 								{balance.status === "ok" && (
 									<span className={styles.balance}>
-										<Amount xlm={balance.xlm} />
+										<Amount usdc={balance.xlm} />
 										<span className={styles.unit}><AmountUnit /></span>
 									</span>
 								)}
@@ -370,9 +368,9 @@ export function CompanyBalance() {
 									<span className={styles.spent}>
 										{fromChain ? "" : "≈ "}
 										<Amount
-											xlm={fromChain ? fromChain.spentXlm : (spent ?? 0)}
+											usdc={fromChain ? fromChain.spentXlm : (spent ?? 0)}
 										/>{" "}
-										/ <Amount xlm={limits.cap30d} />
+										/ <Amount usdc={limits.cap30d} />
 										<span className={styles.unit}><AmountUnit /></span>
 									</span>
 									<span className={styles.caption}>

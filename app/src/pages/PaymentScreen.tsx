@@ -18,6 +18,7 @@ import { capShortfall, remainingCap, ruleForSigners } from "../controls/rules"
 import {
 	loadCompany,
 	loadControlsConfig,
+	loadDemoOutsider,
 	pay,
 	readControlState,
 	type ControlState,
@@ -30,8 +31,7 @@ import {
 	type FieldErrors,
 } from "./paymentFields"
 import { outcomeFromResult, type Outcome } from "./paymentOutcome"
-import { formatXlm } from "../controls/format"
-import { useCurrency } from "../providers/CurrencyProvider"
+import { formatUsdc } from "../controls/format"
 import styles from "./PaymentScreen.module.css"
 
 type SignatureChoice = "employee" | "manager"
@@ -62,7 +62,6 @@ function CheckIcon({ state }: { state: CheckState }) {
 }
 
 export default function PaymentScreen() {
-	const { rate } = useCurrency()
 	// What the admin set in Settings, and what the chain reports (R17, R23).
 	const [controls, setControls] = useState(() => loadControlsConfig())
 	const [chain, setChain] = useState<ControlState>()
@@ -122,7 +121,7 @@ export default function PaymentScreen() {
 		setOutcome(undefined)
 		if (useUnknownSupplier) {
 			setCustomSupplier(true)
-			setSupplier(UNKNOWN_SUPPLIER_DEMO)
+			setSupplier(loadDemoOutsider() ?? UNKNOWN_SUPPLIER_DEMO)
 		} else if (configuredSuppliers[0]) {
 			setCustomSupplier(false)
 			setSupplier(configuredSuppliers[0])
@@ -198,7 +197,7 @@ export default function PaymentScreen() {
 		signature === "manager"
 			? { label: "No per-payment limit on the large rule", state: "pass" }
 			: {
-					label: `Within ${formatXlm(limits.maxPerPayment, rate)} XLM per payment`,
+					label: `Within ${formatUsdc(limits.maxPerPayment)} USDC per payment`,
 					state: stateOf(underLimit),
 					detail:
 						underLimit === false
@@ -211,8 +210,8 @@ export default function PaymentScreen() {
 					{
 						label:
 							left === undefined
-								? `Within ${formatXlm(cap, rate)} XLM every ${limits.periodDays} days`
-								: `Within what is left of the ${formatXlm(cap, rate)} XLM ${limits.periodDays}-day cap`,
+								? `Within ${formatUsdc(cap)} USDC every ${limits.periodDays} days`
+								: `Within what is left of the ${formatUsdc(cap)} USDC ${limits.periodDays}-day cap`,
 						state:
 							overCap === undefined
 								? ("idle" as const)
@@ -224,9 +223,9 @@ export default function PaymentScreen() {
 								? "Spending is checked on-chain."
 								: overCap
 									? left === 0
-										? `The cap is used up. Add the manager's signature to pay ${formatXlm(overCap, rate)} XLM.`
-										: `${formatXlm(overCap, rate)} XLM over what is left (${formatXlm(left, rate)} of ${formatXlm(cap, rate)} XLM). Add the manager's signature to go above it.`
-									: `${formatXlm(left, rate)} of ${formatXlm(cap, rate)} XLM left this period.`,
+										? `The cap is used up. Add the manager's signature to pay ${formatUsdc(overCap)} USDC.`
+										: `${formatUsdc(overCap)} USDC over what is left (${formatUsdc(left)} of ${formatUsdc(cap)} USDC). Add the manager's signature to go above it.`
+									: `${formatUsdc(left)} of ${formatUsdc(cap)} USDC left this period.`,
 					},
 				]),
 		{
@@ -341,7 +340,7 @@ export default function PaymentScreen() {
 										clearError("amount")
 									}}
 								/>
-								<span>XLM</span>
+								<span>USDC</span>
 							</div>
 							{errors.amount && (
 								<p className={styles.inlineError} role="alert">
@@ -475,7 +474,7 @@ export default function PaymentScreen() {
 					</div>
 					<div className={styles.summary}>
 						<span className={styles.amountFigure}>
-							{amountIsValid ? <Amount xlm={numericAmount} /> : "—"}
+							{amountIsValid ? <Amount usdc={numericAmount} /> : "—"}
 							<small>
 								<AmountUnit />
 							</small>
