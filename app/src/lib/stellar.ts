@@ -88,6 +88,7 @@ const required = (name: string): string => {
 const COMPANY_KEY = "arqueo.company"
 const DEPLOYER_KEY = "arqueo.deployer"
 const FRIENDBOT_URL = "https://friendbot.stellar.org"
+const FUNDING_TIMEOUT_MS = 45_000
 
 /**
  * The company treasury and its signers' keys. Demo shortcut (AGENTS.md §3):
@@ -104,8 +105,14 @@ export interface CompanyAccount {
 }
 
 export function loadCompany(): CompanyAccount | undefined {
-	const raw = localStorage.getItem(COMPANY_KEY)
-	return raw ? (JSON.parse(raw) as CompanyAccount) : undefined
+	try {
+		const raw = localStorage.getItem(COMPANY_KEY)
+		return raw ? (JSON.parse(raw) as CompanyAccount) : undefined
+	} catch {
+		// Blocked storage or a corrupt record: treat it as no account yet, so
+		// the page still renders and offers to create one.
+		return undefined
+	}
 }
 
 function saveCompany(company: CompanyAccount): void {
@@ -171,7 +178,7 @@ export function getKit(): SmartAccountKit {
 }
 
 /**
- * Native XLM balance of the company account, in XLM: the one created in this
+ * Test USDC balance of the company account, in USDC: the one created in this
  * browser, or PUBLIC_COMPANY_ACCOUNT if there is none. It reads the Stellar
  * Asset Contract `balance` through simulation, so it needs no signature and
  * no funded source account.
@@ -253,49 +260,41 @@ export async function createCompanyAccount(): Promise<{ address: string }> {
 }
 
 /**
- * Sends testnet XLM to the company account and returns the transaction hash.
- * Friendbot cannot fund contract addresses, so a throwaway account receives
- * Friendbot's 10,000 XLM and forwards most of it through the native token
- * contract. The kit's own fundWallet does the same, but it reads the account
- * entry with the pre-17 SDK API (`balance()`) and fails on
- * @stellar/stellar-sdk 17.
+ * Sends test USDC from the issuer to the company account and returns the
+ * transaction hash. The issuer key lives on the server (api/fund-usdc.ts), so
+ * the browser only asks for it: the account and the public suppliers never see
+ * the secret.
  */
-export async function fundCompanyAccount(xlm = 9_000): Promise<string> {
+export async function fundCompanyAccount(usdc = 9_000): Promise<string> {
 	const company = loadCompany()
 	if (!company) throw new Error("Create the company account first")
 
-	const temp = Keypair.random()
-	const source = await fundWithFriendbot(temp.publicKey())
-	const server = new rpc.Server(required("PUBLIC_RPC_URL"))
-	const token = new Contract(required("PUBLIC_NATIVE_TOKEN_CONTRACT"))
-	const tx = new TransactionBuilder(source, {
-		fee: BASE_FEE,
-		networkPassphrase: required("PUBLIC_NETWORK_PASSPHRASE"),
-	})
-		.addOperation(
-			token.call(
-				"transfer",
-				Address.fromString(temp.publicKey()).toScVal(),
-				Address.fromString(company.address).toScVal(),
-				nativeToScVal(BigInt(xlm) * BigInt(STROOPS_PER_XLM), { type: "i128" }),
-			),
-		)
-		.setTimeout(30)
-		.build()
-
-	const prepared = await server.prepareTransaction(tx)
-	prepared.sign(temp)
-	const sent = await server.sendTransaction(prepared)
-	if (sent.status === "ERROR" || sent.status === "TRY_AGAIN_LATER") {
-		throw new Error(`Funding transaction rejected (${sent.status})`)
-	}
-	const result = await server.pollTransaction(sent.hash)
-	if (result.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
+	let response: Response
+	try {
+		response = await fetch("/api/fund-usdc", {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({ to: company.address, amount: usdc }),
+			signal: AbortSignal.timeout(FUNDING_TIMEOUT_MS),
+		})
+	} catch (error) {
+		const timedOut =
+			error instanceof DOMException && error.name === "TimeoutError"
 		throw new Error(
-			`Funding transaction ${sent.hash} ended as ${result.status}`,
+			timedOut
+				? "Funding is taking too long. Check the balance in a minute before trying again."
+				: "Could not reach the funding service. Check your connection and try again.",
 		)
 	}
-	return sent.hash
+	// The platform can answer with HTML (a 502 or 504 page): never assume JSON.
+	const body = (await response.json().catch(() => ({}))) as {
+		hash?: string
+		error?: string
+	}
+	if (!response.ok || !body.hash) {
+		throw new Error(body.error ?? `Funding failed (${response.status})`)
+	}
+	return body.hash
 }
 
 function requireCompany(): CompanyAccount {

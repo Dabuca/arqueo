@@ -118,7 +118,7 @@ export function OrdinaryPayment() {
 							/>
 						</label>{" "}
 						<label>
-							Amount (XLM){" "}
+							Amount (USDC){" "}
 							<input
 								type="number"
 								min="0"

@@ -216,8 +216,13 @@ const PAYMENTS_KEY = "arqueo.payments"
 /** Local payment log (MVP, AGENTS.md §6.1); P1 rebuilds it from the chain. */
 export function paymentLog(storage: KeyValueStorage) {
 	const list = (): Payment[] => {
-		const raw = storage.getItem(PAYMENTS_KEY)
-		return raw ? (JSON.parse(raw) as Payment[]) : []
+		try {
+			const parsed: unknown = JSON.parse(storage.getItem(PAYMENTS_KEY) ?? "[]")
+			return Array.isArray(parsed) ? (parsed as Payment[]) : []
+		} catch {
+			// A corrupt log must not hide a payment that already settled.
+			return []
+		}
 	}
 	return {
 		list,

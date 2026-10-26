@@ -168,6 +168,27 @@ describe("paymentLog", () => {
 		expect(paymentLog(memoryStorage()).list()).toEqual([])
 	})
 
+	it("reads a corrupt log as empty and keeps recording, so a settled payment is never hidden", () => {
+		for (const corrupt of ["{not json", '{"a":1}', "null"]) {
+			const storage = memoryStorage()
+			storage.setItem("arqueo.payments", corrupt)
+			const log = paymentLog(storage)
+			expect(log.list()).toEqual([])
+			const payment = {
+				to: "GABC",
+				amount: 1,
+				concept: "c",
+				signers: ["employee" as const],
+				rule: "ordinary" as const,
+				status: "ok" as const,
+				hash: "h",
+				at: new Date().toISOString(),
+			}
+			expect(() => log.add(payment)).not.toThrow()
+			expect(log.list()).toEqual([payment])
+		}
+	})
+
 	it("keeps accepted and rejected payments in order across instances", () => {
 		const storage = memoryStorage()
 		const ok = {

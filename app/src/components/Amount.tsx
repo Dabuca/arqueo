@@ -1,16 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { useCurrency } from "../providers/CurrencyProvider"
-import { formatUsd, formatXlm } from "../controls/format"
-
-/** Converts an XLM amount to the chosen display currency, falling back to XLM without a price. */
-export function useDisplayAmount() {
-	const { currency, rate } = useCurrency()
-	const inUsd = currency === "USD" && rate !== undefined
-	return (xlm: number) =>
-		inUsd
-			? { text: formatUsd(xlm * rate), unit: "USD" }
-			: { text: formatXlm(xlm, rate), unit: "XLM" }
-}
+import { formatUsdc } from "../controls/format"
 
 const TWEEN_MS = 450
 
@@ -19,22 +8,17 @@ const prefersReducedMotion = () =>
 	window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
 
 /**
- * An XLM amount shown as XLM or as an indicative USD value, counting up or down
- * to the new figure when the value or the currency changes. The unit is not included.
+ * A USDC amount, counting up or down to the new figure when the value changes.
+ * The unit is not included: see `AmountUnit`.
  */
-export function Amount({ xlm }: { xlm: number }) {
-	const { currency, rate } = useCurrency()
-	const inUsd = currency === "USD" && rate !== undefined
-	const target = inUsd ? xlm * rate : xlm
-	const finalText = inUsd ? formatUsd(target) : formatXlm(target, rate)
-
+export function Amount({ usdc }: { usdc: number }) {
 	const [shown, setShown] = useState<number | null>(null)
-	const current = useRef(target)
+	const current = useRef(usdc)
 
 	useEffect(() => {
 		const from = current.current
-		if (from === target || prefersReducedMotion()) {
-			current.current = target
+		if (from === usdc || prefersReducedMotion()) {
+			current.current = usdc
 			setShown(null)
 			return
 		}
@@ -43,29 +27,23 @@ export function Amount({ xlm }: { xlm: number }) {
 		const step = (now: number) => {
 			const t = Math.min(1, (now - start) / TWEEN_MS)
 			const eased = 1 - (1 - t) ** 3
-			current.current = from + (target - from) * eased
+			current.current = from + (usdc - from) * eased
 			if (t < 1) {
 				setShown(current.current)
 				frame = requestAnimationFrame(step)
 			} else {
-				current.current = target
+				current.current = usdc
 				setShown(null)
 			}
 		}
 		frame = requestAnimationFrame(step)
 		return () => cancelAnimationFrame(frame)
-	}, [target])
+	}, [usdc])
 
-	if (shown === null) return <>{finalText}</>
-	return (
-		<>
-			{inUsd ? formatUsd(shown) : formatXlm(shown, rate)}
-		</>
-	)
+	return <>{formatUsdc(shown ?? usdc)}</>
 }
 
-/** The unit that matches what `Amount` is currently showing. */
+/** The unit that goes after an `Amount`. */
 export function AmountUnit() {
-	const { currency, rate } = useCurrency()
-	return <>{currency === "USD" && rate !== undefined ? "USD" : "XLM"}</>
+	return <>USDC</>
 }
