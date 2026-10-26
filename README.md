@@ -18,18 +18,50 @@ Arqueo puts the authorization rules on the treasury account. An ordinary payment
 
 ```mermaid
 flowchart LR
-  U[Employee or manager] --> UI[React payment app]
-  UI --> KIT[smart-account-kit]
-  KIT --> SA[OpenZeppelin smart account]
-  SA --> OR[ordinary rule\nemployee · threshold 1]
-  SA --> LR[large rule\nemployee + manager · threshold 2]
-  OR --> CP[control-policy\nallowlist · per-payment limit]
-  LR --> CP
-  SA --> SAC[Native XLM Stellar Asset Contract]
-  SAC --> T[Testnet]
-  UI --> LOG[Browser payment journal]
-  LOG --> AUD[Read-only auditor view]
+    Price["CoinGecko XLM/USD<br/>display only"]
+
+    subgraph App["Web app · React + Vite · testnet only"]
+        direction TB
+        Pay["Payments"]
+        Set["Settings<br/>admin only"]
+        Ctl["src/controls<br/>limits, suppliers, rule per amount<br/>no network"]
+        Logs[("Payment journal and<br/>settings change log<br/>local to the browser")]
+        Aud["Auditor<br/>read-only · CSV"]
+    end
+
+    Stellar["src/lib/stellar.ts<br/>the only door to the network<br/>smart-account-kit 0.6.0"]
+
+    subgraph Chain["Stellar testnet"]
+        direction TB
+        Account["OpenZeppelin smart account"]
+        Admin["rule admin<br/>admin passkey<br/>adds and removes rules"]
+        Ord["rule ordinary<br/>employee key"]
+        Large["rule large<br/>employee + manager passkey"]
+        subgraph Pol["Policies on the rules"]
+            Thr["threshold policy<br/>ordinary 1 of 1 · large 2 of 2"]
+            CP["control-policy (ours)<br/>suppliers · per-payment max · 30-day cap<br/>max and cap on ordinary only"]
+        end
+        SAC["XLM Stellar Asset Contract<br/>transfer(from, to, amount)"]
+        Account --- Admin
+        Account --- Ord
+        Account --- Large
+        Ord --> Pol
+        Large --> Pol
+        Pol -->|"all checks pass"| SAC
+    end
+
+    Price -.->|"indicative USD"| Pay
+    Pay --> Ctl
+    Set --> Ctl
+    Pay -.->|"every attempt"| Logs
+    Set -.->|"every change"| Logs
+    Logs --> Aud
+    Pay --> Stellar
+    Set --> Stellar
+    Stellar --> Account
 ```
+
+The same diagram, with a reading guide and a table of what the account enforces, is in [docs/architecture.md](docs/architecture.md).
 
 The browser journal records accepted and rejected attempts for this demo. Rejected simulations do not create an on-chain transaction. Accepted rows link to Stellar Expert by transaction hash. The MVP journal is local to the browser; it is not yet reconstructed from chain history.
 
