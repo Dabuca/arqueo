@@ -28,15 +28,15 @@ Arqueo composes Stellar smart accounts and `smart-account-kit` with OpenZeppelin
 
 ## What works now
 
-The repository contains the smart-account payment app, ordinary and large rules, the custom policy contract, and a read-only auditor journal. Testnet evidence recorded in the project notes includes a 200 XLM employee-signed payment and an 800 XLM flow rejected with the employee signature alone and accepted with the employee and manager. The auditor view shows amount, recipient, concept, date, result, signer roles, rule, and links for accepted transactions.
+The repository contains the smart-account payment app, ordinary and large rules, the custom policy contract, and a read-only auditor journal. Testnet evidence recorded in the project notes includes a 200 XLM employee-signed payment and an 800 XLM flow rejected with the employee signature alone and accepted with the employee and manager. The auditor view shows amount, recipient, concept, date, result, signer roles, rule, and links for accepted transactions, and exports CSV. A payment to an account outside the supplier list is refused by the account, and the admin changes limits and suppliers from a settings screen signed with the admin passkey.
 
-## What is still being verified
+## What is not done yet
 
-The unknown-supplier scene still needs an end-to-end testnet verification from the app. The auditor's CSV control is not yet connected. The journal is browser-local in this MVP, and admin settings, hosted deployment, and a chain-reconstructed audit history are not complete. The demo uses testnet only.
+The journal is browser-local in this MVP, and a hosted deployment and a chain-reconstructed audit history are not done yet. The demo uses testnet only.
 
 ## Continued development
 
-Next steps are to verify the supplier-rejection scene, connect CSV export, complete admin-managed suppliers and limits, and move the audit record toward chain-reconstructed history. In production, every role should use a passkey on its own device; the browser-held employee key is only a demo shortcut.
+Next steps are to publish a hosted testnet demo and move the audit record toward chain-reconstructed history. In production, every role should use a passkey on its own device; the browser-held employee key is only a demo shortcut.
 
 ## Links
 
