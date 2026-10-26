@@ -206,7 +206,7 @@ P0 bloquea la demo · P1 completa el MVP · P2 solo si sobra tiempo. **Marcad la
 ### P2 — si sobra tiempo
 
 - [ ] **R18** USDC de testnet en vez de XLM.
-- [ ] **R19** GitHub Actions con `cargo test` y `npm run build`.
+- [x] **R19** GitHub Actions con `cargo test` y `npm run build`. El workflow `build.yml` ejecuta `npm test --workspace app`, `cargo test -p control-policy` y el build de todos los workspaces.
 - [ ] **R20** Passkey del manager en el móvil.
 - [ ] **R21** Regla de recuperación 2 de 3.
 - [ ] **R22** Cobro del proveedor en su banco a través de un anchor.
