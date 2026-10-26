@@ -10,7 +10,9 @@ const COMPANY_ACCOUNT =
 
 const payments: Payment[] = []
 
-export async function createCompanyAccount(): Promise<{ address: string }> {
+export async function createCompanyAccount(
+	_options: { managerOnPhone?: boolean } = {},
+): Promise<{ address: string }> {
 	return { address: COMPANY_ACCOUNT }
 }
 
