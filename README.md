@@ -6,6 +6,8 @@ Arqueo turns a treasury approval matrix into rules on a Stellar smart account. T
 
 > **Testnet only.** This demo uses test XLM with no real value. Do not use it to hold or move real funds.
 
+**Live app:** [arqueo-arqueo2.vercel.app](https://arqueo-arqueo2.vercel.app) (testnet only).
+
 Arqueo was built for **HackMeridian 2026 · Genesis · Stellar Composed**. It combines Stellar smart accounts and `smart-account-kit` with OpenZeppelin account policies and a custom Soroban control policy.
 
 ## The problem
@@ -137,6 +139,7 @@ Apache-2.0. See [LICENSE](LICENSE).
 
 ## Links
 
+- [Live app (testnet only)](https://arqueo-arqueo2.vercel.app)
 - [Source repository](https://github.com/Dabuca/arqueo)
 - [HackMeridian 2026](https://www.hackmeridian.com/)
 - [Stellar testnet explorer](https://stellar.expert/explorer/testnet)
