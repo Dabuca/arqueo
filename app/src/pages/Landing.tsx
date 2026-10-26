@@ -37,16 +37,40 @@ import styles from "./Landing.module.css"
 
 const REPO_URL = "https://github.com/Dabuca/arqueo"
 
-const STATUS_QUO = [
-	"Whoever holds the key can move every balance in one transaction.",
-	"Approvals arrive as messages in a group chat.",
-	"The auditor receives screenshots weeks later.",
+const BENEFITS: { icon: IconName; title: string; body: string }[] = [
+	{
+		icon: "ruleDualControl",
+		title: "No single person moves it all",
+		body: "Limits and approved suppliers live in the account. An employee pays within them, and a manager signs what goes above.",
+	},
+	{
+		icon: "rules",
+		title: "Rules instead of chat approvals",
+		body: "The account decides whether a payment has the signatures and the limits it needs, before it executes.",
+	},
+	{
+		icon: "audit",
+		title: "An audit trail with the refusals",
+		body: "The auditor reads paid and refused attempts, each with its transaction, and exports them as CSV.",
+	},
 ]
 
-const WITH_ARQUEO = [
-	"The account refuses payments that break its rules, before they execute.",
-	"Larger payments need a second signature the account itself requires.",
-	"Every payment and every refused attempt is recorded with its transaction.",
+const HOLD_BLOCKERS: { icon: IconName; question: string; answer: string }[] = [
+	{
+		icon: "ruleDualControl",
+		question: "Can one person move everything?",
+		answer: "No. Limits and approved suppliers sit in the account, and larger payments need a second signature.",
+	},
+	{
+		icon: "verified",
+		question: "Who approved this payment?",
+		answer: "The signers are part of each transaction, so the approval is on the record instead of in a chat.",
+	},
+	{
+		icon: "audit",
+		question: "Where is the evidence?",
+		answer: "Paid and refused attempts are logged with their transactions, and the auditor exports them as CSV.",
+	},
 ]
 
 const ROLES: { role: string; signs: string; icon: IconName; does: string }[] = [
@@ -248,11 +272,12 @@ export default function Landing() {
 					<BrandOrbit className={styles.heroOrbit} />
 					<div className={styles.heroInner}>
 						<div className={styles.pitch}>
-							<h1>Payment governance, programmed into your account.</h1>
+							<h1>A stablecoin treasury that enforces its own payment rules.</h1>
 							<p className={styles.lead}>
-								Your approval matrix becomes rules on a Stellar smart account. A
-								payment that breaks them is refused before it executes, and every
-								attempt is recorded.
+								Arqueo turns your approval rules into controls on a Stellar smart
+								account. Payments follow your limits and approved suppliers, and
+								every attempt, paid or refused, leaves a record the auditor can
+								check.
 							</p>
 							<div className={styles.actions}>
 								<Link to="/app" className={styles.primary}>
@@ -284,36 +309,23 @@ export default function Landing() {
 					</div>
 				</section>
 
-				<section id="solution" className={styles.diagnostic} aria-labelledby="solution-title">
+				<section id="solution" className={styles.diagnostic} aria-labelledby="audience-title">
 					<OrbitSystem variant="single" className={styles.orbitBg} x="82%" y="26%" />
 					<div className={styles.sectionHead}>
-						<h2 id="solution-title">One key should not move all the money.</h2>
+						<h2 id="audience-title">Built for teams that share a treasury</h2>
+						<p>
+							SMEs, startups and associations that hold stablecoins and need
+							more than one person in control of them.
+						</p>
 					</div>
-					<div className={styles.twoCols}>
-						<article className={styles.card}>
-							<span className={styles.pillError}>Today</span>
-							<h3>Single key, chat approvals</h3>
-							<ul className={styles.bullets}>
-								{STATUS_QUO.map((line) => (
-									<li key={line}>
-										<Icon name="cancel" className={styles.iconError} />
-										<span>{line}</span>
-									</li>
-								))}
-							</ul>
-						</article>
-						<article className={`${styles.card} ${styles.cardStrong}`}>
-							<span className={styles.pillOk}>With Arqueo</span>
-							<h3>Rules the account enforces</h3>
-							<ul className={styles.bullets}>
-								{WITH_ARQUEO.map((line) => (
-									<li key={line}>
-										<Icon name="check" className={styles.iconOk} />
-										<span>{line}</span>
-									</li>
-								))}
-							</ul>
-						</article>
+					<div className={styles.threeCols}>
+						{BENEFITS.map(({ icon, title, body }) => (
+							<article key={title} className={styles.card}>
+								<Icon name={icon} className={styles.cardIcon} />
+								<h3>{title}</h3>
+								<p>{body}</p>
+							</article>
+						))}
 					</div>
 				</section>
 
@@ -419,6 +431,25 @@ export default function Landing() {
 							</article>
 						))}
 					</div>
+				</section>
+
+				<section className={styles.blockers} aria-labelledby="stellar-title">
+					<div className={styles.sectionHead}>
+						<h2 id="stellar-title">What stops a team from keeping its treasury on Stellar</h2>
+						<p>
+							Partners, a board or an auditor ask these questions before funds go
+							on-chain. The account answers them.
+						</p>
+					</div>
+					<ol className={styles.questions}>
+						{HOLD_BLOCKERS.map(({ icon, question, answer }) => (
+							<li key={question}>
+								<Icon name={icon} className={styles.questionIcon} />
+								<h3>{question}</h3>
+								<p>{answer}</p>
+							</li>
+						))}
+					</ol>
 				</section>
 
 				<section id="architecture" className={styles.architecture} aria-labelledby="arch-title">

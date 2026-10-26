@@ -32,6 +32,8 @@ import {
 	type ControlState,
 } from "../lib/stellar"
 import { Amount, AmountUnit } from "../components/Amount"
+import { formatXlm } from "../controls/format"
+import { useCurrency } from "../providers/CurrencyProvider"
 import ui from "../styles/ui.module.css"
 import styles from "./Settings.module.css"
 
@@ -52,6 +54,13 @@ const shortAddress = (address: string) =>
 	`${address.slice(0, 6)}…${address.slice(-6)}`
 
 const shortHash = (hash: string) => `${hash.slice(0, 8)}…${hash.slice(-6)}`
+
+// Amounts read better rounded. The stored values stay exact.
+const shownChangeValue = (
+	field: ControlField,
+	value: string,
+	rate: number | undefined,
+) => (field === "suppliers" || !value ? value : formatXlm(Number(value), rate))
 
 const formatDate = (iso: string) =>
 	new Date(iso).toLocaleString(undefined, { timeZoneName: "short" })
@@ -92,6 +101,7 @@ function Steps({ pending }: { pending: PendingChange }) {
 }
 
 export default function Settings() {
+	const { rate } = useCurrency()
 	const [state, setState] = useState<ControlState>()
 	const [loading, setLoading] = useState(true)
 	const [pending, setPending] = useState<PendingChange | null>(() =>
@@ -149,7 +159,7 @@ export default function Settings() {
 	const check = useMemo(
 		() =>
 			state && draft
-				? validateSettings(draft, state.spentXlm)
+				? validateSettings(draft, state.spentXlm, rate)
 				: ({ ok: false, reason: "Enter the two limits as numbers" } as const),
 		[state, draft],
 	)
@@ -742,13 +752,13 @@ export default function Settings() {
 										</td>
 										<td data-label="Rule">{change.rule ?? "—"}</td>
 										<td data-label="Previous" className={styles.num}>
-											{change.previous}
+											{shownChangeValue(change.field, change.previous, rate)}
 										</td>
 										<td data-label="New" className={styles.num}>
-											{change.next}
+											{shownChangeValue(change.field, change.next, rate)}
 										</td>
 										<td data-label="Spent then" className={styles.num}>
-											{change.spentAtChange ?? "—"}
+											{change.spentAtChange === undefined ? "—" : formatXlm(change.spentAtChange, rate)}
 										</td>
 										<td data-label="Transactions">
 											<span className={styles.txLinks}>

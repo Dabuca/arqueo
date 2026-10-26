@@ -31,6 +31,8 @@ import {
 	type FieldErrors,
 } from "./paymentFields"
 import { outcomeFromResult, type Outcome } from "./paymentOutcome"
+import { formatXlm } from "../controls/format"
+import { useCurrency } from "../providers/CurrencyProvider"
 import styles from "./PaymentScreen.module.css"
 
 type SignatureChoice = "employee" | "manager"
@@ -38,9 +40,6 @@ type CheckState = "pass" | "fail" | "idle"
 
 const testnetTx = (hash: string) =>
 	`https://stellar.expert/explorer/testnet/tx/${encodeURIComponent(hash)}`
-
-const formatXlm = (value: number) =>
-	value.toLocaleString("en-US", { maximumFractionDigits: 7 })
 
 const shortAddress = (address: string) =>
 	`${address.slice(0, 6)}…${address.slice(-5)}`
@@ -64,6 +63,7 @@ function CheckIcon({ state }: { state: CheckState }) {
 }
 
 export default function PaymentScreen() {
+	const { rate } = useCurrency()
 	// What the admin set in Settings, and what the chain reports (R17, R23).
 	const [controls, setControls] = useState(() => loadControlsConfig())
 	const [chain, setChain] = useState<ControlState>()
@@ -199,7 +199,7 @@ export default function PaymentScreen() {
 		signature === "manager"
 			? { label: "No per-payment limit on the large rule", state: "pass" }
 			: {
-					label: `Within ${formatXlm(limits.maxPerPayment)} XLM per payment`,
+					label: `Within ${formatXlm(limits.maxPerPayment, rate)} XLM per payment`,
 					state: stateOf(underLimit),
 					detail:
 						underLimit === false
@@ -212,8 +212,8 @@ export default function PaymentScreen() {
 					{
 						label:
 							left === undefined
-								? `Within ${formatXlm(cap)} XLM every ${limits.periodDays} days`
-								: `Within what is left of the ${formatXlm(cap)} XLM ${limits.periodDays}-day cap`,
+								? `Within ${formatXlm(cap, rate)} XLM every ${limits.periodDays} days`
+								: `Within what is left of the ${formatXlm(cap, rate)} XLM ${limits.periodDays}-day cap`,
 						state:
 							overCap === undefined
 								? ("idle" as const)
@@ -225,9 +225,9 @@ export default function PaymentScreen() {
 								? "Spending is checked on-chain."
 								: overCap
 									? left === 0
-										? `The cap is used up. Add the manager's signature to pay ${formatXlm(overCap)} XLM.`
-										: `${formatXlm(overCap)} XLM over what is left (${formatXlm(left)} of ${formatXlm(cap)} XLM). Add the manager's signature to go above it.`
-									: `${formatXlm(left)} of ${formatXlm(cap)} XLM left this period.`,
+										? `The cap is used up. Add the manager's signature to pay ${formatXlm(overCap, rate)} XLM.`
+										: `${formatXlm(overCap, rate)} XLM over what is left (${formatXlm(left, rate)} of ${formatXlm(cap, rate)} XLM). Add the manager's signature to go above it.`
+									: `${formatXlm(left, rate)} of ${formatXlm(cap, rate)} XLM left this period.`,
 					},
 				]),
 		{
