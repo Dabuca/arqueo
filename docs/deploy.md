@@ -14,5 +14,6 @@ Or from a terminal, once logged in: `npx vercel --prod`.
 ## Things to know
 
 - Passkeys and the company account live in the browser of each visitor: on the published URL, create a new company account (the one made on localhost does not carry over).
+- To show the manager signing on a phone (R20), create the company account on the published URL with "Register the manager's passkey on a phone" ticked. A passkey is bound to the domain it was created on, so one made on localhost will not work on the published URL. Use Chrome or Edge with Bluetooth on, near the phone.
 - Record the final video on the published URL so HTTPS and the testnet notice are visible.
 - Do not put secret keys (`S…`) in `app/.env.production`.

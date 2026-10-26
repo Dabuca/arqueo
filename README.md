@@ -95,7 +95,7 @@ The app's default demo amounts are 200 XLM, 800 XLM, and 100 XLM. The on-chain a
 - **30-day cap:** the payment screen shows what is left of the cap and, when a payment is refused for the cap, by how much it goes over. Evidence: [docs/evidence-R23-cap.md](docs/evidence-R23-cap.md).
 - **Not included yet:** a hosted demo URL, and an audit history rebuilt from the chain (the journal lives in the browser).
 
-The employee signing key is stored in this browser as a demo shortcut. In production, every person should sign with their own passkey on their own device. The kit's default deployer key is derived from a public seed and is for testnet use only; this app uses a separate random testnet deployer key stored in browser storage.
+The employee signing key is stored in this browser as a demo shortcut. In production, every person should sign with their own passkey on their own device. The manager already can: when creating the company account, tick "Register the manager's passkey on a phone" and the browser shows a QR code (the WebAuthn cross-device flow); the manager's passkey is created on their phone, and the second signature of a large payment is a QR scan confirmed with a fingerprint or face. The phone has to be near the computer (Bluetooth); there is no remote approval link yet. The kit's default deployer key is derived from a public seed and is for testnet use only; this app uses a separate random testnet deployer key stored in browser storage.
 
 ## Run the app on testnet
 
