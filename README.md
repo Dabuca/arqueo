@@ -162,9 +162,12 @@ documentation.
 For small companies, startups and associations that hold stablecoins and need
 more than one key.
 
-Planned, not built: paying suppliers into their bank through an anchor, a 2-of-3
-recovery rule, the manager's passkey on a phone, and applying to the Stellar
-Community Fund.
+A simulated supplier cash-out is at `/cashout`: it shows how a paid supplier
+would withdraw through a Stellar anchor (SEP-24), but no funds move and no
+anchor is contacted.
+
+Planned, not built: a real cash-out through an anchor, a 2-of-3 recovery rule, a
+payment signed from a real phone, and applying to the Stellar Community Fund.
 
 ## Run it locally
 

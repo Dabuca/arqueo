@@ -9,6 +9,7 @@ const NAV = [
 	{ to: "/app", label: "Treasury" },
 	{ to: "/auditor", label: "Auditor" },
 	{ to: "/settings", label: "Settings" },
+	{ to: "/cashout", label: "Supplier" },
 ] as const
 
 // App header: brand on the left, the app's pages in the middle, the wallet on the right.
