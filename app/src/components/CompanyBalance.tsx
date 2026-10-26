@@ -24,7 +24,7 @@ import {
 import ui from "../styles/ui.module.css"
 import { Amount, AmountUnit } from "./Amount"
 import styles from "./CompanyBalance.module.css"
-import { formatXlm } from "./format"
+import { formatXlm } from "../controls/format"
 import { useCurrency } from "../providers/CurrencyProvider"
 import { Spinner, useChanged } from "./Spinner"
 
