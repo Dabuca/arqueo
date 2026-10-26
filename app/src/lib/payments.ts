@@ -248,6 +248,9 @@ const CONTRACT_CODE = /Error\(Contract,\s*#(\d+)\)/
  * 1-5 (they are not in its registry), so the code is read from the error text.
  * Any other failure keeps its original text in `details`.
  */
+export const NO_TRUSTLINE =
+	"The supplier cannot receive USDC yet: its account needs a USDC trustline"
+
 export function rejectionReason(error: unknown): {
 	reason: string
 	details?: string
@@ -256,6 +259,8 @@ export function rejectionReason(error: unknown): {
 	const code = Number(CONTRACT_CODE.exec(text)?.[1])
 	const message = CONTROL_POLICY_MESSAGES[code]
 	if (message) return { reason: message }
+	// The rules passed but the token could not move: not a rule rejection.
+	if (/trustline/i.test(text)) return { reason: NO_TRUSTLINE, details: text }
 	return { reason: GENERIC_REJECTION, details: text }
 }
 

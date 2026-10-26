@@ -14,6 +14,7 @@ import {
 	paymentRecord,
 	ruleFor,
 	sortedPolicies,
+	NO_TRUSTLINE,
 	rejectionReason,
 } from "./payments"
 
@@ -22,10 +23,14 @@ describe("sortedPolicies", () => {
 	// insertion order of a JS Map.
 	it("orders policy addresses by their contract id bytes", () => {
 		const low = StrKey.encodeContract(
-			new Uint8Array(32).fill(0x01) as Parameters<typeof StrKey.encodeContract>[0],
+			new Uint8Array(32).fill(0x01) as Parameters<
+				typeof StrKey.encodeContract
+			>[0],
 		)
 		const high = StrKey.encodeContract(
-			new Uint8Array(32).fill(0xf0) as Parameters<typeof StrKey.encodeContract>[0],
+			new Uint8Array(32).fill(0xf0) as Parameters<
+				typeof StrKey.encodeContract
+			>[0],
 		)
 
 		const sorted = sortedPolicies(
@@ -305,6 +310,15 @@ describe("decodeSpendState", () => {
 })
 
 describe("rejectionReason", () => {
+	it("names a missing USDC trustline instead of blaming the account rules", () => {
+		const text =
+			'HostError: Error(Contract, #13) data:["trustline entry is missing for account", GABC]'
+		expect(rejectionReason(text)).toEqual({
+			reason: NO_TRUSTLINE,
+			details: text,
+		})
+	})
+
 	it("maps control-policy code 1 to the supplier message", () => {
 		expect(rejectionReason("HostError: Error(Contract, #1)")).toEqual({
 			reason: "Supplier not authorized",

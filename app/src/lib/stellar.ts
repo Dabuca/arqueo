@@ -1,9 +1,11 @@
 import {
 	Account,
 	Address,
+	Asset,
 	BASE_FEE,
 	Contract,
 	Keypair,
+	Operation,
 	StrKey,
 	TransactionBuilder,
 	nativeToScVal,
@@ -786,12 +788,69 @@ export const supplierDeps: SupplierDeps = {
 			return false
 		}
 	},
-	// The secret key is dropped: the account only has to exist and receive payments.
+	// The secret key is dropped once the account can receive the payment token.
 	createFundedAccount: async () => {
 		const account = Keypair.random()
-		await fundWithFriendbot(account.publicKey())
+		const source = await fundWithFriendbot(account.publicKey())
+		const asset = await paymentAsset()
+		if (asset) await addTrustline(account, source, asset)
 		return account.publicKey()
 	},
+}
+
+/**
+ * The classic asset behind the payment token's Stellar Asset Contract, read
+ * from its `name` ("USDC:G..."). Undefined for native XLM, which needs no
+ * trustline.
+ */
+async function paymentAsset(): Promise<Asset | undefined> {
+	const token = new Contract(required("PUBLIC_NATIVE_TOKEN_CONTRACT"))
+	const server = new rpc.Server(required("PUBLIC_RPC_URL"))
+	// Simulation does not check the source account, so a throwaway one is enough.
+	const source = new Account(Keypair.random().publicKey(), "0")
+	const tx = new TransactionBuilder(source, {
+		fee: BASE_FEE,
+		networkPassphrase: required("PUBLIC_NETWORK_PASSPHRASE"),
+	})
+		.addOperation(token.call("name"))
+		.setTimeout(30)
+		.build()
+	const sim = await server.simulateTransaction(tx)
+	if (rpc.Api.isSimulationError(sim)) {
+		throw new Error(`Token name read failed: ${sim.error}`)
+	}
+	const name = String(scValToNative(sim.result!.retval))
+	if (name === "native") return undefined
+	const [code, issuer] = name.split(":")
+	if (!code || !issuer) throw new Error(`Unexpected token name: ${name}`)
+	return new Asset(code, issuer)
+}
+
+/** Lets a G... account hold `asset`: a supplier cannot be paid in USDC without it. */
+async function addTrustline(
+	account: Keypair,
+	source: Account,
+	asset: Asset,
+): Promise<void> {
+	const server = new rpc.Server(required("PUBLIC_RPC_URL"))
+	const tx = new TransactionBuilder(source, {
+		fee: BASE_FEE,
+		networkPassphrase: required("PUBLIC_NETWORK_PASSPHRASE"),
+	})
+		.addOperation(Operation.changeTrust({ asset }))
+		.setTimeout(30)
+		.build()
+	tx.sign(account)
+	const sent = await server.sendTransaction(tx)
+	if (sent.status === "ERROR" || sent.status === "TRY_AGAIN_LATER") {
+		throw new Error(
+			`Trustline for ${account.publicKey()} rejected (${sent.status})`,
+		)
+	}
+	const result = await server.pollTransaction(sent.hash, { attempts: 20 })
+	if (result.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
+		throw new Error(`Trustline ${sent.hash} ended as ${result.status}`)
+	}
 }
 
 /** Creates a fresh, fully configured testnet treasury for one demo run. */
