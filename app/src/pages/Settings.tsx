@@ -159,7 +159,7 @@ export default function Settings() {
 	const check = useMemo(
 		() =>
 			state && draft
-				? validateSettings(draft, state.spentXlm)
+				? validateSettings(draft, state.spentXlm, rate)
 				: ({ ok: false, reason: "Enter the two limits as numbers" } as const),
 		[state, draft],
 	)
