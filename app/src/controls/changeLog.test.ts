@@ -129,6 +129,12 @@ describe("changesToCsv", () => {
 		])
 	})
 
+	it("leaves negative numbers as numbers", () => {
+		const csv = changesToCsv([change({ spentAtChange: -5 })])
+		expect(csv.split("\n")[1]).not.toContain("'-5")
+		expect(csv.split("\n")[1]).toContain(",-5,")
+	})
+
 	it("does not let a cell run as a spreadsheet formula", () => {
 		const csv = changesToCsv([
 			change({ previous: "=HYPERLINK(\"http://x\")", next: "+1" }),

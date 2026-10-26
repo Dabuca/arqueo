@@ -1,6 +1,8 @@
+import type { CSSProperties } from "react"
 import { ClipboardList, Download, ExternalLink, RefreshCw, SearchX } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
+import { Amount, AmountUnit } from "../components/Amount"
 import { downloadPaymentsCsv } from "../components/paymentsCsv"
 import { changesToCsv, createChangeLog } from "../controls/changeLog"
 import { describeApproval } from "../controls/approval"
@@ -26,12 +28,6 @@ const FIELD_LABELS: Record<ControlField, string> = {
 
 const transactionUrl = (hash: string) =>
 	`https://stellar.expert/explorer/testnet/tx/${encodeURIComponent(hash)}`
-
-const formatAmount = (amount: number) =>
-	new Intl.NumberFormat("en-US", {
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 7,
-	}).format(amount)
 
 const formatDate = (at: string) => {
 	const date = new Date(at)
@@ -173,7 +169,7 @@ export default function Auditor() {
 					<span />
 				</div>
 			) : payments.length === 0 ? (
-				<div className={`${ui.card} ${styles.empty}`}>
+				<div className={`${ui.card} ${styles.empty} ${styles.fadeIn}`}>
 					<ClipboardList size={28} strokeWidth={1.6} aria-hidden="true" />
 					<h2>No payment attempts yet</h2>
 					<p>
@@ -260,14 +256,18 @@ export default function Auditor() {
 										{visible.map((payment, index) => {
 											const approval = describeApproval(payment)
 											return (
-											<tr key={`${payment.at}-${payment.hash ?? payment.reason ?? index}`}>
+											<tr
+												key={`${payment.at}-${payment.hash ?? payment.reason ?? index}`}
+												className={styles.row}
+												style={{ "--i": Math.min(index, 8) } as CSSProperties}
+											>
 												<td data-label="Date">{formatDate(payment.at)}</td>
 												<td data-label="Recipient" title={payment.to} className={styles.address}>
 													{shortAddress(payment.to)}
 												</td>
 												<td data-label="Concept">{payment.concept || "—"}</td>
 												<td data-label="Amount" className={styles.amount}>
-													{formatAmount(payment.amount)} XLM
+													<Amount xlm={payment.amount} /> <AmountUnit />
 												</td>
 												<td data-label="Signers" className={styles.signers}>
 													{payment.signers.join(" + ")}
@@ -306,7 +306,7 @@ export default function Auditor() {
 						</div>
 					)}
 					{filtered && visible.length > 0 && (
-						<button className={`${ui.button} ${ui.small} ${styles.clear}`} type="button" onClick={clearFilters}>
+						<button className={`${ui.button} ${ui.small} ${styles.clear} ${styles.fadeIn}`} type="button" onClick={clearFilters}>
 							Clear filters
 						</button>
 					)}
@@ -370,9 +370,13 @@ export default function Auditor() {
 													{change.next || "—"}
 												</td>
 												<td data-label="Spent at change" className={styles.amount}>
-													{change.spentAtChange === undefined
-														? "—"
-														: `${formatAmount(change.spentAtChange)} XLM`}
+													{change.spentAtChange === undefined ? (
+														"—"
+													) : (
+														<>
+															<Amount xlm={change.spentAtChange} /> <AmountUnit />
+														</>
+													)}
 												</td>
 												<td data-label="Period start">
 													{change.periodStart ? formatDate(change.periodStart) : "—"}

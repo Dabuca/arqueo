@@ -11,7 +11,8 @@ describe("buildPaymentsCsv", () => {
 				signers: ["employee"],
 				rule: "ordinary",
 				status: "rejected",
-				reason: "Amount exceeds the per-payment limit: manager approval required",
+				reason:
+					"Amount exceeds the per-payment limit: manager approval required",
 				at: "2026-10-26T09:00:00.000Z",
 			},
 			{
@@ -26,7 +27,9 @@ describe("buildPaymentsCsv", () => {
 			},
 		])
 		const [header, refused, settled] = csv.split("\r\n")
-		expect(header).toContain('"rule","required_signers","missing_signers","status"')
+		expect(header).toContain(
+			'"rule","required_signers","missing_signers","status"',
+		)
 		expect(refused).toContain('"ordinary","employee","manager","rejected"')
 		expect(settled).toContain('"large","employee; manager","","ok"')
 	})

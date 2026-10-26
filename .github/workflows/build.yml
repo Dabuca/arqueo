@@ -133,10 +133,11 @@ jobs:
             -H 'Content-Type: application/json' \
             -d '{"jsonrpc":"2.0","id":1,"method":"getLatestLedger"}' \
             http://localhost:8000/rpc | jq -e '.result.protocolVersion == 29'
-      - name: Add master account as default identity
+      # Generate a throwaway identity on the CI's local network and fund it with
+      # friendbot. No key is stored in the repo.
+      - name: Add funded local identity as default
         run: |
-          mkdir -p .config/stellar/identity
-          echo 'secret_key = "SC5O7VZUXDJ6JBDSZ74DSERXL7W3Y5LTOAMRF7RQRL3TAGAPS7LUVG3L"' > .config/stellar/identity/me.toml
+          stellar keys generate me --network local --fund --overwrite
       - name: Build with Scaffold and build client packages
         run: |
           # Setting pipefail so a failed build's exit status isn't overwritten

@@ -32,24 +32,10 @@ import { BrandOrbit } from "../components/BrandOrbit"
 import { OrbitRings, OrbitSystem } from "../components/OrbitField"
 import { SiteFooter } from "../components/SiteFooter"
 import symbol from "../images/arqueo-symbol.jpg"
+import treasury from "../images/arqueo-treasury.png"
 import styles from "./Landing.module.css"
 
 const REPO_URL = "https://github.com/Dabuca/arqueo"
-
-// Illustrative figures for the dashboard preview, matching the four demo scenes.
-const STATS = [
-	["Balance", "4,820 XLM"],
-	["Spent, last 30 days", "1,000 / 1,000"],
-	["Refused attempts", "2"],
-	["Allowlisted suppliers", "3"],
-] as const
-
-const LEDGER = [
-	{ to: "Supplier 1", amount: "200", signers: "Employee", rule: "Ordinary", settled: true, status: "Settled" },
-	{ to: "Unknown account", amount: "100", signers: "Employee", rule: "Ordinary", settled: false, status: "Refused: not allowlisted" },
-	{ to: "Supplier 2", amount: "2,000", signers: "Employee", rule: "Ordinary", settled: false, status: "Refused: over 500 per payment" },
-	{ to: "Supplier 2", amount: "800", signers: "Employee + Manager", rule: "Large", settled: true, status: "Settled" },
-]
 
 const STATUS_QUO = [
 	"Whoever holds the key can move every balance in one transaction.",
@@ -280,68 +266,20 @@ export default function Landing() {
 							</div>
 						</div>
 
-						<figure className={styles.product} aria-label="Illustrative view of the Arqueo payments dashboard">
+						<figure className={styles.product} aria-label="Screenshot of the Arqueo app">
 							<div className={styles.chrome} aria-hidden="true">
 								<span />
 								<span />
 								<span />
 								<span className={styles.url}>arqueo · stellar testnet</span>
 							</div>
-							<div className={styles.appBody}>
-								<aside className={styles.sidebar} aria-hidden="true">
-									<div className={styles.sideBrand}>
-										<img src={symbol} alt="" width={22} height={22} className={styles.sideSymbol} />
-										Arqueo
-									</div>
-									<span className={styles.sideItemActive}><Icon name="payments" className={styles.sideIcon} />Payments</span>
-									<span className={styles.sideItem}><Icon name="rules" className={styles.sideIcon} />Rules</span>
-									<span className={styles.sideItem}><Icon name="suppliers" className={styles.sideIcon} />Suppliers</span>
-									<span className={styles.sideItem}><Icon name="audit" className={styles.sideIcon} />Audit log</span>
-								</aside>
-								<div className={styles.appMain}>
-									<div className={styles.appTop}>
-										<span className={styles.appTitle}>Payments</span>
-										<span className={styles.pillDark}>New payment</span>
-									</div>
-									<dl className={styles.stats}>
-										{STATS.map(([label, value]) => (
-											<div key={label} className={styles.stat}>
-												<dt>{label}</dt>
-												<dd>{value}</dd>
-											</div>
-										))}
-									</dl>
-									<div className={styles.tableWrap}>
-										<table className={styles.ledger}>
-											<caption className={styles.srOnly}>Recent payments</caption>
-											<thead>
-												<tr>
-													<th scope="col">Recipient</th>
-													<th scope="col">Amount</th>
-													<th scope="col">Signed by</th>
-													<th scope="col">Rule</th>
-													<th scope="col">Status</th>
-												</tr>
-											</thead>
-											<tbody>
-												{LEDGER.map((row) => (
-													<tr key={`${row.to}-${row.amount}`}>
-														<td>{row.to}</td>
-														<td className={styles.num}>{row.amount} XLM</td>
-														<td>{row.signers}</td>
-														<td>{row.rule}</td>
-														<td>
-															<span className={row.settled ? styles.pillOk : styles.pillError}>
-																{row.status}
-															</span>
-														</td>
-													</tr>
-												))}
-											</tbody>
-										</table>
-									</div>
-								</div>
-							</div>
+								<img
+									src={treasury}
+									alt="The Arqueo treasury screen: a payment form with the live rule preview"
+									width={1216}
+									height={656}
+									className={styles.shot}
+								/>
 						</figure>
 					</div>
 				</section>

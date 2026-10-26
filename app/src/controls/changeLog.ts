@@ -79,10 +79,13 @@ export function createChangeLog(storage?: ChangeStorage | null) {
 
 function csvField(value: string | number | undefined): string {
 	if (value === undefined) return ""
-	const raw = String(value)
-	// A cell that starts like a formula would run in a spreadsheet: supplier
-	// names are typed by the admin. Same rule as the payments CSV.
-	const text = /^[\t\r ]*[=+\-@]/.test(raw) ? `'${raw}` : raw
+	// A text cell that starts like a formula would run in a spreadsheet: supplier
+	// names are typed by the admin. Same rule as the payments CSV. Numbers are
+	// not text, so a negative one stays a number.
+	const text =
+		typeof value === "string" && /^[\t\r ]*[=+\-@]/.test(value)
+			? `'${value}`
+			: String(value)
 	return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
 }
 
