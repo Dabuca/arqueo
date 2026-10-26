@@ -34,6 +34,11 @@ export function formatXlm(value: number, priceUsd?: number): string {
 	return value.toLocaleString("en-US", { maximumFractionDigits: decimals })
 }
 
+/** A USDC amount for the interface: two decimals, grouped thousands. */
+export function formatUsdc(value: number): string {
+	return formatXlm(value)
+}
+
 /** A USD amount for the interface: always four decimals. */
 export function formatUsd(value: number): string {
 	return value.toLocaleString("en-US", {

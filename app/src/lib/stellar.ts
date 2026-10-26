@@ -1,9 +1,12 @@
+import { startAuthentication, startRegistration } from "@simplewebauthn/browser"
 import {
 	Account,
 	Address,
+	Asset,
 	BASE_FEE,
 	Contract,
 	Keypair,
+	Operation,
 	StrKey,
 	TransactionBuilder,
 	nativeToScVal,
@@ -58,6 +61,10 @@ import {
 	type PayInput,
 	type PayResult,
 } from "./payments"
+import {
+	withPhoneAuthentication,
+	withPhoneRegistration,
+} from "./webauthnHybrid"
 
 // The only door to Stellar: every call to the network goes through this file.
 // Interfaces follow AGENTS.md §6.1. Mocks in mocks.ts export the same names.
@@ -91,6 +98,7 @@ const COMPANY_KEY = "arqueo.company"
 const DEPLOYER_KEY = "arqueo.deployer"
 const RECOVERY_PACKAGE_KEY = "arqueo.recovery-package"
 const FRIENDBOT_URL = "https://friendbot.stellar.org"
+const FUNDING_TIMEOUT_MS = 45_000
 
 /**
  * The company treasury and its signers' keys. Demo shortcut (AGENTS.md §3):
@@ -102,7 +110,12 @@ export interface CompanyAccount {
 	adminCredentialId: string
 	adminRuleId?: number
 	employee: { publicKey: string; secret: string }
-	manager: { credentialId: string; publicKey: string } // public key in base64
+	manager: {
+		credentialId: string
+		publicKey: string // base64
+		// Where the passkey lives (R20). Missing = this browser's device.
+		device?: "phone" | "this-device"
+	}
 	recovery?: {
 		ruleId: number
 		guardians: Array<{ credentialId: string; publicKey: string }>
@@ -210,8 +223,14 @@ export function importRecoveryPackage(json: string): RecoveryPackage {
 }
 
 export function loadCompany(): CompanyAccount | undefined {
-	const raw = localStorage.getItem(COMPANY_KEY)
-	return raw ? (JSON.parse(raw) as CompanyAccount) : undefined
+	try {
+		const raw = localStorage.getItem(COMPANY_KEY)
+		return raw ? (JSON.parse(raw) as CompanyAccount) : undefined
+	} catch {
+		// Blocked storage or a corrupt record: treat it as no account yet, so
+		// the page still renders and offers to create one.
+		return undefined
+	}
 }
 
 export function loadDemoOutsider(): string | undefined {
@@ -264,6 +283,36 @@ async function fundWithFriendbot(publicKey: string): Promise<Account> {
 const toBase64 = (bytes: Uint8Array): string =>
 	btoa(String.fromCharCode(...bytes))
 
+// True only while the manager passkey is created on a phone (R20): the admin
+// passkey, made by the same kit, stays on this device.
+let registeringOnPhone = false
+
+// The kit's WebAuthn, steered to the phone's QR flow (hybrid transport) for the
+// manager's passkey only. See webauthnHybrid.ts.
+const kitWebAuthn = {
+	startRegistration: (
+		options: Parameters<typeof startRegistration>[0],
+	): ReturnType<typeof startRegistration> =>
+		startRegistration(
+			registeringOnPhone
+				? {
+						...options,
+						optionsJSON: withPhoneRegistration(options.optionsJSON),
+					}
+				: options,
+		),
+	startAuthentication: (
+		options: Parameters<typeof startAuthentication>[0],
+	): ReturnType<typeof startAuthentication> => {
+		const manager = loadCompany()?.manager
+		const phone = manager?.device === "phone" ? [manager.credentialId] : []
+		return startAuthentication({
+			...options,
+			optionsJSON: withPhoneAuthentication(options.optionsJSON, phone),
+		})
+	},
+}
+
 // Read on first use, not at import: a missing .env.local should fail the call
 // that needs it, not the whole app.
 let kitInstance: SmartAccountKit | undefined
@@ -276,12 +325,13 @@ export function getKit(): SmartAccountKit {
 		webauthnVerifierAddress: required("PUBLIC_WEBAUTHN_VERIFIER_ADDRESS"),
 		ed25519VerifierAddress: required("PUBLIC_ED25519_VERIFIER_ADDRESS"),
 		deployerSecret: deployerSecret(),
+		webAuthn: kitWebAuthn,
 	})
 	return kitInstance
 }
 
 /**
- * Native XLM balance of the company account, in XLM: the one created in this
+ * Test USDC balance of the company account, in USDC: the one created in this
  * browser, or PUBLIC_COMPANY_ACCOUNT if there is none. It reads the Stellar
  * Asset Contract `balance` through simulation, so it needs no signature and
  * no funded source account.
@@ -315,18 +365,30 @@ export async function getBalance(): Promise<number> {
  * passkey. They are not added on chain yet: on the default rule they would
  * have to sign every admin operation. R4 and R7 add them to `ordinary` and
  * `large`.
+ *
+ * With `managerOnPhone` (R20) the browser shows a QR code and the manager's
+ * passkey is created on their phone; later, the second signature of a `large`
+ * payment is a QR scan too.
  */
-export async function createCompanyAccount(): Promise<{ address: string }> {
+export async function createCompanyAccount(
+	options: { managerOnPhone?: boolean } = {},
+): Promise<{ address: string }> {
 	const existing = loadCompany()
 	if (existing) return { address: existing.address }
 
 	const kit = getKit()
 	const employee = Keypair.random()
 	// Manager first: if this prompt is cancelled, nothing is deployed.
-	const manager = await kit.credentials.create({
-		nickname: "manager",
-		appName: "Arqueo",
-	})
+	registeringOnPhone = options.managerOnPhone === true
+	let manager: Awaited<ReturnType<typeof kit.credentials.create>>
+	try {
+		manager = await kit.credentials.create({
+			nickname: "manager",
+			appName: "Arqueo",
+		})
+	} finally {
+		registeringOnPhone = false
+	}
 
 	await fundWithFriendbot(Keypair.fromSecret(deployerSecret()).publicKey())
 	const wallet = await kit.createWallet("Arqueo", "admin", {
@@ -346,6 +408,7 @@ export async function createCompanyAccount(): Promise<{ address: string }> {
 		manager: {
 			credentialId: manager.credentialId,
 			publicKey: toBase64(manager.publicKey),
+			device: options.managerOnPhone ? "phone" : "this-device",
 		},
 	}
 	saveCompany(company)
@@ -363,49 +426,41 @@ export async function createCompanyAccount(): Promise<{ address: string }> {
 }
 
 /**
- * Sends testnet XLM to the company account and returns the transaction hash.
- * Friendbot cannot fund contract addresses, so a throwaway account receives
- * Friendbot's 10,000 XLM and forwards most of it through the native token
- * contract. The kit's own fundWallet does the same, but it reads the account
- * entry with the pre-17 SDK API (`balance()`) and fails on
- * @stellar/stellar-sdk 17.
+ * Sends test USDC from the issuer to the company account and returns the
+ * transaction hash. The issuer key lives on the server (api/fund-usdc.ts), so
+ * the browser only asks for it: the account and the public suppliers never see
+ * the secret.
  */
-export async function fundCompanyAccount(xlm = 9_000): Promise<string> {
+export async function fundCompanyAccount(usdc = 9_000): Promise<string> {
 	const company = loadCompany()
 	if (!company) throw new Error("Create the company account first")
 
-	const temp = Keypair.random()
-	const source = await fundWithFriendbot(temp.publicKey())
-	const server = new rpc.Server(required("PUBLIC_RPC_URL"))
-	const token = new Contract(required("PUBLIC_NATIVE_TOKEN_CONTRACT"))
-	const tx = new TransactionBuilder(source, {
-		fee: BASE_FEE,
-		networkPassphrase: required("PUBLIC_NETWORK_PASSPHRASE"),
-	})
-		.addOperation(
-			token.call(
-				"transfer",
-				Address.fromString(temp.publicKey()).toScVal(),
-				Address.fromString(company.address).toScVal(),
-				nativeToScVal(BigInt(xlm) * BigInt(STROOPS_PER_XLM), { type: "i128" }),
-			),
-		)
-		.setTimeout(30)
-		.build()
-
-	const prepared = await server.prepareTransaction(tx)
-	prepared.sign(temp)
-	const sent = await server.sendTransaction(prepared)
-	if (sent.status === "ERROR" || sent.status === "TRY_AGAIN_LATER") {
-		throw new Error(`Funding transaction rejected (${sent.status})`)
-	}
-	const result = await server.pollTransaction(sent.hash)
-	if (result.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
+	let response: Response
+	try {
+		response = await fetch("/api/fund-usdc", {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({ to: company.address, amount: usdc }),
+			signal: AbortSignal.timeout(FUNDING_TIMEOUT_MS),
+		})
+	} catch (error) {
+		const timedOut =
+			error instanceof DOMException && error.name === "TimeoutError"
 		throw new Error(
-			`Funding transaction ${sent.hash} ended as ${result.status}`,
+			timedOut
+				? "Funding is taking too long. Check the balance in a minute before trying again."
+				: "Could not reach the funding service. Check your connection and try again.",
 		)
 	}
-	return sent.hash
+	// The platform can answer with HTML (a 502 or 504 page): never assume JSON.
+	const body = (await response.json().catch(() => ({}))) as {
+		hash?: string
+		error?: string
+	}
+	if (!response.ok || !body.hash) {
+		throw new Error(body.error ?? `Funding failed (${response.status})`)
+	}
+	return body.hash
 }
 
 function requireCompany(): CompanyAccount {
@@ -1072,12 +1127,69 @@ export const supplierDeps: SupplierDeps = {
 			return false
 		}
 	},
-	// The secret key is dropped: the account only has to exist and receive payments.
+	// The secret key is dropped once the account can receive the payment token.
 	createFundedAccount: async () => {
 		const account = Keypair.random()
-		await fundWithFriendbot(account.publicKey())
+		const source = await fundWithFriendbot(account.publicKey())
+		const asset = await paymentAsset()
+		if (asset) await addTrustline(account, source, asset)
 		return account.publicKey()
 	},
+}
+
+/**
+ * The classic asset behind the payment token's Stellar Asset Contract, read
+ * from its `name` ("USDC:G..."). Undefined for native XLM, which needs no
+ * trustline.
+ */
+async function paymentAsset(): Promise<Asset | undefined> {
+	const token = new Contract(required("PUBLIC_NATIVE_TOKEN_CONTRACT"))
+	const server = new rpc.Server(required("PUBLIC_RPC_URL"))
+	// Simulation does not check the source account, so a throwaway one is enough.
+	const source = new Account(Keypair.random().publicKey(), "0")
+	const tx = new TransactionBuilder(source, {
+		fee: BASE_FEE,
+		networkPassphrase: required("PUBLIC_NETWORK_PASSPHRASE"),
+	})
+		.addOperation(token.call("name"))
+		.setTimeout(30)
+		.build()
+	const sim = await server.simulateTransaction(tx)
+	if (rpc.Api.isSimulationError(sim)) {
+		throw new Error(`Token name read failed: ${sim.error}`)
+	}
+	const name = String(scValToNative(sim.result!.retval))
+	if (name === "native") return undefined
+	const [code, issuer] = name.split(":")
+	if (!code || !issuer) throw new Error(`Unexpected token name: ${name}`)
+	return new Asset(code, issuer)
+}
+
+/** Lets a G... account hold `asset`: a supplier cannot be paid in USDC without it. */
+async function addTrustline(
+	account: Keypair,
+	source: Account,
+	asset: Asset,
+): Promise<void> {
+	const server = new rpc.Server(required("PUBLIC_RPC_URL"))
+	const tx = new TransactionBuilder(source, {
+		fee: BASE_FEE,
+		networkPassphrase: required("PUBLIC_NETWORK_PASSPHRASE"),
+	})
+		.addOperation(Operation.changeTrust({ asset }))
+		.setTimeout(30)
+		.build()
+	tx.sign(account)
+	const sent = await server.sendTransaction(tx)
+	if (sent.status === "ERROR" || sent.status === "TRY_AGAIN_LATER") {
+		throw new Error(
+			`Trustline for ${account.publicKey()} rejected (${sent.status})`,
+		)
+	}
+	const result = await server.pollTransaction(sent.hash, { attempts: 20 })
+	if (result.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
+		throw new Error(`Trustline ${sent.hash} ended as ${result.status}`)
+	}
 }
 
 /** Creates a fresh, fully configured testnet treasury for one demo run. */

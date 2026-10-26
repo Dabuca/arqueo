@@ -267,7 +267,7 @@ export default function Auditor() {
 												</td>
 												<td data-label="Concept">{payment.concept || "—"}</td>
 												<td data-label="Amount" className={styles.amount}>
-													<Amount xlm={payment.amount} /> <AmountUnit />
+													<Amount usdc={payment.amount} /> <AmountUnit />
 												</td>
 												<td data-label="Signers" className={styles.signers}>
 													{payment.signers.join(" + ")}
@@ -374,7 +374,7 @@ export default function Auditor() {
 														"—"
 													) : (
 														<>
-															<Amount xlm={change.spentAtChange} /> <AmountUnit />
+															<Amount usdc={change.spentAtChange} /> <AmountUnit />
 														</>
 													)}
 												</td>

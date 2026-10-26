@@ -2,7 +2,10 @@
 	"$schema": "https://openapi.vercel.sh/vercel.json",
 	"framework": null,
 	"installCommand": "npm install",
-	"buildCommand": "npm run build --workspace app",
+	"buildCommand": "node scripts/ensure-clients.mjs && npm run build --workspace app",
 	"outputDirectory": "app/dist",
-	"rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+	"functions": {
+		"api/fund-usdc.ts": { "maxDuration": 30 }
+	},
+	"rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }]
 }

@@ -45,6 +45,29 @@
 	font-size: 0.9375rem;
 }
 
+.phoneOption {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	min-height: 44px;
+	padding-top: 8px;
+	font-size: 0.9375rem;
+	cursor: pointer;
+}
+
+.phoneOption input {
+	flex: none;
+	width: 20px;
+	height: 20px;
+	margin: 2px 0 0;
+}
+
+.phoneHint {
+	display: block;
+	color: var(--muted);
+	font-size: 0.8125rem;
+}
+
 .big {
 	min-height: 48px;
 	padding: 12px 24px;

@@ -1,7 +1,7 @@
 import styles from "./TestnetBanner.module.css"
 
 export const TESTNET_NOTICE =
-	"Test XLM with no real value. Do not use real funds."
+	"Test USDC with no real value. Do not use real funds."
 
 export function TestnetBanner() {
 	return (
