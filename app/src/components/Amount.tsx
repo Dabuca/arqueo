@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
-import { formatUsdc } from "../controls/format"
+import { formatUsdc, formatXlm } from "../controls/format"
+import { type PaymentAsset } from "../lib/stellar"
 
 const TWEEN_MS = 450
 
@@ -11,14 +12,20 @@ const prefersReducedMotion = () =>
  * A USDC amount, counting up or down to the new figure when the value changes.
  * The unit is not included: see `AmountUnit`.
  */
-export function Amount({ usdc }: { usdc: number }) {
+export function Amount({
+	value,
+	asset,
+}: {
+	value: number
+	asset: PaymentAsset
+}) {
 	const [shown, setShown] = useState<number | null>(null)
-	const current = useRef(usdc)
+	const current = useRef(value)
 
 	useEffect(() => {
 		const from = current.current
-		if (from === usdc || prefersReducedMotion()) {
-			current.current = usdc
+		if (from === value || prefersReducedMotion()) {
+			current.current = value
 			setShown(null)
 			return
 		}
@@ -27,23 +34,23 @@ export function Amount({ usdc }: { usdc: number }) {
 		const step = (now: number) => {
 			const t = Math.min(1, (now - start) / TWEEN_MS)
 			const eased = 1 - (1 - t) ** 3
-			current.current = from + (usdc - from) * eased
+			current.current = from + (value - from) * eased
 			if (t < 1) {
 				setShown(current.current)
 				frame = requestAnimationFrame(step)
 			} else {
-				current.current = usdc
+				current.current = value
 				setShown(null)
 			}
 		}
 		frame = requestAnimationFrame(step)
 		return () => cancelAnimationFrame(frame)
-	}, [usdc])
+	}, [value])
 
-	return <>{formatUsdc(shown ?? usdc)}</>
+	return <>{asset === "USDC" ? formatUsdc(shown ?? value) : formatXlm(shown ?? value)}</>
 }
 
 /** The unit that goes after an `Amount`. */
-export function AmountUnit() {
-	return <>USDC</>
+export function AmountUnit({ asset }: { asset: PaymentAsset }) {
+	return <>{asset}</>
 }

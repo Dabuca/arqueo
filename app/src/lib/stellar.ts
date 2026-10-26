@@ -5,6 +5,7 @@ import {
 	Asset,
 	BASE_FEE,
 	Contract,
+	Horizon,
 	Keypair,
 	Operation,
 	StrKey,
@@ -40,7 +41,7 @@ import {
 } from "../controls/settings"
 import { type SupplierDeps } from "../controls/suppliers"
 import { type ControlsConfig } from "../controls/types"
-import { stroopsToXlm } from "../controls/units"
+import { stroopsToXlm, xlmToStroops } from "../controls/units"
 import { controlsStore } from "./controlsStore"
 import {
 	employeeSelectedSigner,
@@ -48,6 +49,7 @@ import {
 	largeRuleParams,
 	managerSelectedSigner,
 	managerSigner,
+	NO_TRUSTLINE,
 	controlPolicyParams,
 	decodeControlParams,
 	decodeSpendState,
@@ -71,8 +73,10 @@ import {
 
 export type Role = "admin" | "employee" | "manager" | "auditor"
 export type RuleName = "ordinary" | "large"
+export type PaymentAsset = "XLM" | "USDC"
 
 export interface Payment {
+	asset: PaymentAsset
 	to: string
 	amount: number
 	concept: string
@@ -98,7 +102,6 @@ const COMPANY_KEY = "arqueo.company"
 const DEPLOYER_KEY = "arqueo.deployer"
 const RECOVERY_PACKAGE_KEY = "arqueo.recovery-package"
 const FRIENDBOT_URL = "https://friendbot.stellar.org"
-const FUNDING_TIMEOUT_MS = 45_000
 
 /**
  * The company treasury and its signers' keys. Demo shortcut (AGENTS.md §3):
@@ -127,7 +130,60 @@ export interface CompanyAccount {
 	}
 	recoveredFromPackage?: boolean
 	rules?: Partial<Record<RuleName, number>> // on-chain context rule ids
+	assetRules?: Partial<Record<PaymentAsset, Partial<Record<RuleName, number>>>>
 	controlPolicy?: { ruleId: number; hash: string } // installed on that rule
+}
+
+const FUNDING_KEY = "arqueo.usdc-funder"
+const CIRCLE_USDC_ISSUER = "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5"
+
+export function getUsdcFundingAddress(): string | undefined {
+	try {
+		const raw = localStorage.getItem(FUNDING_KEY)
+		if (!raw) return undefined
+		const value = JSON.parse(raw) as { address?: unknown }
+		return typeof value.address === "string" &&
+			StrKey.isValidEd25519PublicKey(value.address)
+			? value.address
+			: undefined
+	} catch {
+		return undefined
+	}
+}
+
+export function tokenContract(asset: PaymentAsset): string {
+	if (asset === "XLM") return required("PUBLIC_XLM_TOKEN_CONTRACT")
+	return required("PUBLIC_USDC_TOKEN_CONTRACT")
+}
+
+function controlPolicyAddress(asset: PaymentAsset): string {
+	return asset === "XLM"
+		? required("PUBLIC_CONTROL_POLICY_ADDRESS")
+		: required("PUBLIC_USDC_CONTROL_POLICY_ADDRESS")
+}
+
+function assetRuleIds(
+	company: CompanyAccount,
+	asset: PaymentAsset,
+): Partial<Record<RuleName, number>> {
+	return company.assetRules?.[asset] ?? (asset === "USDC" ? company.rules ?? {} : {})
+}
+
+function withAssetRule(
+	company: CompanyAccount,
+	asset: PaymentAsset,
+	rule: RuleName,
+	ruleId: number,
+): CompanyAccount {
+	const assetRules = {
+		...company.assetRules,
+		[asset]: { ...assetRuleIds(company, asset), [rule]: ruleId },
+	}
+	return {
+		...company,
+		assetRules,
+		...(asset === "USDC" ? { rules: assetRules.USDC } : {}),
+	}
 }
 
 export interface RecoveryPackage {
@@ -137,6 +193,7 @@ export interface RecoveryPackage {
 	adminRuleId: number
 	recovery: NonNullable<CompanyAccount["recovery"]>
 	rules: Partial<Record<RuleName, number>>
+	assetRules?: CompanyAccount["assetRules"]
 }
 
 export function loadRecoveryPackage(): RecoveryPackage | undefined {
@@ -161,6 +218,7 @@ export function createRecoveryPackage(): RecoveryPackage {
 		adminRuleId: company.adminRuleId ?? ADMIN_RULE_ID,
 		recovery: company.recovery,
 		rules: company.rules ?? {},
+		assetRules: company.assetRules,
 	}
 }
 
@@ -336,9 +394,9 @@ export function getKit(): SmartAccountKit {
  * Asset Contract `balance` through simulation, so it needs no signature and
  * no funded source account.
  */
-export async function getBalance(): Promise<number> {
+export async function getBalance(asset: PaymentAsset = "USDC"): Promise<number> {
 	const account = loadCompany()?.address ?? required("PUBLIC_COMPANY_ACCOUNT")
-	const token = new Contract(required("PUBLIC_NATIVE_TOKEN_CONTRACT"))
+	const token = new Contract(tokenContract(asset))
 	const server = new rpc.Server(required("PUBLIC_RPC_URL"))
 	// Simulation does not check the source account, so a throwaway one is enough.
 	const source = new Account(Keypair.random().publicKey(), "0")
@@ -413,54 +471,143 @@ export async function createCompanyAccount(
 	}
 	saveCompany(company)
 
-	// Saved before funding: the account exists even if funding fails.
-	try {
-		await fundCompanyAccount()
-	} catch (error) {
-		const message = error instanceof Error ? error.message : String(error)
-		throw new Error(
-			`Account ${company.address} created but not funded: ${message}`,
-		)
-	}
 	return { address: company.address }
 }
 
-/**
- * Sends test USDC from the issuer to the company account and returns the
- * transaction hash. The issuer key lives on the server (api/fund-usdc.ts), so
- * the browser only asks for it: the account and the public suppliers never see
- * the secret.
- */
-export async function fundCompanyAccount(usdc = 9_000): Promise<string> {
+function circleUsdcAsset(): Asset {
+	return new Asset("USDC", CIRCLE_USDC_ISSUER)
+}
+
+/** Prepare a testnet G... address with a Circle USDC trustline for the faucet. */
+export async function prepareUsdcFundingAddress(): Promise<string> {
 	const company = loadCompany()
 	if (!company) throw new Error("Create the company account first")
+	const existing = localStorage.getItem(FUNDING_KEY)
+	if (existing) {
+		try {
+			const saved = JSON.parse(existing) as { address?: string }
+			if (
+				saved.address &&
+				StrKey.isValidEd25519PublicKey(saved.address) &&
+				(await new Horizon.Server(required("PUBLIC_HORIZON_URL"))
+					.loadAccount(saved.address)
+					.then((account) =>
+						account.balances.some(
+							(balance) =>
+								"asset_code" in balance &&
+								balance.asset_code === "USDC" &&
+								balance.asset_issuer === CIRCLE_USDC_ISSUER,
+						),
+					)
+					.catch(() => false))
+			) {
+				return saved.address
+			}
+		} catch {
+			// Replace corrupt funding data with a fresh address.
+		}
+		localStorage.removeItem(FUNDING_KEY)
+	}
+	const keypair = Keypair.random()
+	const source = await fundWithFriendbot(keypair.publicKey())
+	await addTrustline(keypair, source, circleUsdcAsset())
+	localStorage.setItem(
+		FUNDING_KEY,
+		JSON.stringify({ address: keypair.publicKey(), secret: keypair.secret() }),
+	)
+	return keypair.publicKey()
+}
 
-	let response: Response
-	try {
-		response = await fetch("/api/fund-usdc", {
-			method: "POST",
-			headers: { "content-type": "application/json" },
-			body: JSON.stringify({ to: company.address, amount: usdc }),
-			signal: AbortSignal.timeout(FUNDING_TIMEOUT_MS),
-		})
-	} catch (error) {
-		const timedOut =
-			error instanceof DOMException && error.name === "TimeoutError"
+/** Transfer faucet-funded USDC from the local G... account to the treasury. */
+export async function fundCompanyAccount(): Promise<string> {
+	const company = loadCompany()
+	if (!company) throw new Error("Create the company account first")
+	const raw = localStorage.getItem(FUNDING_KEY)
+	if (!raw) throw new Error("Prepare a USDC funding address first")
+	const funder = JSON.parse(raw) as { address: string; secret: string }
+	if (!StrKey.isValidEd25519PublicKey(funder.address)) {
+		throw new Error("The saved USDC funding address is invalid")
+	}
+	const keypair = Keypair.fromSecret(funder.secret)
+	if (keypair.publicKey() !== funder.address) {
+		throw new Error("The saved USDC funding key does not match its address")
+	}
+	const horizon = new Horizon.Server(required("PUBLIC_HORIZON_URL"))
+	const horizonSource = await horizon.loadAccount(funder.address)
+	const usdc = horizonSource.balances.find(
+		(balance) =>
+			"asset_code" in balance &&
+			balance.asset_code === "USDC" &&
+			balance.asset_issuer === CIRCLE_USDC_ISSUER,
+	)
+	if (!usdc || Number(usdc.balance) <= 0) {
 		throw new Error(
-			timedOut
-				? "Funding is taking too long. Check the balance in a minute before trying again."
-				: "Could not reach the funding service. Check your connection and try again.",
+			`Get test USDC from Circle's faucet for ${funder.address}, then retry.`,
 		)
 	}
-	// The platform can answer with HTML (a 502 or 504 page): never assume JSON.
-	const body = (await response.json().catch(() => ({}))) as {
-		hash?: string
-		error?: string
+	const stroops = xlmToStroops(usdc.balance)
+	const source = new Account(funder.address, horizonSource.sequence)
+	const server = new rpc.Server(required("PUBLIC_RPC_URL"))
+	const tx = new TransactionBuilder(source, {
+		fee: BASE_FEE,
+		networkPassphrase: required("PUBLIC_NETWORK_PASSPHRASE"),
+	})
+		.addOperation(
+			new Contract(tokenContract("USDC")).call(
+				"transfer",
+				Address.fromString(funder.address).toScVal(),
+				Address.fromString(company.address).toScVal(),
+				nativeToScVal(stroops, { type: "i128" }),
+			),
+		)
+		.setTimeout(30)
+		.build()
+	const prepared = await server.prepareTransaction(tx)
+	prepared.sign(keypair)
+	const sent = await server.sendTransaction(prepared)
+	if (sent.status === "ERROR" || sent.status === "TRY_AGAIN_LATER") {
+		throw new Error(`USDC funding transfer rejected (${sent.status})`)
 	}
-	if (!response.ok || !body.hash) {
-		throw new Error(body.error ?? `Funding failed (${response.status})`)
+	const result = await server.pollTransaction(sent.hash)
+	if (result.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
+		throw new Error(`USDC funding transfer ended as ${result.status}`)
 	}
-	return body.hash
+	localStorage.removeItem(FUNDING_KEY)
+	return sent.hash
+}
+
+/** Fund a company smart account with test XLM through the native SAC. */
+export async function fundCompanyXlmAccount(xlm = 9_000): Promise<string> {
+	const company = loadCompany()
+	if (!company) throw new Error("Create the company account first")
+	const temp = Keypair.random()
+	const source = await fundWithFriendbot(temp.publicKey())
+	const server = new rpc.Server(required("PUBLIC_RPC_URL"))
+	const tx = new TransactionBuilder(source, {
+		fee: BASE_FEE,
+		networkPassphrase: required("PUBLIC_NETWORK_PASSPHRASE"),
+	})
+		.addOperation(
+			new Contract(tokenContract("XLM")).call(
+				"transfer",
+				Address.fromString(temp.publicKey()).toScVal(),
+				Address.fromString(company.address).toScVal(),
+				nativeToScVal(BigInt(xlm) * BigInt(STROOPS_PER_XLM), { type: "i128" }),
+			),
+		)
+		.setTimeout(30)
+		.build()
+	const prepared = await server.prepareTransaction(tx)
+	prepared.sign(temp)
+	const sent = await server.sendTransaction(prepared)
+	if (sent.status === "ERROR" || sent.status === "TRY_AGAIN_LATER") {
+		throw new Error(`XLM funding transfer rejected (${sent.status})`)
+	}
+	const result = await server.pollTransaction(sent.hash)
+	if (result.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
+		throw new Error(`XLM funding transfer ended as ${result.status}`)
+	}
+	return sent.hash
 }
 
 function requireCompany(): CompanyAccount {
@@ -507,6 +654,7 @@ const describeFailure = (error: unknown): string => {
 /** The threshold and `control-policy` of a rule, ordered as Soroban requires. */
 function rulePolicies(
 	kit: SmartAccountKit,
+	asset: PaymentAsset,
 	rule: RuleName,
 	config: ControlsConfig,
 ): Map<string, unknown> {
@@ -524,7 +672,7 @@ function rulePolicies(
 				kit.convertPolicyParams("threshold", threshold),
 			],
 			[
-				required("PUBLIC_CONTROL_POLICY_ADDRESS"),
+				controlPolicyAddress(asset),
 				controlPolicyParams(toControlParams(config, rule)),
 			],
 		]),
@@ -540,6 +688,7 @@ function rulePolicies(
 async function addRule(
 	kit: SmartAccountKit,
 	company: CompanyAccount,
+	asset: PaymentAsset,
 	rule: RuleName,
 	config: ControlsConfig,
 ): Promise<{ ruleId: number; hash: string }> {
@@ -559,10 +708,10 @@ async function addRule(
 		)
 	}
 	const tx = await kit.rules.add(
-		createCallContractContext(required("PUBLIC_NATIVE_TOKEN_CONTRACT")),
+		createCallContractContext(tokenContract(asset)),
 		rule,
 		signers,
-		rulePolicies(kit, rule, config),
+		rulePolicies(kit, asset, rule, config),
 	)
 	// The simulated result is the rule the transaction creates.
 	const ruleId = tx.result.id
@@ -671,6 +820,7 @@ export async function recoverAdminAccess(
 					manager: { credentialId: "", publicKey: "" },
 					recovery: recoveryPackage.recovery,
 					rules: recoveryPackage.rules,
+					assetRules: recoveryPackage.assetRules,
 					recoveredFromPackage: true,
 				}
 			: undefined)
@@ -781,39 +931,45 @@ export async function recoverAdminAccess(
  * `control-policy` configured it fails: a rule with only a threshold would
  * accept any payment, so it is never created open.
  */
-export async function setupOrdinaryRule(): Promise<{
+export async function setupOrdinaryRule(asset: PaymentAsset = "USDC"): Promise<{
 	ruleId: number
 	hash?: string
 }> {
 	const company = requireCompany()
-	const existing = company.rules?.ordinary
+	const existing = assetRuleIds(company, asset).ordinary
 	if (existing !== undefined) return { ruleId: existing }
 
 	const kit = await connectedKit(company)
 	const config = loadControlsConfig()
-	const { ruleId, hash } = await addRule(kit, company, "ordinary", config)
+	const { ruleId, hash } = await addRule(
+		kit,
+		company,
+		asset,
+		"ordinary",
+		config,
+	)
 	saveCompany({
 		...company,
-		rules: { ...company.rules, ordinary: ruleId },
-		controlPolicy: { ruleId, hash },
+		...withAssetRule(company, asset, "ordinary", ruleId),
+		...(asset === "USDC" ? { controlPolicy: { ruleId, hash } } : {}),
 	})
 	controlsStore(localStorage).saveConfig(config)
 	return { ruleId, hash }
 }
 
 /** Adds the `large` rule (AGENTS.md §3): employee and manager, threshold 2, suppliers only. */
-export async function setupLargeRule(): Promise<{
+export async function setupLargeRule(asset: PaymentAsset = "USDC"): Promise<{
 	ruleId: number
 	hash?: string
 }> {
 	const company = requireCompany()
-	const existing = company.rules?.large
+	const existing = assetRuleIds(company, asset).large
 	if (existing !== undefined) return { ruleId: existing }
 
 	const kit = await connectedKit(company)
 	const config = loadControlsConfig()
-	const { ruleId, hash } = await addRule(kit, company, "large", config)
-	saveCompany({ ...company, rules: { ...company.rules, large: ruleId } })
+	const { ruleId, hash } = await addRule(kit, company, asset, "large", config)
+	saveCompany(withAssetRule(company, asset, "large", ruleId))
 	controlsStore(localStorage).saveConfig(config)
 	return { ruleId, hash }
 }
@@ -822,18 +978,22 @@ export async function setupLargeRule(): Promise<{
  * Moves an `ordinary` rule that has no `control-policy` of the current
  * contract to a new rule that does (R6). Rules are never edited in place.
  */
-export async function installControlPolicy(): Promise<{ hash: string }> {
+export async function installControlPolicy(
+	asset: PaymentAsset = "USDC",
+): Promise<{ hash: string }> {
 	const company = requireCompany()
-	const ruleId = company.rules?.ordinary
+	const rules = assetRuleIds(company, asset)
+	const ruleId = rules.ordinary
 	if (ruleId === undefined) throw new Error("Set up the ordinary rule first")
-	if (company.controlPolicy?.ruleId === ruleId) {
+	if (asset === "USDC" && company.controlPolicy?.ruleId === ruleId) {
 		return { hash: company.controlPolicy.hash }
 	}
 	const done = await runPending(
 		startMigration({
 			config: loadControlsConfig(),
-			existingRules: company.rules ?? {},
+			existingRules: { [asset]: rules },
 			rules: ["ordinary"],
+			asset,
 		}),
 	)
 	const hash = done.swaps[0]?.addHash
@@ -863,23 +1023,28 @@ async function runPending(
 				const { ruleId, hash } = await addRule(
 					kit,
 					company,
+					step.asset,
 					step.rule,
 					pending.next,
 				)
-				pending = withAdded(pending, step.rule, ruleId, hash)
+				pending = withAdded(pending, step.rule, ruleId, hash, step.asset)
 				store.savePending(pending)
 				// Payments follow the new rule at once; the old one is retired next.
 				saveCompany({
 					...company,
-					rules: { ...company.rules, [step.rule]: ruleId },
+					...withAssetRule(company, step.asset, step.rule, ruleId),
 					...(step.rule === "ordinary"
-						? { controlPolicy: { ruleId, hash } }
+						? step.asset === "USDC"
+							? { controlPolicy: { ruleId, hash } }
+							: {}
 						: {}),
 				})
 			} else {
-				const oldId = pending.swaps.find((s) => s.rule === step.rule)!.oldId
+				const oldId = pending.swaps.find(
+					(s) => s.rule === step.rule && s.asset === step.asset,
+				)!.oldId
 				const hash = await removeRule(kit, company, oldId)
-				pending = withRemoved(pending, step.rule, hash)
+				pending = withRemoved(pending, step.rule, hash, step.asset)
 				store.savePending(pending)
 			}
 			window.dispatchEvent(new Event("arqueo:company-updated"))
@@ -899,6 +1064,7 @@ async function runPending(
 
 /** What the chain enforces now, read from the `control-policy` of each rule. */
 export interface ControlState {
+	asset: PaymentAsset
 	hasAccount: boolean
 	/** Limits and suppliers: from the chain when it could be read. */
 	config: ControlsConfig
@@ -944,11 +1110,14 @@ async function readContract(
 const sameAddresses = (a: string[], b: string[]) =>
 	a.length === b.length && a.every((address) => b.includes(address))
 
-export async function readControlState(): Promise<ControlState> {
+export async function readControlState(
+	asset: PaymentAsset = "USDC",
+): Promise<ControlState> {
 	const saved = loadControlsConfig()
 	const company = loadCompany()
-	const rules = company?.rules ?? {}
+	const rules = company ? assetRuleIds(company, asset) : {}
 	const base: ControlState = {
+		asset,
 		hasAccount: company !== undefined,
 		config: saved,
 		source: "saved",
@@ -960,7 +1129,8 @@ export async function readControlState(): Promise<ControlState> {
 	if (!company || rules.ordinary === undefined) return base
 
 	try {
-		const policy = required("PUBLIC_CONTROL_POLICY_ADDRESS")
+		const policy = controlPolicyAddress(asset)
+		const token = tokenContract(asset)
 		const account = Address.fromString(company.address).toScVal()
 		const paramsOf = async (ruleId: number) =>
 			decodeControlParams(
@@ -990,13 +1160,12 @@ export async function readControlState(): Promise<ControlState> {
 		}
 
 		const server = new rpc.Server(required("PUBLIC_RPC_URL"))
+		const spendArgs: xdr.ScVal[] =
+			asset === "XLM"
+				? [account, Address.fromString(token).toScVal(), nativeToScVal(ordinary.periodLedgers, { type: "u32" })]
+				: [account, nativeToScVal(ordinary.periodLedgers, { type: "u32" })]
 		const [spend, ledger] = await Promise.all([
-			readContract(
-				policy,
-				"spend_state",
-				account,
-				nativeToScVal(ordinary.periodLedgers, { type: "u32" }),
-			),
+			readContract(policy, "spend_state", ...spendArgs),
 			server.getLatestLedger(),
 		])
 		const { spentStroops, periodStart } = decodeSpendState(spend)
@@ -1048,22 +1217,43 @@ export async function applyControlChange(
 	if (store.loadPending()) {
 		throw new Error("Finish or discard the pending change first")
 	}
-	const state = await readControlState()
-	if (state.chainError) {
-		throw new Error(`Cannot read the rules from the chain: ${state.chainError}`)
+	const [usdcState, xlmState] = await Promise.all([
+		readControlState("USDC"),
+		readControlState("XLM"),
+	])
+	for (const state of [usdcState, xlmState]) {
+		if (state.chainError) {
+			throw new Error(
+				`Cannot read ${state.asset} rules from the chain: ${state.chainError}`,
+			)
+		}
+		if (state.legacyRules.length > 0) {
+			throw new Error(`Migrate the ${state.asset} rules to control-policy first`)
+		}
 	}
-	if (state.legacyRules.length > 0) {
-		throw new Error("Migrate the rules to the current control-policy first")
+	const spentAtChangeByAsset = {
+		USDC: usdcState.spentXlm,
+		XLM: xlmState.spentXlm,
 	}
-	const check = validateSettings(next, state.spentXlm)
+	const check = validateSettings(
+		next,
+		Math.max(usdcState.spentXlm, xlmState.spentXlm),
+	)
 	if (!check.ok) throw new Error(check.reason)
 
 	const pending = startChange({
-		prev: state.config,
+		prev: usdcState.config,
 		next,
-		existingRules: state.rules,
-		spentAtChange: state.spentXlm,
-		periodStart: state.periodStart,
+		existingRules: {
+			USDC: usdcState.rules,
+			XLM: xlmState.rules,
+		},
+		assets: ["USDC", "XLM"],
+		spentAtChangeByAsset,
+		periodStartByAsset: {
+			USDC: usdcState.periodStart,
+			XLM: xlmState.periodStart,
+		},
 	})
 	if (!pending) return null
 	// No rule on chain yet: the new settings are used when the rules are created.
@@ -1078,6 +1268,7 @@ export async function applyControlChange(
 export async function migrateRules(
 	rules: RuleName[],
 	onProgress?: (pending: PendingChange) => void,
+	asset: PaymentAsset = "USDC",
 ): Promise<PendingChange> {
 	if (controlsStore(localStorage).loadPending()) {
 		throw new Error("Finish or discard the pending change first")
@@ -1086,8 +1277,9 @@ export async function migrateRules(
 	return runPending(
 		startMigration({
 			config: loadControlsConfig(),
-			existingRules: company.rules ?? {},
+			existingRules: { [asset]: assetRuleIds(company, asset) },
 			rules,
+			asset,
 		}),
 		onProgress,
 	)
@@ -1131,38 +1323,9 @@ export const supplierDeps: SupplierDeps = {
 	createFundedAccount: async () => {
 		const account = Keypair.random()
 		const source = await fundWithFriendbot(account.publicKey())
-		const asset = await paymentAsset()
-		if (asset) await addTrustline(account, source, asset)
+		await addTrustline(account, source, circleUsdcAsset())
 		return account.publicKey()
 	},
-}
-
-/**
- * The classic asset behind the payment token's Stellar Asset Contract, read
- * from its `name` ("USDC:G..."). Undefined for native XLM, which needs no
- * trustline.
- */
-async function paymentAsset(): Promise<Asset | undefined> {
-	const token = new Contract(required("PUBLIC_NATIVE_TOKEN_CONTRACT"))
-	const server = new rpc.Server(required("PUBLIC_RPC_URL"))
-	// Simulation does not check the source account, so a throwaway one is enough.
-	const source = new Account(Keypair.random().publicKey(), "0")
-	const tx = new TransactionBuilder(source, {
-		fee: BASE_FEE,
-		networkPassphrase: required("PUBLIC_NETWORK_PASSPHRASE"),
-	})
-		.addOperation(token.call("name"))
-		.setTimeout(30)
-		.build()
-	const sim = await server.simulateTransaction(tx)
-	if (rpc.Api.isSimulationError(sim)) {
-		throw new Error(`Token name read failed: ${sim.error}`)
-	}
-	const name = String(scValToNative(sim.result!.retval))
-	if (name === "native") return undefined
-	const [code, issuer] = name.split(":")
-	if (!code || !issuer) throw new Error(`Unexpected token name: ${name}`)
-	return new Asset(code, issuer)
 }
 
 /** Lets a G... account hold `asset`: a supplier cannot be paid in USDC without it. */
@@ -1199,8 +1362,8 @@ export async function setupDemoEnvironment(
 	companyAddress: string
 	supplierAddress: string
 	outsiderAddress: string
-	rules: { ordinary: number; large: number }
-	transactions: { ordinary: string; large: string }
+	rules: { ordinary: number; large: number; xlmOrdinary: number; xlmLarge: number }
+	transactions: { ordinary: string; large: string; xlmOrdinary: string; xlmLarge: string }
 }> {
 	if (
 		required("PUBLIC_NETWORK_PASSPHRASE") !==
@@ -1229,10 +1392,12 @@ export async function setupDemoEnvironment(
 	localStorage.setItem("arqueo.demo.outsider", outsiderAddress)
 
 	reportProgress("Installing the ordinary employee rule")
-	const ordinary = await setupOrdinaryRule()
+	const usdcOrdinary = await setupOrdinaryRule("USDC")
+	const xlmOrdinary = await setupOrdinaryRule("XLM")
 	reportProgress("Installing the large employee-and-manager rule")
-	const large = await setupLargeRule()
-	if (!ordinary.hash || !large.hash) {
+	const usdcLarge = await setupLargeRule("USDC")
+	const xlmLarge = await setupLargeRule("XLM")
+	if (!usdcOrdinary.hash || !usdcLarge.hash || !xlmOrdinary.hash || !xlmLarge.hash) {
 		throw new Error(
 			"Demo rules were already present; use a fresh browser profile",
 		)
@@ -1242,8 +1407,43 @@ export async function setupDemoEnvironment(
 		companyAddress,
 		supplierAddress,
 		outsiderAddress,
-		rules: { ordinary: ordinary.ruleId, large: large.ruleId },
-		transactions: { ordinary: ordinary.hash, large: large.hash },
+		rules: {
+			ordinary: usdcOrdinary.ruleId,
+			large: usdcLarge.ruleId,
+			xlmOrdinary: xlmOrdinary.ruleId,
+			xlmLarge: xlmLarge.ruleId,
+		},
+		transactions: {
+			ordinary: usdcOrdinary.hash,
+			large: usdcLarge.hash,
+			xlmOrdinary: xlmOrdinary.hash,
+			xlmLarge: xlmLarge.hash,
+		},
+	}
+}
+
+async function recipientPreflight(
+	address: string,
+	asset: PaymentAsset,
+): Promise<string | undefined> {
+	try {
+		const account = await new Horizon.Server(
+			required("PUBLIC_HORIZON_URL"),
+		).loadAccount(address)
+		if (
+			asset === "USDC" &&
+			!account.balances.some(
+				(balance) =>
+					"asset_code" in balance &&
+					balance.asset_code === "USDC" &&
+					balance.asset_issuer === CIRCLE_USDC_ISSUER,
+			)
+		) {
+			return NO_TRUSTLINE
+		}
+		return undefined
+	} catch {
+		return "The recipient account does not exist on Stellar testnet"
 	}
 }
 
@@ -1256,8 +1456,15 @@ export async function pay(p: PayInput): Promise<PayResult> {
 	if (!rule) throw new Error(`No rule for signers: ${p.signers.join(", ")}`)
 
 	const company = requireCompany()
-	const ruleId = company.rules?.[rule]
+	const ruleId = assetRuleIds(company, p.asset)[rule]
 	if (ruleId === undefined) throw new Error(`Set up the ${rule} rule first`)
+	const preflightReason = await recipientPreflight(p.to, p.asset)
+	if (preflightReason) {
+		const outcome: PayResult = { ok: false, reason: preflightReason }
+		paymentLog(localStorage).add(paymentRecord(p, rule, outcome))
+		window.dispatchEvent(new Event("arqueo:payment-recorded"))
+		return outcome
+	}
 
 	const kit = await connectedKit(company)
 	kit.externalSigners.addEd25519FromSecret(company.employee.secret)
@@ -1278,7 +1485,7 @@ export async function pay(p: PayInput): Promise<PayResult> {
 		)
 	}
 	const result = await kit.multiSigners.transfer(
-		required("PUBLIC_NATIVE_TOKEN_CONTRACT"),
+		tokenContract(p.asset),
 		p.to,
 		p.amount,
 		signers,

@@ -237,15 +237,49 @@ describe("a settings change as steps", () => {
 			existingRules: { ordinary: 4, large: 5 },
 		})!
 		expect(remainingSteps(supplierChange)).toEqual([
-			{ rule: "ordinary", action: "add" },
-			{ rule: "ordinary", action: "remove" },
-			{ rule: "large", action: "add" },
-			{ rule: "large", action: "remove" },
+			{ asset: "USDC", rule: "ordinary", action: "add" },
+			{ asset: "USDC", rule: "ordinary", action: "remove" },
+			{ asset: "USDC", rule: "large", action: "add" },
+			{ asset: "USDC", rule: "large", action: "remove" },
 		])
 		expect(nextStep(supplierChange)).toEqual({
+			asset: "USDC",
 			rule: "ordinary",
 			action: "add",
 		})
+	})
+
+	it("plans replacements for each asset with separate cap audit state", () => {
+		const pending = startChange({
+			prev: config,
+			next: withLimits({ cap30d: 1_500 }),
+			existingRules: {
+				USDC: { ordinary: 4 },
+				XLM: { ordinary: 8 },
+			},
+			assets: ["USDC", "XLM"],
+			spentAtChangeByAsset: { USDC: 400, XLM: 700 },
+			periodStartByAsset: {
+				USDC: "2026-10-01T00:00:00.000Z",
+				XLM: "2026-10-02T00:00:00.000Z",
+			},
+		})!
+
+		expect(pending.swaps).toEqual([
+			{ asset: "USDC", rule: "ordinary", oldId: 4 },
+			{ asset: "XLM", rule: "ordinary", oldId: 8 },
+		])
+		const records = changeRecords(pending)
+		expect(
+			records.map((record) => [
+				record.asset,
+				record.spentAtChange,
+				record.periodStart,
+			]),
+		).toEqual([
+			["USDC", 400, "2026-10-01T00:00:00.000Z"],
+			["XLM", 700, "2026-10-02T00:00:00.000Z"],
+		])
 	})
 
 	it("resumes where it stopped and ends when every rule is replaced", () => {
@@ -254,7 +288,11 @@ describe("a settings change as steps", () => {
 		expect(canDiscard(pending)).toBe(true)
 
 		pending = withAdded(pending, "ordinary", 9, "add-hash")
-		expect(nextStep(pending)).toEqual({ rule: "ordinary", action: "remove" })
+		expect(nextStep(pending)).toEqual({
+			asset: "USDC",
+			rule: "ordinary",
+			action: "remove",
+		})
 		// A rule was added: dropping the change would leave two rules behind.
 		expect(canDiscard(pending)).toBe(false)
 
@@ -266,7 +304,11 @@ describe("a settings change as steps", () => {
 	it("does not change the pending object it is given", () => {
 		const pending = plan()
 		withAdded(pending, "ordinary", 9, "h")
-		expect(pending.swaps[0]).toEqual({ rule: "ordinary", oldId: 4 })
+		expect(pending.swaps[0]).toEqual({
+			asset: "USDC",
+			rule: "ordinary",
+			oldId: 4,
+		})
 	})
 
 	it("writes the audit trail with hashes and the cap context", () => {
@@ -276,6 +318,7 @@ describe("a settings change as steps", () => {
 		expect(changeRecords(pending)).toEqual([
 			{
 				field: "cap30d",
+				asset: "USDC",
 				rule: "ordinary",
 				previous: "1000",
 				next: "1500",
@@ -293,8 +336,14 @@ describe("a settings change as steps", () => {
 			existingRules: { ordinary: 4, large: 5 },
 			rules: ["ordinary"],
 		})
-		expect(migration.swaps).toEqual([{ rule: "ordinary", oldId: 4 }])
-		expect(nextStep(migration)).toEqual({ rule: "ordinary", action: "add" })
+		expect(migration.swaps).toEqual([
+			{ asset: "USDC", rule: "ordinary", oldId: 4 },
+		])
+		expect(nextStep(migration)).toEqual({
+			asset: "USDC",
+			rule: "ordinary",
+			action: "add",
+		})
 		expect(changeRecords(migration)).toEqual([])
 		expect(
 			startMigration({ config, existingRules: {}, rules: ["ordinary"] }).swaps,

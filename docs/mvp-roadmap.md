@@ -15,7 +15,7 @@ El MVP está terminado cuando las 4 escenas del `AGENTS.md` §2 funcionan en tes
 3. Pago a una cuenta **que no está en la lista de proveedores** → rechazado por las reglas de la cuenta.
 4. El auditor ve todos los pagos (también los rechazados) y descarga un CSV.
 
-Los límites los fija el admin (`AGENTS.md` §3.1). Con los valores por defecto, la demo usa 200, 800 y 100 XLM (`app/src/controls/defaults.ts`).
+Los límites los fija el admin (`AGENTS.md` §3.1). Con los valores por defecto, la demo usa 200, 800 y 100 unidades del activo seleccionado, XLM o Circle USDC de testnet (`app/src/controls/defaults.ts`). El gasto se lleva por separado para cada token.
 
 Controles de `AGENTS.md` §8: **14:00** pago real desde la smart account (R4). **20:00** las 4 escenas funcionan y se congelan las funcionalidades. **11:30** enviado.
 

@@ -44,7 +44,7 @@ Precisión para el pitch: el rechazo ocurre al simular la transacción contra la
 | `large` | llamadas al contrato del token | employee + manager | umbral 2 · `control-policy` {proveedores, sin máximo} |
 
 - **Proveedores autorizados:** los fija el admin. Cada uno puede ser una cuenta de demo generada en testnet o la dirección real que introduzca el admin. Tiene que existir en testnet (con fondos de Friendbot); si no, el pago fallaría por otra causa y no por la regla. La cuenta desconocida de la escena 3 también tiene que existir, pero fuera de la lista. Los de la demo los crea `scripts/` (R14).
-- **Token del MVP:** XLM nativo de testnet a través de su contrato de activo (SAC). **Importes en la unidad mínima: 1 XLM = 10.000.000 stroops.** USDC de testnet es un extra (R18).
+- **Tokens del MVP (R18):** XLM nativo y USDC de Circle en testnet, cada uno mediante su contrato SAC. El selector deja elegir el activo. Se aplican los mismos valores numéricos de límites, pero el gasto se cuenta de forma independiente por activo. **Importes en la unidad mínima: 10.000.000 stroops por XLM o USDC.**
 - **Ojo con OpenZeppelin:** sin políticas, una regla exige a todos sus firmantes; con políticas, son ellas las que deciden si bastan las firmas presentes. **Toda regla con políticas lleva una de umbral.** Máximo 15 firmantes y 5 políticas por regla.
 - La app elige la regla según quién firma: `['employee']` → `ordinary`; `['employee', 'manager']` → `large`.
 - En producción cada persona firmaría con su passkey en su dispositivo; las claves en el navegador son solo para la demo. Decidlo en el README y en el pitch.
@@ -107,8 +107,10 @@ En el scaffold, las rutas `src/…` de esta sección cuelgan de `app/src/` (por 
 ```ts
 export type Role = 'admin' | 'employee' | 'manager' | 'auditor';
 export type RuleName = 'ordinary' | 'large';
+export type PaymentAsset = 'XLM' | 'USDC';
 
 export interface Payment {
+  asset: PaymentAsset;
   to: string;          // dirección G...
   amount: number;      // en XLM; stellar.ts convierte a stroops
   concept: string;
@@ -121,8 +123,8 @@ export interface Payment {
 }
 
 export function createCompanyAccount(): Promise<{ address: string }>;
-export function getBalance(): Promise<number>; // en XLM
-export function pay(p: { to: string; amount: number; concept: string; signers: Role[] }):
+export function getBalance(asset?: PaymentAsset): Promise<number>; // en unidades del activo
+export function pay(p: { asset: PaymentAsset; to: string; amount: number; concept: string; signers: Role[] }):
   Promise<{ ok: true; hash: string } | { ok: false; reason: string }>;
 export function listPayments(): Promise<Payment[]>; // MVP: registro local + hash; P1: reconstruido desde la cadena
 ```
@@ -135,10 +137,10 @@ export function listPayments(): Promise<Payment[]>; // MVP: registro local + has
 - **Parámetros de instalación** (por cuenta y por regla): `ControlParams { allowlist: Vec<Address>, cap_per_period: Option<i128>, max_per_payment: Option<i128>, period_ledgers: u32 }`. Importes en stroops; `None` = sin máximo o sin tope; `period_ledgers` es la duración del periodo del tope (30 días = 518.400, y no puede pasar de 30 días) y se ignora sin tope. La lista de proveedores admite 50 como máximo (la app, 20). Como `ScVal` es un mapa con las claves en este orden alfabético.
 - **Errores:** `SupplierNotAllowed = 1` · `AmountOverLimit = 2` · `NotATransfer = 3` · `CapBelowSpent = 4` (en `install`) · `CapExceeded = 5` (en `enforce`).
 - **`enforce`:** si la llamada es `transfer(from, to, amount)`, `to` tiene que estar en `allowlist`, `amount` no puede pasar de `max_per_payment` (si lo hay) y, si hay tope, lo gastado en el periodo más `amount` no puede pasar de `cap_per_period`. El máximo por pago se comprueba antes que el tope, para que la escena 2 muestre «manager approval required». Cualquier otra función → `NotATransfer`.
-- **Lo gastado** (`spent`, `period_start`) se guarda **por cuenta**, no por regla. `uninstall` borra solo los parámetros de la regla, no lo gastado. Un periodo que termina se reinicia solo en el siguiente pago. `install` con un tope menor que lo gastado en el periodo en curso falla con el error 4.
+- **Lo gastado** (`spent`, `period_start`) se guarda **por cuenta y contrato de token**, no por regla; así XLM y USDC tienen contadores separados. `uninstall` borra solo los parámetros de la regla, no lo gastado. Un periodo que termina se reinicia solo en el siguiente pago. `install` con un tope menor que lo gastado para ese token en el periodo en curso falla con el error 4.
 - **Eventos:** `PolicyInstalled` (con los parámetros), `PolicyUninstalled` y `PaymentApproved` (`to`, `amount`, `spent`). Un pago rechazado se revierte y no emite nada: su transacción fallida es el registro.
 - **Datos caducados:** lo guardado vive 30 días desde su último uso. Una tesorería parada más tiempo debe restaurarlo (`stellar contract restore`); mientras tanto la política falla cerrada.
-- **Lecturas** (sin firma): `get_params(smart_account, context_rule_id) -> Option<ControlParams>` y `spend_state(smart_account, period_ledgers) -> SpendState { spent, period_start }`. La pantalla de Ajustes lee de aquí lo que la cadena aplica de verdad.
+- **Lecturas** (sin firma): `get_params(smart_account, context_rule_id) -> Option<ControlParams>` y `spend_state(smart_account, token_contract, period_ledgers) -> SpendState { spent, period_start }`. La pantalla de Ajustes lee de aquí lo que la cadena aplica de verdad.
 - **Normas de OpenZeppelin para políticas con estado:** guardar los datos por (smart account, id de regla) y llamar a `require_auth` de la cuenta en `install`, `enforce` y `uninstall`. Copiad el patrón de su `spending_limit`.
 - **A entrega a B:** ID del contrato en testnet, formato exacto de los parámetros como `xdr.ScVal` y esta tabla de errores. Ver `contracts/control-policy/README.md`.
 
@@ -155,7 +157,7 @@ export function listPayments(): Promise<Payment[]>; // MVP: registro local + has
 
 ### 6.4 `src/controls/` — la matriz de controles como código (D → B, C)
 
-TypeScript puro y probado (`npm test --workspace app`). **No llama a la red**: lo que necesita de Stellar llega inyectado y lo implementa B en `stellar.ts`. Importes en XLM salvo donde dice stroops. Guía detallada: `app/src/controls/README.md`.
+TypeScript puro y probado (`npm test --workspace app`). **No llama a la red**: lo que necesita de Stellar llega inyectado y lo implementa B en `stellar.ts`. Importes en unidades del activo seleccionado (XLM o USDC) salvo donde dice stroops. Los límites numéricos son iguales y el gasto se cuenta por separado para cada activo. Guía detallada: `app/src/controls/README.md`.
 
 | Módulo | Qué exporta | Quién lo usa |
 |---|---|---|
@@ -205,7 +207,7 @@ P0 bloquea la demo · P1 completa el MVP · P2 solo si sobra tiempo. **Marcad la
 
 ### P2 — si sobra tiempo
 
-- [x] **R18** USDC de testnet en vez de XLM. Token de prueba emitido por el emisor de Arqueo (no es el USDC de Circle). El fondeo pasa por `api/fund-usdc.ts`, con la clave del emisor solo en el servidor. Ver `docs/deploy.md`. **Pendiente:** (1) añadir `USDC_ISSUER_SECRET` en Vercel (sale de `stellar keys secret usdc-issuer`) y redesplegar; (2) llevar `develop` a `main`, que es la rama que despliega Vercel; (3) probar en la URL pública el flujo completo con passkey: crear cuenta, fondear con USDC y las 4 escenas; (4) ejecutar el script de R14 (`scripts/demo-setup.mjs`) con USDC; (5) que B y C validen el mensaje nuevo de rechazo por falta de trustline (no está en §6.3).
+- [ ] **R18 [B+C]** Selector de USDC de Circle testnet y XLM nativo; mismos límites numéricos para ambos activos y gasto independiente por contrato de token. El fondeo USDC usa la faucet oficial manualmente, con una cuenta G… temporal y una transferencia local a la tesorería cuando la faucet no admite directamente su dirección. Antes de marcar: (1) desplegar la nueva `control-policy` para XLM y conservar la implementación anterior para que el gasto USDC siga intacto; (2) probar en testnet reglas, pagos y rechazos con ambos activos, trustline ausente y existente; (3) probar los ajustes y CSV por activo; (4) publicar y validar el flujo de passkey en la URL pública.
 - [x] **R19** GitHub Actions con `cargo test` y `npm run build`. El workflow `build.yml` ejecuta `npm test --workspace app`, `cargo test -p control-policy` y el build de todos los workspaces.
 - [ ] **R20** Passkey del manager en el móvil. Código y tests unitarios listos en `b/R20-manager-phone`: casilla opcional al crear la cuenta; la passkey del manager se crea en el móvil y la segunda firma es un QR (transporte hybrid de WebAuthn). Comprobado con un móvil real en local: la creación de la passkey del manager por QR. **Pendiente de testear:** la segunda firma de un pago grande (escena 2 con employee + manager) y la cancelación en el móvil, idealmente también en la URL publicada. No marcar hasta entonces.
 - [x] **R21** Recuperación de la passkey admin: tres passkeys guardianas y aprobación de dos para instalar una regla `admin` nueva y retirar la anterior. El paquete público exportable/importable permite recuperar desde otro dispositivo; las claves privadas de pago y el registro local quedan fuera. Implementación y tests de paquete completados; queda pendiente validar el flujo completo de passkeys en testnet.
@@ -264,9 +266,9 @@ P0 bloquea la demo · P1 completa el MVP · P2 solo si sobra tiempo. **Marcad la
 | 25-oct 15:41 | Jesús (D) | `Role` y `RuleName` se definen solo en `stellar.ts`; `src/controls/types.ts` los reexporta. `src/controls/units.ts` no exporta `STROOPS_PER_XLM` (ya lo exporta `stellar.ts`, como número) | evitar dos definiciones con el mismo nombre |
 | 26-oct | Codex, a petición del equipo | R21: el admin puede configurar una regla `recovery` en contexto default con tres passkeys independientes y umbral 2. Un paquete de datos públicos permite importar la dirección y las credenciales guardianas en otro dispositivo. La recuperación añade una regla `admin` nueva, elimina la anterior y conserva la regla `recovery`; si falla la retirada, guarda el reemplazo pendiente para reintentarlo. El paquete no transporta claves privadas de pago ni el registro local | recuperar acceso tras perder la passkey admin sin abrir las reglas de pagos ni depender del perfil local original |
 | 25-oct 23:10 | Jesús (D); **A y B confirman en el PR de R17** | R17 con el tope de 30 días dentro de `control-policy` (lo propuesto a las 14:35). Lo gastado se guarda por cuenta; los errores nuevos son 4 y 5; `get_params` y `spend_state` son lecturas nuevas; `ControlParams` gana `cap_per_period` y `period_ledgers`. `ordinary` ya no lleva `spending_limit` | cambiar límites o proveedores no puede reiniciar el tope. Hay que **redesplegar** `control-policy` y actualizar `PUBLIC_CONTROL_POLICY_ADDRESS`; las reglas creadas con el contrato antiguo se migran desde Ajustes |
-| 25-oct 23:10 | Jesús (D) | Un cambio de Ajustes da de alta la regla nueva **antes** de dar de baja la vieja (no baja y alta). `setupOrdinaryRule` y `setupLargeRule` fallan sin `PUBLIC_CONTROL_POLICY_ADDRESS` en vez de crear una regla abierta | con baja y alta la regla `ordinary` quedaría sin proveedores ni tope entre las dos transacciones; así convive con la vieja y nunca queda abierta |
+| 25-oct 23:10 | Jesús (D) | Un cambio de Ajustes da de alta la regla nueva **antes** de dar de baja la vieja (no baja y alta). `setupOrdinaryRule` y `setupLargeRule` fallan sin dirección de política configurada en vez de crear una regla abierta | con baja y alta la regla `ordinary` quedaría sin proveedores ni tope entre las dos transacciones; así convive con la vieja y nunca queda abierta |
 | 25-oct 23:30 | Jesús (D); **A confirma al revisar** | `control-policy` desplegado en testnet: `CBPCC6AT3756K43DGTRKLIZFOY5TODHZXGBJS4X4KZ64TFWUQDPEWU4L` (wasm `46e95a0e…e9910`, tx `f72f8142…2c216`). Ya está en `app/.env.example`. Añade eventos, un máximo de 50 proveedores y un periodo de hasta 30 días | la versión anterior no tenía tope por periodo ni lecturas. Probado en cadena: instalar, pagar, rechazos 1, 2 y 5, error 4 al bajar el tope, y que lo gastado y el inicio del periodo sobreviven a reemplazar la regla. No probado: el flujo con la cuenta inteligente y su passkey |
-| 26-oct | Equipo (pendiente de revisión de D) | R18: el token del MVP pasa de XLM a un USDC de prueba emitido por Arqueo en testnet (`CBLCSCSG…`, emisor `GBZGQ72O…`). El fondeo lo firma `api/fund-usdc.ts` con la clave del emisor solo en el servidor; el conmutador XLM/USD se elimina | Nadie puede fondear desde la web sin que la clave del emisor salga del servidor. Un USDC propio evita depender de un faucet de Circle, y se etiqueta como activo de prueba |
+| 26-oct | Equipo | R18 usa USDC de Circle en Stellar testnet junto con XLM nativo como selector de activo. Los límites conservan el mismo valor numérico en ambos activos, y `control-policy` guarda `spent` por smart account y contrato del token. La versión desplegada anterior se conserva para USDC y la nueva para XLM (`CCTQZ3T7OGITLMSWRCQU5KVVHM2C6ST4JCX6ZY6C35ZU4Y2A2GFZMIT4`, wasm `2a45a0b6…b97e9e`, tx `0658b7a1…a7db1`). El fondeo se pide manualmente en Circle Faucet; el navegador comprueba la trustline y puede transferir desde una cuenta temporal | mantener la demo XLM funcional y sumar USDC testnet sin mezclar unidades ni reiniciar el gasto ya guardado de USDC |
 | 26-oct | Carlos (A); **Jesús (D) no ha confirmado** | Clave secreta retirada de `build.yml`: el CI genera una identidad local con `stellar keys generate … --fund`. La clave sigue en el historial de git | §9 prohíbe subir claves `S…`. Reescribir el historial o rotar la clave es decisión del equipo. El paso nuevo solo se ejecuta en PR (y push a `main`): comprobar el primer run |
 | 26-oct | Carlos (A) | R6 comprobado: la escena 3 se rechaza en testnet con «Supplier not authorized» (`docs/evidence-R6-scene3.md`). Queda por explicar un pago de 100 XLM a `GBHX3Z…` a las 17:36 UTC del 25-oct, anterior a la instalación de la política | evidencia para la escena 3 |
 | 26-oct | Carlos (A); **Jesús (D) no ha confirmado** | Rastro de cambios (`csvField`): la protección contra fórmulas en el CSV solo se aplica a texto, no a números negativos. Cambio en `src/controls/` hecho sin autorización previa y explicado en su PR | un número negativo no debe escribirse como texto |

@@ -27,7 +27,7 @@ flowchart LR
             Thr["threshold policy<br/>ordinary 1 of 1 · large 2 of 2"]
             CP["control-policy (ours)<br/>suppliers · per-payment max · 30-day cap<br/>max and cap on ordinary only"]
         end
-        SAC["XLM Stellar Asset Contract<br/>transfer(from, to, amount)"]
+        SAC["XLM or Circle USDC Stellar Asset Contract<br/>transfer(from, to, amount)"]
         Account --- Admin
         Account --- Ord
         Account --- Large
@@ -52,9 +52,9 @@ flowchart LR
 - **App → `src/controls`.** The controls matrix as pure TypeScript: limits, suppliers, which rule an amount needs, and the settings change log. It never calls the network. The rule it suggests is only a hint for the interface.
 - **App → `src/lib/stellar.ts`.** The single door to Stellar. It creates the account, reads state, and builds and signs transactions. A rejection comes back as `{ ok: false, reason }`, not as an exception.
 - **Smart account.** Three context rules. `admin` holds the admin passkey and is the only rule that can add or remove rules. `ordinary` is signed by the employee key. `large` needs the employee and the manager. The app picks the rule from who signs.
-- **Policies.** OpenZeppelin's threshold policy sets how many signatures a rule needs. Our `control-policy` checks the destination against the supplier list. On `ordinary` it also checks the per-payment maximum and keeps the spent amount of the 30-day period. `large` carries neither limit: the manager's second signature is its control.
+- **Policies.** OpenZeppelin's threshold policy sets how many signatures a rule needs. Our `control-policy` checks the destination against the supplier list. On `ordinary` it also checks the per-payment maximum and keeps the spent amount of the 30-day period, keyed by account and token contract so XLM and USDC remain independent. `large` carries neither limit: the manager's second signature is its control.
 - **Settings changes.** The admin changes limits and suppliers from Settings. The app adds the new rule before it removes the old one, so `ordinary` is never open without its controls. The spent amount and the start of the period survive the change, and the cap can never be set below what was already spent.
-- **Token.** Native XLM on testnet, moved through its Stellar Asset Contract. Amounts are in stroops (1 XLM = 10,000,000).
+- **Token.** The payment screen selects native XLM or Circle USDC on testnet, each moved through its Stellar Asset Contract. Limits use the same numeric values in either asset; each spend counter is independent. Amounts are in seven-decimal stroops.
 - **Auditor.** Reads the payment journal, which includes refused attempts, and the settings change log, and exports CSV. In the MVP both logs live in the browser, with the transaction hash for accepted payments; rebuilding them from the chain is future work.
 - **USD display.** The XLM/USD toggle uses a public price feed. It changes how amounts are shown and never what is paid or checked.
 
@@ -82,6 +82,6 @@ flowchart LR
     subgraph Chain["Stellar testnet · the account decides"]
         direction LR
         Account["Smart account<br/>rules: admin · ordinary · large"] --> Pol["Policies<br/>threshold + control-policy<br/>supplier · max · 30-day cap"]
-        Pol -->|"all checks pass"| SAC["XLM transfer"]
+    Pol -->|"all checks pass"| SAC["XLM / USDC transfer"]
     end
 ```

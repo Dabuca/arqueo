@@ -57,6 +57,7 @@ export function OrdinaryPayment() {
 			setResult(undefined)
 			setResult(
 				await pay({
+					asset: "USDC",
 					to: to.trim(),
 					amount: Number(amount),
 					concept: "Ordinary payment",

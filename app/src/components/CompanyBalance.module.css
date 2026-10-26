@@ -144,6 +144,31 @@
 	font-variant-numeric: tabular-nums;
 }
 
+.balancePair {
+	display: grid;
+	gap: 6px;
+}
+
+.assetRules {
+	display: grid;
+	justify-items: start;
+	gap: 8px;
+	padding: 14px 0;
+	border-top: 1px solid var(--line);
+}
+
+.assetRules p {
+	max-width: 70ch;
+	margin: 0;
+	color: var(--muted);
+	font-size: 0.875rem;
+}
+
+.assetRules .address {
+	max-width: 100%;
+	word-break: break-all;
+}
+
 .spent {
 	font-size: 1.25rem;
 	line-height: 1.4;

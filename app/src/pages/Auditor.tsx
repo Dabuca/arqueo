@@ -244,7 +244,8 @@ export default function Auditor() {
 										<tr>
 											<th scope="col">Date</th>
 											<th scope="col">Recipient</th>
-											<th scope="col">Concept</th>
+										<th scope="col">Concept</th>
+										<th scope="col">Asset</th>
 											<th scope="col">Amount</th>
 											<th scope="col">Signers</th>
 											<th scope="col">Rule</th>
@@ -266,8 +267,9 @@ export default function Auditor() {
 													{shortAddress(payment.to)}
 												</td>
 												<td data-label="Concept">{payment.concept || "—"}</td>
+												<td data-label="Asset">{payment.asset}</td>
 												<td data-label="Amount" className={styles.amount}>
-													<Amount usdc={payment.amount} /> <AmountUnit />
+													<Amount value={payment.amount} asset={payment.asset} /> <AmountUnit asset={payment.asset} />
 												</td>
 												<td data-label="Signers" className={styles.signers}>
 													{payment.signers.join(" + ")}
@@ -347,8 +349,9 @@ export default function Auditor() {
 									<thead>
 										<tr>
 											<th scope="col">Date</th>
-											<th scope="col">Setting</th>
-											<th scope="col">Rule</th>
+										<th scope="col">Setting</th>
+										<th scope="col">Asset</th>
+										<th scope="col">Rule</th>
 											<th scope="col">Previous</th>
 											<th scope="col">New</th>
 											<th scope="col">Spent at change</th>
@@ -360,9 +363,10 @@ export default function Auditor() {
 									<tbody>
 										{changes.map((change) => (
 											<tr key={change.id}>
-												<td data-label="Date">{formatDate(change.at)}</td>
-												<td data-label="Setting">{FIELD_LABELS[change.field] ?? change.field}</td>
-												<td data-label="Rule">{change.rule ?? "—"}</td>
+							<td data-label="Date">{formatDate(change.at)}</td>
+							<td data-label="Setting">{FIELD_LABELS[change.field] ?? change.field}</td>
+							<td data-label="Asset">{change.asset ?? "—"}</td>
+							<td data-label="Rule">{change.rule ?? "—"}</td>
 												<td data-label="Previous" className={styles.value}>
 													{change.previous || "—"}
 												</td>
@@ -374,7 +378,7 @@ export default function Auditor() {
 														"—"
 													) : (
 														<>
-															<Amount usdc={change.spentAtChange} /> <AmountUnit />
+										<Amount value={change.spentAtChange} asset={change.asset ?? "USDC"} /> <AmountUnit asset={change.asset ?? "USDC"} />
 														</>
 													)}
 												</td>

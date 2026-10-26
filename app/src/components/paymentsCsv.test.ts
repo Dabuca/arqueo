@@ -5,6 +5,7 @@ describe("buildPaymentsCsv", () => {
 	it("adds the required and missing signers next to the rule", () => {
 		const csv = buildPaymentsCsv([
 			{
+				asset: "USDC",
 				to: "GABC",
 				amount: 800,
 				concept: "Invoice",
@@ -16,6 +17,7 @@ describe("buildPaymentsCsv", () => {
 				at: "2026-10-26T09:00:00.000Z",
 			},
 			{
+				asset: "XLM",
 				to: "GABC",
 				amount: 800,
 				concept: "Invoice",

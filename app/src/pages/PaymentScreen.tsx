@@ -21,6 +21,7 @@ import {
 	loadDemoOutsider,
 	pay,
 	readControlState,
+	type PaymentAsset,
 	type ControlState,
 } from "../lib/stellar"
 import { Amount, AmountUnit } from "../components/Amount"
@@ -62,6 +63,7 @@ function CheckIcon({ state }: { state: CheckState }) {
 }
 
 export default function PaymentScreen() {
+	const [asset, setAsset] = useState<PaymentAsset>("USDC")
 	// What the admin set in Settings, and what the chain reports (R17, R23).
 	const [controls, setControls] = useState(() => loadControlsConfig())
 	const [chain, setChain] = useState<ControlState>()
@@ -87,7 +89,8 @@ export default function PaymentScreen() {
 		const refresh = () => {
 			setCompany(loadCompany())
 			setControls(loadControlsConfig())
-			readControlState()
+			setChain(undefined)
+			readControlState(asset)
 				.then((state) => {
 					if (!cancelled) setChain(state)
 				})
@@ -102,7 +105,7 @@ export default function PaymentScreen() {
 			cancelled = true
 			events.forEach((name) => window.removeEventListener(name, refresh))
 		}
-	}, [])
+	}, [asset])
 	const numericAmount = Number(amount)
 	const amountIsValid = Number.isFinite(numericAmount) && numericAmount > 0
 	const signers =
@@ -111,8 +114,10 @@ export default function PaymentScreen() {
 			: (["employee", "manager"] as const)
 	const selectedRule = ruleForSigners([...signers])
 	const recipient = supplier
-	const ordinaryReady = company?.rules?.ordinary !== undefined
-	const largeReady = company?.rules?.large !== undefined
+	const assetRules =
+		company?.assetRules?.[asset] ?? (asset === "USDC" ? company?.rules : {})
+	const ordinaryReady = assetRules?.ordinary !== undefined
+	const largeReady = assetRules?.large !== undefined
 	const ruleReady = signature === "manager" ? largeReady : ordinaryReady
 
 	const pickScenario = (nextAmount: number, useUnknownSupplier = false) => {
@@ -137,6 +142,7 @@ export default function PaymentScreen() {
 		setBusy(true)
 		try {
 			const result = await pay({
+				asset,
 				to: recipient.trim(),
 				amount: numericAmount,
 				concept: concept.trim(),
@@ -197,7 +203,7 @@ export default function PaymentScreen() {
 		signature === "manager"
 			? { label: "No per-payment limit on the large rule", state: "pass" }
 			: {
-					label: `Within ${formatUsdc(limits.maxPerPayment)} USDC per payment`,
+					label: `Within ${formatUsdc(limits.maxPerPayment)} ${asset} per payment`,
 					state: stateOf(underLimit),
 					detail:
 						underLimit === false
@@ -210,8 +216,8 @@ export default function PaymentScreen() {
 					{
 						label:
 							left === undefined
-								? `Within ${formatUsdc(cap)} USDC every ${limits.periodDays} days`
-								: `Within what is left of the ${formatUsdc(cap)} USDC ${limits.periodDays}-day cap`,
+							? `Within ${formatUsdc(cap)} ${asset} every ${limits.periodDays} days`
+							: `Within what is left of the ${formatUsdc(cap)} ${asset} ${limits.periodDays}-day cap`,
 						state:
 							overCap === undefined
 								? ("idle" as const)
@@ -223,9 +229,9 @@ export default function PaymentScreen() {
 								? "Spending is checked on-chain."
 								: overCap
 									? left === 0
-										? `The cap is used up. Add the manager's signature to pay ${formatUsdc(overCap)} USDC.`
-										: `${formatUsdc(overCap)} USDC over what is left (${formatUsdc(left)} of ${formatUsdc(cap)} USDC). Add the manager's signature to go above it.`
-									: `${formatUsdc(left)} of ${formatUsdc(cap)} USDC left this period.`,
+									? `The cap is used up. Add the manager's signature to pay ${formatUsdc(overCap)} ${asset}.`
+									: `${formatUsdc(overCap)} ${asset} over what is left (${formatUsdc(left)} of ${formatUsdc(cap)} ${asset}). Add the manager's signature to go above it.`
+								: `${formatUsdc(left)} of ${formatUsdc(cap)} ${asset} left this period.`,
 					},
 				]),
 		{
@@ -255,6 +261,23 @@ export default function PaymentScreen() {
 					noValidate
 					onSubmit={(event) => void submitPayment(event)}
 				>
+					<div className={styles.field}>
+						<label htmlFor="payment-asset">Payment asset</label>
+						<select
+							id="payment-asset"
+							value={asset}
+							onChange={(event) => {
+								setAsset(event.target.value as PaymentAsset)
+								setOutcome(undefined)
+							}}
+						>
+							<option value="USDC">USDC (Circle testnet)</option>
+							<option value="XLM">XLM</option>
+						</select>
+						<p className={styles.hint}>
+							Each asset has separate on-chain limits and spend tracking.
+						</p>
+					</div>
 					<div className={styles.field}>
 						<label htmlFor="payment-supplier">Supplier account</label>
 						{configuredSuppliers.length > 0 && !customSupplier ? (
@@ -340,7 +363,7 @@ export default function PaymentScreen() {
 										clearError("amount")
 									}}
 								/>
-								<span>USDC</span>
+								<span>{asset}</span>
 							</div>
 							{errors.amount && (
 								<p className={styles.inlineError} role="alert">
@@ -478,9 +501,9 @@ export default function PaymentScreen() {
 					</div>
 					<div className={styles.summary}>
 						<span className={styles.amountFigure}>
-							{amountIsValid ? <Amount usdc={numericAmount} /> : "—"}
+							{amountIsValid ? <Amount value={numericAmount} asset={asset} /> : "—"}
 							<small>
-								<AmountUnit />
+								<AmountUnit asset={asset} />
 							</small>
 						</span>
 						<span className={styles.summaryTo}>

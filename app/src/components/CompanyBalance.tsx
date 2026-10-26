@@ -11,6 +11,7 @@ import {
 	createCompanyAccount,
 	fundCompanyAccount,
 	getBalance,
+	getUsdcFundingAddress,
 	installControlPolicy,
 	listPayments,
 	loadCompany,
@@ -19,12 +20,15 @@ import {
 	createRecoveryPackage,
 	importRecoveryPackage,
 	readControlState,
+	prepareUsdcFundingAddress,
+	fundCompanyXlmAccount,
 	recoverAdminAccess,
 	setupRecoveryRule,
 	setupLargeRule,
 	setupOrdinaryRule,
 	type ControlState,
 	type Payment,
+	type PaymentAsset,
 } from "../lib/stellar"
 import ui from "../styles/ui.module.css"
 import { Amount, AmountUnit } from "./Amount"
@@ -34,7 +38,7 @@ import { Spinner, useChanged } from "./Spinner"
 
 type BalanceState =
 	| { status: "loading" }
-	| { status: "ok"; xlm: number }
+	| { status: "ok"; xlm: number; usdc: number }
 	| { status: "error"; message: string }
 
 type Step =
@@ -56,11 +60,16 @@ const testnetTx = (hash: string) =>
 const DAY_MS = 86_400_000
 
 // Approximate: ordinary-rule payments that settled in this browser's journal, not read from the chain.
-const spentInPeriod = (payments: Payment[], periodDays: number) =>
+const spentInPeriod = (
+	payments: Payment[],
+	periodDays: number,
+	asset: PaymentAsset,
+) =>
 	payments
 		.filter(
 			(payment) =>
 				payment.status === "ok" &&
+				payment.asset === asset &&
 				payment.rule === "ordinary" &&
 				Date.now() - new Date(payment.at).getTime() <= periodDays * DAY_MS,
 		)
@@ -71,9 +80,9 @@ const STEP_COPY: Record<
 	{ label: string; busy: string; note: string; optional?: boolean }
 > = {
 	fund: {
-		label: "Fund with test USDC",
+		label: "Prepare Circle funding",
 		busy: "Funding…",
-		note: "Test USDC from the Arqueo issuer.",
+		note: "Request USDC from Circle's testnet faucet.",
 	},
 	ordinary: {
 		label: "Set up ordinary rule",
@@ -132,11 +141,19 @@ export function CompanyBalance() {
 		loadRecoveryPackage(),
 	)
 	const [balance, setBalance] = useState<BalanceState>({ status: "loading" })
-	const [spent, setSpent] = useState<number>()
+	const [fundingAddress, setFundingAddress] = useState(() =>
+		getUsdcFundingAddress(),
+	)
+	const [spent, setSpent] = useState<Partial<Record<PaymentAsset, number>>>({})
 	// What the chain enforces, when it can be read: it wins over the journal.
-	const [chain, setChain] = useState<ControlState>()
-	const fromChain = chain?.source === "chain" ? chain : undefined
-	const limits = (fromChain?.config ?? loadControlsConfig()).limits
+	const [chain, setChain] = useState<
+		Partial<Record<PaymentAsset, ControlState>>
+	>({})
+	const limits = (
+		chain.USDC?.config ??
+		chain.XLM?.config ??
+		loadControlsConfig()
+	).limits
 	const [working, setWorking] = useState<Step>()
 	const [error, setError] = useState<string>()
 	const [lastTx, setLastTx] = useState<string>()
@@ -161,9 +178,9 @@ export function CompanyBalance() {
 		if (!address) return
 		let cancelled = false
 		setBalance({ status: "loading" })
-		getBalance()
-			.then((xlm) => {
-				if (!cancelled) setBalance({ status: "ok", xlm })
+		Promise.all([getBalance("XLM"), getBalance("USDC")])
+			.then(([xlm, usdc]) => {
+				if (!cancelled) setBalance({ status: "ok", xlm, usdc })
 			})
 			.catch((cause: unknown) => {
 				if (!cancelled) {
@@ -178,13 +195,30 @@ export function CompanyBalance() {
 	const refreshSpent = useCallback(() => {
 		listPayments()
 			.then((payments) =>
-				setSpent(
-					spentInPeriod(payments, loadControlsConfig().limits.periodDays),
-				),
+				setSpent((current) => ({
+					...current,
+					USDC: spentInPeriod(
+						payments,
+						loadControlsConfig().limits.periodDays,
+						"USDC",
+					),
+				})),
 			)
-			.catch(() => setSpent(undefined))
-		readControlState()
-			.then(setChain)
+			.catch(() => setSpent((current) => ({ ...current, USDC: undefined })))
+		listPayments()
+			.then((payments) =>
+				setSpent((current) => ({
+					...current,
+					XLM: spentInPeriod(
+						payments,
+						loadControlsConfig().limits.periodDays,
+						"XLM",
+					),
+				})),
+			)
+			.catch(() => setSpent((current) => ({ ...current, XLM: undefined })))
+		Promise.all([readControlState("USDC"), readControlState("XLM")])
+			.then(([usdc, xlm]) => setChain({ USDC: usdc, XLM: xlm }))
 			.catch(() => undefined)
 	}, [])
 
@@ -217,6 +251,7 @@ export function CompanyBalance() {
 					? result
 					: (result as { hash?: string } | undefined)?.hash
 			if (hash) setLastTx(hash)
+			if (step === "fund") setFundingAddress(getUsdcFundingAddress())
 			if (step === "fund") setFundCount((count) => count + 1)
 		} catch (cause) {
 			setError(errorMessage(cause))
@@ -235,6 +270,16 @@ export function CompanyBalance() {
 			setCopied(true)
 		} catch {
 			// Clipboard blocked: the address stays selectable through the explorer link.
+		}
+	}
+
+	const copyFundingAddress = async () => {
+		if (!fundingAddress) return
+		try {
+			await navigator.clipboard.writeText(fundingAddress)
+			setCopied(true)
+		} catch {
+			// The address remains visible for manual selection.
 		}
 	}
 
@@ -273,27 +318,28 @@ export function CompanyBalance() {
 	const suppliersReady =
 		ordinaryReady && company?.controlPolicy?.ruleId === company?.rules?.ordinary
 	const managerReady = company?.rules?.large !== undefined
-	const needsFunds = balance.status === "ok" && balance.xlm === 0
+	const xlmRules = company?.assetRules?.XLM ?? {}
 	const ready =
-		ordinaryReady && suppliersReady && balance.status === "ok" && !needsFunds
+		ordinaryReady &&
+		suppliersReady &&
+		xlmRules.ordinary !== undefined &&
+		balance.status === "ok"
 	const readyChanged = useChanged(ready)
 
 	// One step at a time: funds, then the ordinary rule, its supplier list, and the optional manager rule.
-	const next: Exclude<Step, "create"> | undefined = needsFunds
-		? "fund"
-		: !ordinaryReady
-			? "ordinary"
-			: !suppliersReady
-				? "suppliers"
-				: !managerReady
-					? "manager"
-					: undefined
+	const next: Exclude<Step, "create"> | undefined = !ordinaryReady
+		? "ordinary"
+		: !suppliersReady
+			? "suppliers"
+			: !managerReady
+				? "manager"
+				: undefined
 
 	const nextChanged = useChanged(next)
 
 	const runNext = () => {
-		if (next === "fund") void run("fund", fundCompanyAccount)
-		else if (next === "ordinary") void run("ordinary", setupOrdinaryRule)
+		if (next === "ordinary")
+			void run("ordinary", () => setupOrdinaryRule("USDC"))
 		else if (next === "suppliers") void run("suppliers", installControlPolicy)
 		else if (next === "manager") void run("manager", setupLargeRule)
 	}
@@ -352,8 +398,8 @@ export function CompanyBalance() {
 						<h3>Create the company account</h3>
 						<p>
 							A smart account on Stellar testnet with your passkey as admin. It
-							holds the treasury and enforces the payment rules. Test USDC only,
-							no real funds.
+							holds the treasury and enforces the payment rules. XLM and Circle
+							USDC test tokens only; no real funds.
 						</p>
 						<label className={styles.phoneOption}>
 							<input
@@ -506,34 +552,42 @@ export function CompanyBalance() {
 									<span className={styles.muted}>Unavailable</span>
 								)}
 								{balance.status === "ok" && (
-									<span className={styles.balance}>
-						<Amount usdc={balance.xlm} />
-						<span className={styles.unit}><AmountUnit /></span>
+									<span className={styles.balancePair}>
+										<span>
+											<Amount value={balance.usdc} asset="USDC" />{" "}
+											<AmountUnit asset="USDC" />
+										</span>
+										<span>
+											<Amount value={balance.xlm} asset="XLM" />{" "}
+											<AmountUnit asset="XLM" />
+										</span>
 									</span>
 								)}
 							</dd>
 						</div>
 
-						{(fromChain ? true : spent !== undefined) && (
-							<div className={styles.item}>
-								<dt className={ui.label}>Spent, 30 days</dt>
-								<dd>
-									<span className={styles.spent}>
-										{fromChain ? "" : "≈ "}
-										<Amount
-											usdc={fromChain ? fromChain.spentXlm : (spent ?? 0)}
-										/>{" "}
-						/ <Amount usdc={limits.cap30d} />
-						<span className={styles.unit}><AmountUnit /></span>
-									</span>
-									<span className={styles.caption}>
-										{fromChain
-											? "Ordinary rule, read from the chain"
-											: "Ordinary rule, from this browser\u2019s journal"}
-									</span>
-								</dd>
-							</div>
-						)}
+						{(["USDC", "XLM"] as const).map((asset) => {
+							const state = chain[asset]
+							const amount =
+								state?.source === "chain" ? state.spentXlm : spent[asset]
+							return amount === undefined ? null : (
+								<div className={styles.item} key={asset}>
+									<dt className={ui.label}>{asset} spent, 30 days</dt>
+									<dd>
+										<span className={styles.spent}>
+											{state?.source === "chain" ? "" : "� "}
+											<Amount value={amount} asset={asset} /> /{" "}
+											<Amount value={limits.cap30d} asset={asset} /> {asset}
+										</span>
+										<span className={styles.caption}>
+											{state?.source === "chain"
+												? "Ordinary rule, read from the chain"
+												: "Ordinary rule, from this browser�s journal"}
+										</span>
+									</dd>
+								</div>
+							)
+						})}
 					</dl>
 
 					<div className={styles.setup}>
@@ -557,6 +611,94 @@ export function CompanyBalance() {
 								</li>
 							))}
 						</ul>
+						<div className={styles.assetRules}>
+							<strong>XLM rules</strong>
+							<span>
+								{xlmRules.ordinary === undefined
+									? "Ordinary rule not set up"
+									: "Ordinary rule ready"}
+							</span>
+							{xlmRules.ordinary === undefined && (
+								<button
+									type="button"
+									className={`${ui.button} ${ui.small}`}
+									disabled={working !== undefined}
+									onClick={() =>
+										void run("ordinary", () => setupOrdinaryRule("XLM"))
+									}
+								>
+									Set up XLM ordinary rule
+								</button>
+							)}
+							{xlmRules.large === undefined && (
+								<button
+									type="button"
+									className={`${ui.button} ${ui.small}`}
+									disabled={working !== undefined}
+									onClick={() =>
+										void run("manager", () => setupLargeRule("XLM"))
+									}
+								>
+									Set up XLM manager rule
+								</button>
+							)}
+						</div>
+						<div className={styles.assetRules}>
+							<strong>USDC funding</strong>
+							<p>
+								Prepare a temporary G address, request Circle test USDC to it
+								(the faucet provides 20 USDC per request), then transfer it to
+								the treasury. The treasury address itself cannot receive faucet
+								funds because it is a smart contract account.
+							</p>
+							{fundingAddress && (
+								<code className={styles.address}>{fundingAddress}</code>
+							)}
+							<div className={styles.actions}>
+								<button
+									type="button"
+									className={`${ui.button} ${ui.small}`}
+									disabled={working !== undefined}
+									onClick={() => void run("fund", prepareUsdcFundingAddress)}
+								>
+									Prepare faucet address
+								</button>
+								{fundingAddress && (
+									<button
+										type="button"
+										className={`${ui.button} ${ui.small}`}
+										onClick={() => void copyFundingAddress()}
+									>
+										Copy address
+									</button>
+								)}
+								<a
+									className={`${ui.button} ${ui.small}`}
+									href="https://faucet.circle.com/"
+									target="_blank"
+									rel="noreferrer"
+								>
+									Open Circle faucet
+								</a>
+
+								<button
+									type="button"
+									className={`${ui.button} ${ui.small}`}
+									disabled={working !== undefined || !fundingAddress}
+									onClick={() => void run("fund", fundCompanyAccount)}
+								>
+									Transfer USDC to treasury
+								</button>
+								<button
+									type="button"
+									className={`${ui.button} ${ui.small}`}
+									disabled={working !== undefined}
+									onClick={() => void run("fund", fundCompanyXlmAccount)}
+								>
+									Fund test XLM
+								</button>
+							</div>
+						</div>
 
 						{next && (
 							<div
