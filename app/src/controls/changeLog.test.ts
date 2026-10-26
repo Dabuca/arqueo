@@ -93,7 +93,7 @@ describe("createChangeLog", () => {
 
 describe("changesToCsv", () => {
 	const header =
-		"at,field,previous,next,spentAtChange,periodStart,removeTxHash,addTxHash"
+		"at,field,previous,next,spentAtChange,periodStart,removeTxHash,addTxHash,rule"
 
 	function change(over: Partial<ControlChange> = {}): ControlChange {
 		return {
@@ -124,15 +124,37 @@ describe("changesToCsv", () => {
 		])
 		expect(csv.split("\n")).toEqual([
 			header,
-			"2026-10-25T12:00:00.000Z,maxPerPayment,500,300,,,r1,a1",
-			"2026-10-26T00:00:00.000Z,cap30d,1000,1500,500,2026-10-01T00:00:00.000Z,,",
+			"2026-10-25T12:00:00.000Z,maxPerPayment,500,300,,,r1,a1,",
+			"2026-10-26T00:00:00.000Z,cap30d,1000,1500,500,2026-10-01T00:00:00.000Z,,,",
 		])
+	})
+
+	it("leaves negative numbers as numbers", () => {
+		const csv = changesToCsv([change({ spentAtChange: -5 })])
+		expect(csv.split("\n")[1]).not.toContain("'-5")
+		expect(csv.split("\n")[1]).toContain(",-5,")
+	})
+
+	it("does not let a cell run as a spreadsheet formula", () => {
+		const csv = changesToCsv([
+			change({ previous: "=HYPERLINK(\"http://x\")", next: "+1" }),
+		])
+		const row = csv.split("\n")[1]
+		expect(row).toContain(`"'=HYPERLINK(""http://x"")"`)
+		expect(row).toContain(",'+1,")
+	})
+
+	it("writes the rule that was replaced", () => {
+		const csv = changesToCsv([change({ rule: "large" })])
+		expect(csv.split("\n")[1]).toBe(
+			"2026-10-25T12:00:00.000Z,maxPerPayment,500,300,,,,,large",
+		)
 	})
 
 	it("writes a spent amount of zero", () => {
 		const csv = changesToCsv([change({ spentAtChange: 0 })])
 		expect(csv.split("\n")[1]).toBe(
-			"2026-10-25T12:00:00.000Z,maxPerPayment,500,300,0,,,",
+			"2026-10-25T12:00:00.000Z,maxPerPayment,500,300,0,,,,",
 		)
 	})
 
@@ -146,7 +168,7 @@ describe("changesToCsv", () => {
 			}),
 		])
 		expect(csv).toBe(
-			`${header}\n2026-10-25T12:00:00.000Z,suppliers,"G1,G2","say ""hi""",,,"line1\nline2",`,
+			`${header}\n2026-10-25T12:00:00.000Z,suppliers,"G1,G2","say ""hi""",,,"line1\nline2",,`,
 		)
 	})
 })

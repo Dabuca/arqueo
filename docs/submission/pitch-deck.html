@@ -53,6 +53,7 @@
 			.architecture .core { padding: 2rem; border: 1px solid var(--lime); text-align: center; }
 			.architecture .core h3 { color: var(--paper); font-size: 2rem; }
 			.architecture .arrow { border: 0; color: var(--lime); text-align: center; font: 1.5rem var(--mono); }
+			.diagram { display: block; width: 100%; max-width: 1200px; margin: 2rem auto 0; }
 			.status { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; margin-top: 2.5rem; }
 			.status h3 { margin-bottom: 1rem; color: var(--lime); font: 700 .75rem var(--mono); letter-spacing: .1em; text-transform: uppercase; }
 			.status ul { margin: 0; padding: 0; list-style: none; }
@@ -105,7 +106,7 @@
 			</section>
 			<section class="slide" aria-label="Slide 6 of 8" hidden>
 				<div><p class="kicker">Built on Stellar</p><h2>Smart accounts make policy part of the payment path.</h2><p class="lede">Arqueo composes infrastructure that already exists with a policy contract built for treasury controls.</p></div>
-				<div class="architecture"><div><h3>Stellar</h3><p>Testnet · Soroban · native XLM Asset Contract</p></div><div class="arrow" aria-hidden="true">→</div><div class="core"><h3>Arqueo account</h3><p>smart-account-kit<br />OpenZeppelin rules and policies<br />custom control-policy</p></div></div>
+				<img class="diagram" src="../architecture-deck.png" alt="Architecture: the web app reaches Stellar only through stellar.ts. On testnet the smart account has admin, ordinary and large rules, and its threshold and control policies must pass before any XLM transfer." />
 				<footer class="footer"><span>Genesis · Stellar Composed</span><span>06 / 08</span></footer>
 			</section>
 			<section class="slide" aria-label="Slide 7 of 8" hidden>

@@ -366,6 +366,7 @@
 
 .hero,
 .diagnostic,
+.blockers,
 .safeguards,
 .roles,
 .architecture {
@@ -392,6 +393,7 @@
 
 .hero > *,
 .diagnostic > *,
+.blockers > *,
 .safeguards > *,
 .roles > *,
 .architecture > * {
@@ -643,12 +645,6 @@
 	gap: 14px;
 }
 
-.cardStrong {
-	background: var(--stock);
-	border-left: 4px solid var(--ink-container);
-	box-shadow: 0 12px 30px -6px rgb(13 40 33 / 8%), 0 2px 4px rgb(13 40 33 / 3%);
-}
-
 .card h3 {
 	margin: 0;
 }
@@ -663,20 +659,10 @@
 	color: var(--ink);
 }
 
-.iconOk,
-.iconError,
 .iconWarn {
 	width: 22px;
 	height: 22px;
 	flex: none;
-}
-
-.iconOk {
-	color: var(--ok);
-}
-
-.iconError {
-	color: var(--alert);
 }
 
 .iconWarn {
@@ -703,30 +689,6 @@
 .pillDark {
 	background: var(--ink-container);
 	color: var(--background);
-}
-
-.bullets {
-	list-style: none;
-	margin: 0;
-	padding: 0;
-	display: grid;
-	gap: 14px;
-}
-
-.bullets li {
-	display: flex;
-	gap: 12px;
-	align-items: flex-start;
-	font-size: 15px;
-	color: var(--body);
-}
-
-/* Diagnostic */
-
-.twoCols {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 24px;
 }
 
 /* Safeguards bento */
@@ -1068,45 +1030,6 @@
 	color: var(--muted);
 }
 
-/* Footer */
-
-.footer {
-	background: var(--surface);
-	border-top: 1px solid var(--line);
-	padding: 28px var(--inline);
-}
-
-.footerInner {
-	max-width: var(--measure);
-	margin: 0 auto;
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	flex-wrap: wrap;
-	gap: 16px;
-	font-size: 13px;
-}
-
-.footer p {
-	max-width: none;
-	color: var(--muted);
-}
-
-.footerNav {
-	display: flex;
-	gap: 24px;
-	flex-wrap: wrap;
-}
-
-.footerNav a {
-	color: var(--muted);
-	font-weight: 500;
-}
-
-.footerNav a:hover {
-	color: var(--ink);
-}
-
 /* Responsive */
 
 @media (max-width: 1080px) {
@@ -1133,7 +1056,6 @@
 		display: inline-flex;
 	}
 
-	.twoCols,
 	.threeCols {
 		grid-template-columns: minmax(0, 1fr);
 	}
@@ -1191,10 +1113,6 @@
 		width: 100%;
 	}
 
-	.footerInner {
-		flex-direction: column;
-		align-items: flex-start;
-	}
 }
 
 /* Motion: the hero enters once, then the ledger prints its rows in order. */
@@ -1291,21 +1209,18 @@
 
 
 		/* Lines print one after another as the card arrives, like the hero ledger. */
-		.landing .bullets li:nth-child(1),
 		.landing .consoleLine:nth-child(1) {
 			animation: rise linear both;
 			animation-timeline: view();
 			animation-range: entry 10% entry 40%;
 		}
 
-		.landing .bullets li:nth-child(2),
 		.landing .consoleLine:nth-child(2) {
 			animation: rise linear both;
 			animation-timeline: view();
 			animation-range: entry 25% entry 55%;
 		}
 
-		.landing .bullets li:nth-child(3),
 		.landing .consoleLine:nth-child(3) {
 			animation: rise linear both;
 			animation-timeline: view();
@@ -1503,4 +1418,194 @@
 	z-index: 0;
 	max-width: none;
 	margin: 0;
+}
+
+.shot {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+/* Rhythm: each block gets its own composition and ground, so the page does not repeat one card grid. */
+
+/* Blockers: a warm band where the questions are the display text. */
+
+.blockers {
+	background: var(--secondary-fixed);
+}
+
+.blockers .sectionHead p {
+	color: var(--body);
+}
+
+.questions {
+	list-style: none;
+	padding: 0;
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.questions li {
+	display: grid;
+	align-content: start;
+	gap: 14px;
+	padding: 8px clamp(20px, 3vw, 40px) 8px 0;
+}
+
+.questions li + li {
+	padding-left: clamp(20px, 3vw, 40px);
+	border-left: 1px solid rgb(0 17 12 / 18%);
+}
+
+.questionIcon {
+	width: 28px;
+	height: 28px;
+	color: var(--ink-container);
+}
+
+.landing .questions h3 {
+	margin: 0;
+	font-size: clamp(1.5rem, 2.4vw, 2rem);
+	line-height: 1.15;
+	letter-spacing: -0.025em;
+}
+
+.landing .questions p {
+	color: var(--body);
+	font-size: 16px;
+}
+
+/* Flow: a rail with a node per step instead of five boxes. */
+
+.flow {
+	position: relative;
+	gap: 0;
+	padding-top: 28px;
+	border-top: 2px solid var(--stone-line);
+}
+
+.flow::before {
+	content: "";
+	position: absolute;
+	top: -2px;
+	left: 0;
+	right: 0;
+	height: 2px;
+	background: var(--ink-container);
+	transform-origin: left center;
+}
+
+.flow li {
+	position: relative;
+	padding: 0 20px 0 0;
+	background: none;
+	border: 0;
+	border-radius: 0;
+}
+
+.flow li::before {
+	content: "";
+	position: absolute;
+	top: -35px;
+	left: 0;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	background: var(--background);
+	border: 2px solid var(--ink-container);
+	transition: background-color 200ms ease;
+}
+
+.flow li:hover::before {
+	background: var(--ink-container);
+}
+
+.landing .flow li:hover {
+	border-color: transparent;
+}
+
+@media (max-width: 1080px) {
+	.flow {
+		gap: 32px 0;
+	}
+}
+
+@media (max-width: 900px) {
+	.questions {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 32px;
+	}
+
+	.questions li + li {
+		padding-left: 0;
+		padding-top: 32px;
+		border-left: 0;
+		border-top: 1px solid rgb(0 17 12 / 18%);
+	}
+}
+
+@media (max-width: 600px) {
+	.flow {
+		border-top: 0;
+		border-left: 2px solid var(--stone-line);
+		padding: 0 0 0 28px;
+		gap: 28px;
+	}
+
+	.flow::before {
+		display: none;
+	}
+
+	.flow li::before {
+		top: 4px;
+		left: -35px;
+	}
+}
+
+/* Motion variety: lists slide in from the side, the questions open from a clip, the rail draws itself. */
+
+@keyframes unclip {
+	from {
+		opacity: 0;
+		clip-path: inset(0 0 100% 0);
+	}
+
+	to {
+		opacity: 1;
+		clip-path: inset(0 0 0 0);
+	}
+}
+
+@keyframes draw {
+	from {
+		transform: scaleX(0);
+	}
+
+	to {
+		transform: scaleX(1);
+	}
+}
+
+@supports (animation-timeline: view()) {
+	@media (prefers-reduced-motion: no-preference) {
+		.landing .questions li {
+			animation: unclip linear both;
+			animation-timeline: view();
+			animation-range: entry 5% entry 50%;
+		}
+
+		.landing .questions li:nth-child(2) {
+			animation-range: entry 15% entry 60%;
+		}
+
+		.landing .questions li:nth-child(3) {
+			animation-range: entry 25% entry 70%;
+		}
+
+		.landing .flow::before {
+			animation: draw linear both;
+			animation-timeline: view();
+			animation-range: entry 10% cover 45%;
+		}
+	}
 }

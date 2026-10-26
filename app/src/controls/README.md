@@ -14,16 +14,17 @@ rules so it can explain them, prepare the parameters, and keep the audit trail.
 
 ## Modules
 
-| File            | Use it for                                                                                                                                                    |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `types.ts`      | `Limits`, `Supplier`, `ControlsConfig`, `ControlChange`, `CheckResult`. `Role` and `RuleName` are re-exported from `stellar.ts` (one definition for the app). |
-| `defaults.ts`   | `DEFAULT_LIMITS` (500 XLM per payment, 1,000 XLM every 30 days), `DEFAULT_CONFIG` (no suppliers), `DEMO_AMOUNTS` (200 / 800 / 100).                           |
-| `units.ts`      | `xlmToStroops` (exact, `bigint`; use it for anything that goes on chain), `stroopsToXlm`, `roundToStroops` (only to compare amounts held as floats).          |
-| `rules.ts`      | `signersFor(rule)`, `ruleForSigners(signers)`, `requiredRule(amount, limits, spentInPeriod)`.                                                                 |
-| `validation.ts` | `looksLikeStellarAddress` (format only), `isSupplier`, `validateLimitsChange(next, spentInPeriod)`.                                                           |
-| `params.ts`     | `toControlParams(config, rule)` → `{ allowlist, maxPerPayment }`, matching `ControlParams` in `contracts/control-policy`.                                     |
-| `suppliers.ts`  | `addRealSupplier`, `addDemoSupplier`, `removeSupplier`, `createOutsiderAccount`, with injected `SupplierDeps`.                                                |
-| `changeLog.ts`  | `createChangeLog(storage?)` → `record` / `list` / `clear`; `changesToCsv`.                                                                                    |
+| File            | Use it for                                                                                                                                                                                                                                                 |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `types.ts`      | `Limits`, `Supplier`, `ControlsConfig`, `ControlChange`, `CheckResult`. `Role` and `RuleName` are re-exported from `stellar.ts` (one definition for the app).                                                                                              |
+| `defaults.ts`   | `DEFAULT_LIMITS` (500 XLM per payment, 1,000 XLM every 30 days), `DEFAULT_CONFIG` (no suppliers), `DEMO_AMOUNTS` (200 / 800 / 100).                                                                                                                        |
+| `units.ts`      | `xlmToStroops` (exact, `bigint`; use it for anything that goes on chain), `stroopsToXlm`, `roundToStroops` (only to compare amounts held as floats).                                                                                                       |
+| `rules.ts`      | `signersFor(rule)`, `ruleForSigners(signers)`, `requiredRule(amount, limits, spentInPeriod)`.                                                                                                                                                              |
+| `validation.ts` | `looksLikeStellarAddress` (format only), `isSupplier`, `validateLimitsChange(next, spentInPeriod)`.                                                                                                                                                        |
+| `params.ts`     | `toControlParams(config, rule)` → `{ allowlist, capPerPeriod, maxPerPayment, periodLedgers }` (stroops and ledgers), matching `ControlParams` in `contracts/control-policy`. `large` carries no maximum and no cap.                                        |
+| `settings.ts`   | The Settings change as data (R17): `changedFields`, `validateSettings`, `startChange` / `startMigration`, `nextStep`, `withAdded` / `withRemoved`, `changeRecords`. A change adds the new rule before retiring the old one and can resume after a failure. |
+| `suppliers.ts`  | `addRealSupplier`, `addDemoSupplier`, `removeSupplier`, `createOutsiderAccount`, with injected `SupplierDeps`.                                                                                                                                             |
+| `changeLog.ts`  | `createChangeLog(storage?)` → `record` / `list` / `clear`; `changesToCsv`.                                                                                                                                                                                 |
 
 ## Rules every caller must keep
 
@@ -32,6 +33,8 @@ rules so it can explain them, prepare the parameters, and keep the audit trail.
 - **`requiredRule` is a hint, not a gate.** Show "Needs manager approval" when
   it returns `large`, but still let the employee try alone: scene 2 must show
   the account itself rejecting the payment.
+- **What was spent belongs to the account, not to a rule.** A change adds the
+  new rule first and retires the old one after, so the cap keeps counting.
 - **The 30-day cap can never go below what was spent**, and the per-payment
   maximum can never be above the cap. `validateLimitsChange` checks both; call
   it before sending any change.
@@ -47,8 +50,10 @@ rules so it can explain them, prepare the parameters, and keep the audit trail.
 ## How B uses it
 
 - Building rules (R4, R6, R7, R17):
-  `toControlParams(config, 'ordinary' | 'large')`, then convert `allowlist` and
-  `maxPerPayment` (stroops) to `xdr.ScVal`.
+  `toControlParams(config, 'ordinary' | 'large')`, then convert it to
+  `xdr.ScVal` with `controlPolicyParams` in `payments.ts`.
+- Settings (R17): `settings.ts` plans the steps; `applyControlChange` in
+  `stellar.ts` runs them and saves its progress after each one.
 - Payments: `xlmToStroops` for the transfer amount.
 - R17 / R14: implement `SupplierDeps` in `stellar.ts` (`isValidAddress` with the
   SDK's StrKey, `accountExists` against testnet, `createFundedAccount` with
@@ -74,7 +79,7 @@ real `localStorage`.
 
 ## Still open
 
-- Keeping the amount spent when the 30-day cap changes **on chain** needs the
-  cap inside `control-policy` (A and B to agree; see `AGENTS.md` §3.1). Until
-  then the cap is OpenZeppelin's `spending_limit`, and this folder only keeps
-  the record.
+- The 30-day cap lives inside `control-policy` (R17, `AGENTS.md` §3.1), and
+  what was spent is kept per account on chain. A and B confirm this in the R17
+  PR; the contract must be redeployed and `PUBLIC_CONTROL_POLICY_ADDRESS`
+  updated before a change can be tried on testnet.

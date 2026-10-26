@@ -1,0 +1,262 @@
+/* Shared vocabulary for the app screens: one card, one set of buttons, fields and status pills. */
+
+.card {
+	background: var(--stone);
+	border: 1px solid var(--stone-line);
+	border-radius: 16px;
+	padding: 24px;
+}
+
+.pageHead {
+	display: grid;
+	gap: 8px;
+	margin-bottom: 32px;
+}
+
+.pageHead h1 {
+	margin: 0;
+	font-family: var(--font-display);
+	font-size: 2rem;
+	font-weight: 600;
+	line-height: 1.15;
+	letter-spacing: -0.02em;
+	color: var(--ink);
+}
+
+.pageHead p {
+	margin: 0;
+	max-width: 62ch;
+	color: var(--muted);
+	font-size: 0.9375rem;
+}
+
+.sectionTitle {
+	margin: 0;
+	font-family: var(--font-display);
+	font-size: 1.25rem;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+	color: var(--ink);
+}
+
+/* Buttons */
+
+.button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	min-height: 44px;
+	padding: 10px 18px;
+	border: 1px solid var(--outline);
+	border-radius: 10px;
+	background: var(--stock);
+	color: var(--ink);
+	font-family: var(--font-body);
+	font-size: 0.875rem;
+	font-weight: 600;
+	line-height: 1.2;
+	text-decoration: none;
+	cursor: pointer;
+	transition:
+		background-color 150ms ease,
+		border-color 150ms ease,
+		color 150ms ease,
+		transform 150ms ease;
+}
+
+.button:hover:not(:disabled) {
+	border-color: var(--ink);
+	background: var(--stock);
+}
+
+.button:active:not(:disabled) {
+	transform: scale(0.98);
+}
+
+.button:disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+
+.primary {
+	border-color: var(--ink-container);
+	background: var(--ink-container);
+	color: var(--background);
+}
+
+.primary:hover:not(:disabled) {
+	border-color: var(--ink-container);
+	background: #143a30;
+}
+
+.small {
+	min-height: 36px;
+	padding: 6px 12px;
+	font-size: 0.8125rem;
+	border-radius: 8px;
+}
+
+.button:focus-visible,
+.link:focus-visible {
+	outline: 2px solid var(--ink);
+	outline-offset: 3px;
+}
+
+.link {
+	color: var(--ink);
+	font-weight: 600;
+	text-underline-offset: 0.2em;
+	text-decoration-thickness: 1px;
+}
+
+.link:hover {
+	text-decoration-thickness: 2px;
+}
+
+/* Status pills: mono caps, one tone per meaning. */
+
+.pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 3px 10px;
+	border-radius: 999px;
+	background: var(--surface-high);
+	color: var(--body);
+	font-family: var(--font-mono);
+	font-size: 0.6875rem;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	white-space: nowrap;
+}
+
+.pillOk {
+	background: var(--ok-soft);
+	color: #324c44;
+}
+
+.pillError {
+	background: var(--alert-soft);
+	color: var(--alert-ink);
+}
+
+.pillDark {
+	background: var(--ink-container);
+	color: var(--background);
+}
+
+/* Labels over data: mono caps, muted. */
+
+.label {
+	font-family: var(--font-mono);
+	font-size: 0.6875rem;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--muted);
+}
+
+.mono {
+	font-family: var(--font-mono);
+	font-variant-numeric: tabular-nums;
+}
+
+.alert {
+	display: grid;
+	gap: 4px;
+	min-width: 0;
+	overflow-wrap: anywhere;
+	padding: 12px 14px;
+	border-radius: 12px;
+	background: var(--alert-soft);
+	color: var(--alert-ink);
+	font-size: 0.875rem;
+}
+
+.srOnly {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+
+/* Motion: state and feedback only, 150-250ms. Reduced motion keeps a plain fade. */
+
+@keyframes arrive {
+	from {
+		opacity: 0;
+		transform: translateY(6px);
+	}
+
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@keyframes pop {
+	from {
+		opacity: 0;
+		transform: scale(0.7);
+	}
+
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@keyframes fade {
+	from {
+		opacity: 0;
+	}
+
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@keyframes breathe {
+	50% {
+		opacity: 0.4;
+	}
+}
+
+.enter {
+	animation: arrive 200ms var(--ease-out) both;
+}
+
+.popIn {
+	animation: pop 220ms var(--ease-out) both;
+}
+
+.alert {
+	animation: arrive 200ms var(--ease-out) both;
+}
+
+.spinner {
+	flex: none;
+	animation: spin 800ms linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.enter,
+	.popIn,
+	.alert {
+		animation: fade 150ms ease-out both;
+	}
+
+	.spinner {
+		animation: breathe 1.2s ease-in-out infinite;
+	}
+}

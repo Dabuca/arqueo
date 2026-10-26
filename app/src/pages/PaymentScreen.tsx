@@ -1,43 +1,82 @@
-import { useEffect, useState, type FormEvent } from "react"
-import { DEFAULT_LIMITS, DEMO_AMOUNTS } from "../controls/defaults"
-import { requiredRule, ruleForSigners } from "../controls/rules"
 import {
-	installControlPolicy,
+	Check,
+	ChevronDown,
+	CircleCheck,
+	ExternalLink,
+	Minus,
+	ShieldX,
+	TriangleAlert,
+	UserRound,
+	Users,
+	X,
+} from "lucide-react"
+import { useEffect, useState, type FormEvent } from "react"
+import { Link } from "react-router-dom"
+import { Spinner, useChanged } from "../components/Spinner"
+import { DEMO_AMOUNTS } from "../controls/defaults"
+import { capShortfall, remainingCap, ruleForSigners } from "../controls/rules"
+import {
 	loadCompany,
+	loadControlsConfig,
 	pay,
-	setupLargeRule,
-	setupOrdinaryRule,
+	readControlState,
+	type ControlState,
 } from "../lib/stellar"
+import { Amount, AmountUnit } from "../components/Amount"
+import ui from "../styles/ui.module.css"
 import {
 	UNKNOWN_SUPPLIER_DEMO,
 	fieldErrors,
 	type FieldErrors,
 } from "./paymentFields"
 import { outcomeFromResult, type Outcome } from "./paymentOutcome"
+import { formatXlm } from "../controls/format"
+import { useCurrency } from "../providers/CurrencyProvider"
 import styles from "./PaymentScreen.module.css"
 
 type SignatureChoice = "employee" | "manager"
+type CheckState = "pass" | "fail" | "idle"
 
 const testnetTx = (hash: string) =>
 	`https://stellar.expert/explorer/testnet/tx/${encodeURIComponent(hash)}`
 
-const configuredSuppliers: string[] = (import.meta.env.PUBLIC_SUPPLIERS ?? "")
-	.split(",")
-	.map((address: string) => address.trim())
-	.filter(Boolean)
-
 const shortAddress = (address: string) =>
 	`${address.slice(0, 6)}…${address.slice(-5)}`
 
+function CheckIcon({ state }: { state: CheckState }) {
+	const changed = useChanged(state)
+	return (
+		<span
+			className={`${styles.checkIcon} ${changed ? ui.popIn : ""}`}
+			aria-hidden="true"
+		>
+			{state === "pass" ? (
+				<Check size={13} strokeWidth={2.4} />
+			) : state === "fail" ? (
+				<X size={13} strokeWidth={2.4} />
+			) : (
+				<Minus size={13} strokeWidth={2.4} />
+			)}
+		</span>
+	)
+}
+
 export default function PaymentScreen() {
+	const { rate } = useCurrency()
+	// What the admin set in Settings, and what the chain reports (R17, R23).
+	const [controls, setControls] = useState(() => loadControlsConfig())
+	const [chain, setChain] = useState<ControlState>()
+	const fromChain = chain?.source === "chain" ? chain : undefined
+	const limits = (fromChain?.config ?? controls).limits
+	const configuredSuppliers = (fromChain?.config ?? controls).suppliers.map(
+		(s) => s.address,
+	)
 	const [supplier, setSupplier] = useState(configuredSuppliers[0] ?? "")
 	const [customSupplier, setCustomSupplier] = useState(false)
 	const [amount, setAmount] = useState(String(DEMO_AMOUNTS.below))
 	const [concept, setConcept] = useState("")
 	const [signature, setSignature] = useState<SignatureChoice>("employee")
 	const [busy, setBusy] = useState(false)
-	const [setupHash, setSetupHash] = useState<string>()
-	const [setupError, setSetupError] = useState<string>()
 	const [outcome, setOutcome] = useState<Outcome>()
 	const [errors, setErrors] = useState<FieldErrors>({})
 	const clearError = (field: keyof FieldErrors) =>
@@ -45,10 +84,25 @@ export default function PaymentScreen() {
 
 	const [company, setCompany] = useState(() => loadCompany())
 	useEffect(() => {
-		const refreshCompany = () => setCompany(loadCompany())
-		window.addEventListener("arqueo:company-updated", refreshCompany)
-		return () =>
-			window.removeEventListener("arqueo:company-updated", refreshCompany)
+		let cancelled = false
+		const refresh = () => {
+			setCompany(loadCompany())
+			setControls(loadControlsConfig())
+			readControlState()
+				.then((state) => {
+					if (!cancelled) setChain(state)
+				})
+				.catch(() => undefined)
+		}
+		refresh()
+		// A payment changes what is left of the cap; a setup or a settings change
+		// changes the limits.
+		const events = ["arqueo:company-updated", "arqueo:payment-recorded"]
+		events.forEach((name) => window.addEventListener(name, refresh))
+		return () => {
+			cancelled = true
+			events.forEach((name) => window.removeEventListener(name, refresh))
+		}
 	}, [])
 	const numericAmount = Number(amount)
 	const amountIsValid = Number.isFinite(numericAmount) && numericAmount > 0
@@ -57,9 +111,6 @@ export default function PaymentScreen() {
 			? (["employee"] as const)
 			: (["employee", "manager"] as const)
 	const selectedRule = ruleForSigners([...signers])
-	const suggestedRule = amountIsValid
-		? requiredRule(numericAmount, DEFAULT_LIMITS, 0)
-		: "ordinary"
 	const recipient = supplier
 	const ordinaryReady = company?.rules?.ordinary !== undefined
 	const largeReady = company?.rules?.large !== undefined
@@ -75,34 +126,6 @@ export default function PaymentScreen() {
 		} else if (configuredSuppliers[0]) {
 			setCustomSupplier(false)
 			setSupplier(configuredSuppliers[0])
-		}
-	}
-
-	const prepareRule = async (setup: () => Promise<{ hash?: string }>) => {
-		setBusy(true)
-		setSetupError(undefined)
-		try {
-			const result = await setup()
-			setSetupHash(result.hash)
-			setCompany(loadCompany())
-		} catch (error) {
-			setSetupError(error instanceof Error ? error.message : String(error))
-		} finally {
-			setBusy(false)
-		}
-	}
-
-	// Accounts created before the policy was configured need it added to their rule.
-	const addControlPolicy = async () => {
-		setBusy(true)
-		setSetupError(undefined)
-		try {
-			await installControlPolicy()
-			setCompany(loadCompany())
-		} catch (error) {
-			setSetupError(error instanceof Error ? error.message : String(error))
-		} finally {
-			setBusy(false)
 		}
 	}
 
@@ -132,31 +155,107 @@ export default function PaymentScreen() {
 	}
 
 	const canSubmit = Boolean(company) && ruleReady && !busy
+	// The account is prepared in the Company account card; the form only says what is missing.
+	const actionNote = !company
+		? "Create the company account above to enable payments."
+		: !ordinaryReady
+			? "Set up the ordinary rule in the Company account card first."
+			: signature === "manager" && !largeReady
+				? "Set up the manager rule in the Company account card first."
+				: "The account checks this before submission."
+
+	// A hint only: the account decides on-chain. Mirrors the checks of the ordinary and large rules.
+	const trimmedRecipient = recipient.trim()
+	const listed =
+		configuredSuppliers.length > 0 && trimmedRecipient
+			? configuredSuppliers.includes(trimmedRecipient)
+			: undefined
+	const underLimit = amountIsValid
+		? numericAmount <= limits.maxPerPayment
+		: undefined
+	// What is left of the cap is only known when the chain could be read.
+	const cap = limits.cap30d
+	const left = fromChain ? remainingCap(limits, fromChain.spentXlm) : undefined
+	const overCap =
+		fromChain && amountIsValid
+			? capShortfall(numericAmount, limits, fromChain.spentXlm)
+			: undefined
+	const stateOf = (ok: boolean | undefined): CheckState =>
+		ok === undefined ? "idle" : ok ? "pass" : "fail"
+	const checks: { label: string; detail?: string; state: CheckState }[] = [
+		{
+			label: "Supplier is on the allowlist",
+			state: stateOf(listed),
+			detail:
+				listed === false
+					? "The account refuses unlisted accounts."
+					: configuredSuppliers.length === 0
+						? "No supplier list in this build."
+						: !trimmedRecipient
+							? "Choose or paste a supplier."
+							: undefined,
+		},
+		signature === "manager"
+			? { label: "No per-payment limit on the large rule", state: "pass" }
+			: {
+					label: `Within ${formatXlm(limits.maxPerPayment, rate)} XLM per payment`,
+					state: stateOf(underLimit),
+					detail:
+						underLimit === false
+							? "Add the manager's signature to go above it."
+							: undefined,
+				},
+		...(signature === "manager"
+			? []
+			: [
+					{
+						label:
+							left === undefined
+								? `Within ${formatXlm(cap, rate)} XLM every ${limits.periodDays} days`
+								: `Within what is left of the ${formatXlm(cap, rate)} XLM ${limits.periodDays}-day cap`,
+						state:
+							overCap === undefined
+								? ("idle" as const)
+								: overCap === 0
+									? ("pass" as const)
+									: ("fail" as const),
+						detail:
+							left === undefined
+								? "Spending is checked on-chain."
+								: overCap
+									? left === 0
+										? `The cap is used up. Add the manager's signature to pay ${formatXlm(overCap, rate)} XLM.`
+										: `${formatXlm(overCap, rate)} XLM over what is left (${formatXlm(left, rate)} of ${formatXlm(cap, rate)} XLM). Add the manager's signature to go above it.`
+									: `${formatXlm(left, rate)} of ${formatXlm(cap, rate)} XLM left this period.`,
+					},
+				]),
+		{
+			label:
+				signature === "manager"
+					? "Signed by employee and manager"
+					: "Signed by employee",
+			state: "pass",
+		},
+	]
 
 	return (
 		<section className={styles.screen} aria-labelledby="payment-title">
 			<div className={styles.heading}>
-				<div>
-					<h2 id="payment-title">Prepare a payment</h2>
-					<p className={styles.intro}>
-						The account checks the supplier, amount and signatures before
-						anything leaves the treasury.
-					</p>
-				</div>
-				<span className={styles.network}>STELLAR TESTNET</span>
+				<h2 id="payment-title" className={ui.sectionTitle}>
+					Prepare a payment
+				</h2>
+				<p>
+					The account checks the supplier, amount and signatures before anything
+					leaves the treasury.
+				</p>
 			</div>
 
 			<div className={styles.workspace}>
 				<form
-					className={styles.form}
+					className={`${ui.card} ${styles.form}`}
 					noValidate
 					onSubmit={(event) => void submitPayment(event)}
 				>
-					<div className={styles.formTopline}>
-						<span>Payment instruction</span>
-						<span>Draft · XLM</span>
-					</div>
-
 					<div className={styles.field}>
 						<label htmlFor="payment-supplier">Supplier account</label>
 						{configuredSuppliers.length > 0 && !customSupplier ? (
@@ -179,7 +278,12 @@ export default function PaymentScreen() {
 									))}
 									<option value="__custom__">Enter another account…</option>
 								</select>
-								<span aria-hidden="true" className={styles.selectMark} />
+								<ChevronDown
+									className={styles.selectMark}
+									size={18}
+									strokeWidth={1.8}
+									aria-hidden="true"
+								/>
 							</div>
 						) : (
 							<div className={styles.addressInput}>
@@ -197,7 +301,7 @@ export default function PaymentScreen() {
 								{configuredSuppliers.length > 0 && (
 									<button
 										type="button"
-										className={styles.subtleButton}
+										className={`${ui.button} ${ui.small}`}
 										onClick={() => {
 											setCustomSupplier(false)
 											setSupplier(configuredSuppliers[0] ?? "")
@@ -267,65 +371,77 @@ export default function PaymentScreen() {
 
 					<fieldset className={styles.signers}>
 						<legend>Who will sign this instruction?</legend>
-						<label
-							className={signature === "employee" ? styles.signerActive : ""}
-						>
-							<input
-								type="radio"
-								name="signatures"
-								value="employee"
-								checked={signature === "employee"}
-								onChange={() => setSignature("employee")}
-							/>
-							<span className={styles.signerSeal} aria-hidden="true">
-								E
-							</span>
-							<span className={styles.signerCopy}>
-								<strong>Employee</strong>
-								<small>Single signature</small>
-							</span>
-							<span className={styles.signerCheck} aria-hidden="true" />
-						</label>
-						<label
-							className={signature === "manager" ? styles.signerActive : ""}
-						>
-							<input
-								type="radio"
-								name="signatures"
-								value="manager"
-								checked={signature === "manager"}
-								onChange={() => setSignature("manager")}
-							/>
-							<span
-								className={`${styles.signerSeal} ${styles.managerSeal}`}
-								aria-hidden="true"
+						<div className={styles.signerOptions}>
+							<label
+								className={signature === "employee" ? styles.signerActive : ""}
 							>
-								<span>M</span>
-							</span>
-							<span className={styles.signerCopy}>
-								<strong>Employee + manager</strong>
-								<small>Two signatures required</small>
-							</span>
-							<span className={styles.signerCheck} aria-hidden="true" />
-						</label>
+								<input
+									type="radio"
+									name="signatures"
+									value="employee"
+									checked={signature === "employee"}
+									onChange={() => setSignature("employee")}
+								/>
+								<span className={styles.signerIcon} aria-hidden="true">
+									<UserRound size={18} strokeWidth={1.8} />
+								</span>
+								<span className={styles.signerCopy}>
+									<strong>Employee</strong>
+									<small>Single signature</small>
+								</span>
+								<Check
+									className={styles.signerCheck}
+									size={16}
+									strokeWidth={2.2}
+									aria-hidden="true"
+								/>
+							</label>
+							<label
+								className={signature === "manager" ? styles.signerActive : ""}
+							>
+								<input
+									type="radio"
+									name="signatures"
+									value="manager"
+									checked={signature === "manager"}
+									onChange={() => setSignature("manager")}
+								/>
+								<span className={styles.signerIcon} aria-hidden="true">
+									<Users size={18} strokeWidth={1.8} />
+								</span>
+								<span className={styles.signerCopy}>
+									<strong>Employee + manager</strong>
+									<small>Two signatures required</small>
+								</span>
+								<Check
+									className={styles.signerCheck}
+									size={16}
+									strokeWidth={2.2}
+									aria-hidden="true"
+								/>
+							</label>
+						</div>
 					</fieldset>
 
 					<div className={styles.quickAmounts} aria-label="Demo scenarios">
-						<span>Try a scene</span>
+						<span className={ui.label}>Try a scene</span>
 						<button
 							type="button"
+							className={`${ui.button} ${ui.small}`}
 							onClick={() => pickScenario(DEMO_AMOUNTS.below)}
 						>
 							Within limit <b>{DEMO_AMOUNTS.below}</b>
 						</button>
 						<button
 							type="button"
+							className={`${ui.button} ${ui.small}`}
 							onClick={() => pickScenario(DEMO_AMOUNTS.above)}
 						>
 							Needs approval <b>{DEMO_AMOUNTS.above}</b>
 						</button>
 						<button
 							type="button"
+							className={`${ui.button} ${ui.small}`}
 							onClick={() => pickScenario(DEMO_AMOUNTS.unknown, true)}
 						>
 							Unknown supplier <b>{DEMO_AMOUNTS.unknown}</b>
@@ -333,190 +449,160 @@ export default function PaymentScreen() {
 					</div>
 
 					<div className={styles.actions}>
-						{!ordinaryReady ? (
-							<button
-								className={styles.primary}
-								type="button"
-								onClick={() => void prepareRule(setupOrdinaryRule)}
-								disabled={busy || !company}
-							>
-								{busy ? "Preparing account…" : "Set up payment rule"}
-							</button>
-						) : (
-							<button
-								className={styles.primary}
-								type="submit"
-								disabled={!canSubmit}
-							>
-								{busy ? "Checking account rules…" : "Simulate & pay"}
-							</button>
-						)}
-						<span className={styles.actionNote}>
-							{company
-								? ordinaryReady
-									? "The account checks this before submission."
-									: "Add the ordinary rule before sending a payment."
-								: "Create a company account above to enable payments."}
-						</span>
+						<button
+							className={`${ui.button} ${ui.primary}`}
+							type="submit"
+							disabled={!canSubmit}
+						>
+							{busy && <Spinner />}
+							{busy ? "Checking account rules…" : "Simulate & pay"}
+						</button>
+						<span className={styles.actionNote}>{actionNote}</span>
 					</div>
-					{ordinaryReady && signature === "manager" && !largeReady && (
-						<p>
-							<button
-								className={styles.primary}
-								type="button"
-								onClick={() => void prepareRule(setupLargeRule)}
-								disabled={busy || !company}
-							>
-								{busy
-									? "Preparing manager rule…"
-									: "Set up manager rule (admin passkey)"}
-							</button>
-						</p>
-					)}
-					{ordinaryReady && company && !company.controlPolicy && (
-						<p>
-							<button
-								className={styles.primary}
-								type="button"
-								onClick={() => void addControlPolicy()}
-								disabled={busy}
-							>
-								{busy
-									? "Adding supplier list…"
-									: "Add supplier list to ordinary rule (admin passkey)"}
-							</button>
-						</p>
-					)}
-					{setupError && (
-						<p className={styles.inlineError} role="alert">
-							{setupError}
-						</p>
-					)}
 				</form>
 
-				<aside className={styles.receipt} aria-label="Account rule preview">
-					<div className={styles.receiptHead}>
-						<span className={styles.receiptLight} />
-						<span>ARQUEO · CONTROL SLIP</span>
-						<span>TESTNET</span>
+				<aside
+					className={`${ui.card} ${styles.preview}`}
+					aria-label="Rule preview"
+				>
+					<div className={styles.previewHead}>
+						<h3>Rule preview</h3>
+						<span
+							className={`${ui.pill} ${selectedRule === "large" ? ui.pillDark : ui.pillOk}`}
+						>
+							{selectedRule ?? "—"}
+						</span>
 					</div>
-					<div className={styles.slip}>
-						<div className={styles.slipTitle}>
-							<span>Rule preview</span>
-							<strong>{selectedRule ?? "—"}</strong>
+					<div className={styles.summary}>
+						<span className={styles.amountFigure}>
+							{amountIsValid ? <Amount xlm={numericAmount} /> : "—"}
+							<small>
+								<AmountUnit />
+							</small>
+						</span>
+						<span className={styles.summaryTo}>
+							{recipient ? (
+								<>
+									to <span className={ui.mono}>{shortAddress(recipient)}</span>
+								</>
+							) : (
+								"No supplier chosen"
+							)}
+						</span>
+						{concept.trim() && (
+							<span className={styles.summaryConcept}>{concept.trim()}</span>
+						)}
+					</div>
+
+					<div className={styles.tear} aria-hidden="true">
+						<span />
+						<span />
+					</div>
+
+					<ul className={styles.checks} aria-label="Rule checks, preview">
+						{checks.map((check) => (
+							<li key={check.label} data-state={check.state}>
+								<CheckIcon state={check.state} />
+								<span className={styles.checkText}>
+									{check.label}
+									<span className={ui.srOnly}>
+										{check.state === "pass"
+											? ": passes"
+											: check.state === "fail"
+												? ": fails"
+												: ": not checked here"}
+									</span>
+									{check.detail && (
+										<span className={styles.checkDetail}>{check.detail}</span>
+									)}
+								</span>
+							</li>
+						))}
+					</ul>
+					<p className={styles.previewNote}>
+						Preview only. The account decides when you submit.
+					</p>
+
+					{!company ? (
+						<div className={styles.resultEmpty}>
+							<strong>Awaiting company account</strong>
+							<span>
+								Create the treasury above to prepare a signed instruction.
+							</span>
 						</div>
-						<dl>
-							<div>
-								<dt>PAY TO</dt>
-								<dd>
-									{recipient ? shortAddress(recipient) : "Choose a supplier"}
-								</dd>
-							</div>
-							<div>
-								<dt>AMOUNT</dt>
-								<dd>
-									{amountIsValid
-										? numericAmount.toLocaleString("en-US", {
-												maximumFractionDigits: 7,
-											})
-										: "—"}{" "}
-									XLM
-								</dd>
-							</div>
-							<div>
-								<dt>CONCEPT</dt>
-								<dd>{concept.trim() || "Add a concept"}</dd>
-							</div>
-							<div>
-								<dt>CONTROL</dt>
-								<dd>
-									{suggestedRule === "ordinary"
-										? "Within ordinary limit"
-										: "Manager approval indicated"}
-								</dd>
-							</div>
-							<div>
-								<dt>SIGNERS</dt>
-								<dd>{signers.join(" + ")}</dd>
-							</div>
-						</dl>
-						<p className={styles.ruleNote}>
-							{suggestedRule === "ordinary"
-								? `Ordinary allows up to ${DEFAULT_LIMITS.maxPerPayment} XLM per payment.`
-								: "The amount exceeds the ordinary limit. The account decides whether these signatures satisfy its large rule."}
-						</p>
-						<div className={styles.perforation} aria-hidden="true" />
-						{!company ? (
-							<div className={styles.resultEmpty}>
-								<strong>Awaiting company account</strong>
-								<span>
-									Create the treasury above to prepare a signed instruction.
-								</span>
-							</div>
-						) : outcome ? (
-							<div
-								className={`${styles.result} ${styles[outcome.kind]}`}
-								aria-live="polite"
-							>
-								<strong>
-									{outcome.kind === "accepted"
-										? "PAYMENT ACCEPTED"
-										: outcome.kind === "rejected"
-											? "RULE REJECTED"
-											: "PAYMENT NOT SENT"}
-								</strong>
+					) : outcome ? (
+						<div
+							className={`${styles.result} ${styles[outcome.kind]}`}
+							aria-live="polite"
+						>
+							<strong>
 								{outcome.kind === "accepted" ? (
-									<a
-										href={testnetTx(outcome.hash)}
-										target="_blank"
-										rel="noreferrer"
-									>
-										View transaction ↗
-									</a>
+									<CircleCheck size={18} strokeWidth={1.8} aria-hidden="true" />
+								) : outcome.kind === "rejected" ? (
+									<ShieldX size={18} strokeWidth={1.8} aria-hidden="true" />
 								) : (
-									<>
-										<span>
-											{outcome.kind === "rejected"
-												? outcome.reason
-												: outcome.message}
-										</span>
-										{outcome.kind === "rejected" && outcome.details && (
-											<details>
-												<summary>Details</summary>
-												<code>{outcome.details}</code>
-											</details>
-										)}
-									</>
+									<TriangleAlert
+										size={18}
+										strokeWidth={1.8}
+										aria-hidden="true"
+									/>
 								)}
-							</div>
-						) : (
-							<div className={styles.resultEmpty}>
-								<strong>
-									{ordinaryReady
-										? "Ready for account review"
-										: "Ordinary rule needs setup"}
-								</strong>
-								<span>
-									{ordinaryReady
-										? "Simulation and signature result will print here."
-										: "Install the employee rule, then submit for a simulation."}
-								</span>
-							</div>
-						)}
-						{setupHash && (
-							<a
-								className={styles.setupLink}
-								href={testnetTx(setupHash)}
-								target="_blank"
-								rel="noreferrer"
-							>
-								Ordinary rule transaction ↗
-							</a>
-						)}
-					</div>
-					<p className={styles.receiptFoot}>
-						A failed simulation is logged here. Stellar enforces the same rules
-						on-chain.
+								{outcome.kind === "accepted"
+									? "Payment accepted"
+									: outcome.kind === "rejected"
+										? "Refused by the account rules"
+										: "Payment not sent"}
+							</strong>
+							{outcome.kind === "accepted" ? (
+								<a
+									className={styles.resultLink}
+									href={testnetTx(outcome.hash)}
+									target="_blank"
+									rel="noreferrer"
+								>
+									View transaction
+									<ExternalLink
+										size={14}
+										strokeWidth={1.8}
+										aria-hidden="true"
+									/>
+								</a>
+							) : (
+								<>
+									<span>
+										{outcome.kind === "rejected"
+											? outcome.reason
+											: outcome.message}
+									</span>
+									{outcome.kind === "rejected" && outcome.details && (
+										<details>
+											<summary>Details</summary>
+											<code>{outcome.details}</code>
+										</details>
+									)}
+								</>
+							)}
+						</div>
+					) : (
+						<div className={styles.resultEmpty}>
+							<strong>
+								{ordinaryReady
+									? "Ready for account review"
+									: "Ordinary rule needs setup"}
+							</strong>
+							<span>
+								{ordinaryReady
+									? "The simulation result will appear here."
+									: "Set up the ordinary rule in the Company account card."}
+							</span>
+						</div>
+					)}
+					<p className={styles.foot}>
+						Refused attempts are logged in the{" "}
+						<Link className={ui.link} to="/auditor">
+							auditor journal
+						</Link>
+						.
 					</p>
 				</aside>
 			</div>

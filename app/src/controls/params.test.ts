@@ -18,14 +18,18 @@ describe("toControlParams", () => {
 	it("ordinary carries the supplier addresses and the per-payment maximum in stroops", () => {
 		expect(toControlParams(config, "ordinary")).toStrictEqual({
 			allowlist: [ADDRESS_A, ADDRESS_B],
+			capPerPeriod: 10_000_000_000n,
 			maxPerPayment: 5_000_000_000n,
+			periodLedgers: 30 * 17_280,
 		})
 	})
 
 	it("large carries the supplier addresses and no maximum", () => {
 		expect(toControlParams(config, "large")).toStrictEqual({
 			allowlist: [ADDRESS_A, ADDRESS_B],
+			capPerPeriod: null,
 			maxPerPayment: null,
+			periodLedgers: 0,
 		})
 	})
 
@@ -37,6 +41,16 @@ describe("toControlParams", () => {
 		expect(toControlParams(changed, "ordinary").maxPerPayment).toBe(
 			125_000_000n,
 		)
+	})
+
+	it("ordinary follows the cap and the period the admin set", () => {
+		const changed: ControlsConfig = {
+			...config,
+			limits: { maxPerPayment: 100, cap30d: 2_500.5, periodDays: 7 },
+		}
+		const params = toControlParams(changed, "ordinary")
+		expect(params.capPerPeriod).toBe(25_005_000_000n)
+		expect(params.periodLedgers).toBe(7 * 17_280)
 	})
 
 	it("keeps the suppliers in the order of the list, as bare addresses", () => {

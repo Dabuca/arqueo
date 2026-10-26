@@ -1,0 +1,33 @@
+/* Arqueo design tokens: the landing's palette and type, shared by the app screens.
+   Warm paper, deep green ink, stone cards. Red is only for a refused payment or an error. */
+
+:root {
+	--background: #fbf9f6;
+	--surface-low: #f5f3f0;
+	--surface: #efeeeb;
+	--surface-high: #eae8e5;
+	--stock: #ffffff;
+	--stone: #faf8f5;
+	--stone-line: #e2ded4;
+
+	--ink: #00110c;
+	--ink-container: #0d2821;
+	--muted: #635e50;
+	--body: #424845;
+	--outline: #c1c8c4;
+	--line: rgb(193 200 196 / 60%);
+
+	--ok: #009e6d;
+	--ok-ink: #00694a;
+	--ok-soft: #cbe9de;
+	--alert: #ba1a1a;
+	--alert-ink: #93000a;
+	--alert-soft: #ffdad6;
+	--sand: #eae2cf;
+
+	--font-display: "Space Grotesk", system-ui, sans-serif;
+	--font-body: "Plus Jakarta Sans", system-ui, sans-serif;
+	--font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+	--ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}

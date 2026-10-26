@@ -1,5 +1,8 @@
 import { type ControlsConfig, type Limits } from "./types"
 
+/** Ledgers per day on Stellar (about 5 seconds each). Matches the kit's constant. */
+export const LEDGERS_PER_DAY = 17_280
+
 export const DEFAULT_LIMITS: Limits = {
 	maxPerPayment: 500,
 	cap30d: 1000,

@@ -30,36 +30,47 @@ import { Link } from "react-router-dom"
 // Logo asset derived from the brand file arqueo1.jpeg: the symbol with a cream ground.
 import { BrandOrbit } from "../components/BrandOrbit"
 import { OrbitRings, OrbitSystem } from "../components/OrbitField"
+import { SiteFooter } from "../components/SiteFooter"
 import symbol from "../images/arqueo-symbol.jpg"
+import treasury from "../images/arqueo-treasury.png"
 import styles from "./Landing.module.css"
 
 const REPO_URL = "https://github.com/Dabuca/arqueo"
 
-// Illustrative figures for the dashboard preview, matching the four demo scenes.
-const STATS = [
-	["Balance", "4,820 XLM"],
-	["Spent, last 30 days", "1,000 / 1,000"],
-	["Refused attempts", "2"],
-	["Allowlisted suppliers", "3"],
-] as const
-
-const LEDGER = [
-	{ to: "Supplier 1", amount: "200", signers: "Employee", rule: "Ordinary", settled: true, status: "Settled" },
-	{ to: "Unknown account", amount: "100", signers: "Employee", rule: "Ordinary", settled: false, status: "Refused: not allowlisted" },
-	{ to: "Supplier 2", amount: "2,000", signers: "Employee", rule: "Ordinary", settled: false, status: "Refused: over 500 per payment" },
-	{ to: "Supplier 2", amount: "800", signers: "Employee + Manager", rule: "Large", settled: true, status: "Settled" },
+const BENEFITS: { icon: IconName; title: string; body: string }[] = [
+	{
+		icon: "ruleDualControl",
+		title: "No single person moves it all",
+		body: "Limits and approved suppliers live in the account. An employee pays within them, and a manager signs what goes above.",
+	},
+	{
+		icon: "rules",
+		title: "Rules instead of chat approvals",
+		body: "The account decides whether a payment has the signatures and the limits it needs, before it executes.",
+	},
+	{
+		icon: "audit",
+		title: "An audit trail with the refusals",
+		body: "The auditor reads paid and refused attempts, each with its transaction, and exports them as CSV.",
+	},
 ]
 
-const STATUS_QUO = [
-	"Whoever holds the key can move every balance in one transaction.",
-	"Approvals arrive as messages in a group chat.",
-	"The auditor receives screenshots weeks later.",
-]
-
-const WITH_ARQUEO = [
-	"The account refuses payments that break its rules, before they execute.",
-	"Larger payments need a second signature the account itself requires.",
-	"Every payment and every refused attempt is recorded with its transaction.",
+const HOLD_BLOCKERS: { icon: IconName; question: string; answer: string }[] = [
+	{
+		icon: "ruleDualControl",
+		question: "Can one person move everything?",
+		answer: "No. Limits and approved suppliers sit in the account, and larger payments need a second signature.",
+	},
+	{
+		icon: "verified",
+		question: "Who approved this payment?",
+		answer: "The signers are part of each transaction, so the approval is on the record instead of in a chat.",
+	},
+	{
+		icon: "audit",
+		question: "Where is the evidence?",
+		answer: "Paid and refused attempts are logged with their transactions, and the auditor exports them as CSV.",
+	},
 ]
 
 const ROLES: { role: string; signs: string; icon: IconName; does: string }[] = [
@@ -261,11 +272,12 @@ export default function Landing() {
 					<BrandOrbit className={styles.heroOrbit} />
 					<div className={styles.heroInner}>
 						<div className={styles.pitch}>
-							<h1>Payment governance, programmed into your account.</h1>
+							<h1>A stablecoin treasury that enforces its own payment rules.</h1>
 							<p className={styles.lead}>
-								Your approval matrix becomes rules on a Stellar smart account. A
-								payment that breaks them is refused before it executes, and every
-								attempt is recorded.
+								Arqueo turns your approval rules into controls on a Stellar smart
+								account. Payments follow your limits and approved suppliers, and
+								every attempt, paid or refused, leaves a record the auditor can
+								check.
 							</p>
 							<div className={styles.actions}>
 								<Link to="/app" className={styles.primary}>
@@ -279,102 +291,41 @@ export default function Landing() {
 							</div>
 						</div>
 
-						<figure className={styles.product} aria-label="Illustrative view of the Arqueo payments dashboard">
+						<figure className={styles.product} aria-label="Screenshot of the Arqueo app">
 							<div className={styles.chrome} aria-hidden="true">
 								<span />
 								<span />
 								<span />
 								<span className={styles.url}>arqueo · stellar testnet</span>
 							</div>
-							<div className={styles.appBody}>
-								<aside className={styles.sidebar} aria-hidden="true">
-									<div className={styles.sideBrand}>
-										<img src={symbol} alt="" width={22} height={22} className={styles.sideSymbol} />
-										Arqueo
-									</div>
-									<span className={styles.sideItemActive}><Icon name="payments" className={styles.sideIcon} />Payments</span>
-									<span className={styles.sideItem}><Icon name="rules" className={styles.sideIcon} />Rules</span>
-									<span className={styles.sideItem}><Icon name="suppliers" className={styles.sideIcon} />Suppliers</span>
-									<span className={styles.sideItem}><Icon name="audit" className={styles.sideIcon} />Audit log</span>
-								</aside>
-								<div className={styles.appMain}>
-									<div className={styles.appTop}>
-										<span className={styles.appTitle}>Payments</span>
-										<span className={styles.pillDark}>New payment</span>
-									</div>
-									<dl className={styles.stats}>
-										{STATS.map(([label, value]) => (
-											<div key={label} className={styles.stat}>
-												<dt>{label}</dt>
-												<dd>{value}</dd>
-											</div>
-										))}
-									</dl>
-									<div className={styles.tableWrap}>
-										<table className={styles.ledger}>
-											<caption className={styles.srOnly}>Recent payments</caption>
-											<thead>
-												<tr>
-													<th scope="col">Recipient</th>
-													<th scope="col">Amount</th>
-													<th scope="col">Signed by</th>
-													<th scope="col">Rule</th>
-													<th scope="col">Status</th>
-												</tr>
-											</thead>
-											<tbody>
-												{LEDGER.map((row) => (
-													<tr key={`${row.to}-${row.amount}`}>
-														<td>{row.to}</td>
-														<td className={styles.num}>{row.amount} XLM</td>
-														<td>{row.signers}</td>
-														<td>{row.rule}</td>
-														<td>
-															<span className={row.settled ? styles.pillOk : styles.pillError}>
-																{row.status}
-															</span>
-														</td>
-													</tr>
-												))}
-											</tbody>
-										</table>
-									</div>
-								</div>
-							</div>
+								<img
+									src={treasury}
+									alt="The Arqueo treasury screen: a payment form with the live rule preview"
+									width={1216}
+									height={656}
+									className={styles.shot}
+								/>
 						</figure>
 					</div>
 				</section>
 
-				<section id="solution" className={styles.diagnostic} aria-labelledby="solution-title">
+				<section id="solution" className={styles.diagnostic} aria-labelledby="audience-title">
 					<OrbitSystem variant="single" className={styles.orbitBg} x="82%" y="26%" />
 					<div className={styles.sectionHead}>
-						<h2 id="solution-title">One key should not move all the money.</h2>
+						<h2 id="audience-title">Built for teams that share a treasury</h2>
+						<p>
+							SMEs, startups and associations that hold stablecoins and need
+							more than one person in control of them.
+						</p>
 					</div>
-					<div className={styles.twoCols}>
-						<article className={styles.card}>
-							<span className={styles.pillError}>Today</span>
-							<h3>Single key, chat approvals</h3>
-							<ul className={styles.bullets}>
-								{STATUS_QUO.map((line) => (
-									<li key={line}>
-										<Icon name="cancel" className={styles.iconError} />
-										<span>{line}</span>
-									</li>
-								))}
-							</ul>
-						</article>
-						<article className={`${styles.card} ${styles.cardStrong}`}>
-							<span className={styles.pillOk}>With Arqueo</span>
-							<h3>Rules the account enforces</h3>
-							<ul className={styles.bullets}>
-								{WITH_ARQUEO.map((line) => (
-									<li key={line}>
-										<Icon name="check" className={styles.iconOk} />
-										<span>{line}</span>
-									</li>
-								))}
-							</ul>
-						</article>
+					<div className={styles.threeCols}>
+						{BENEFITS.map(({ icon, title, body }) => (
+							<article key={title} className={styles.card}>
+								<Icon name={icon} className={styles.cardIcon} />
+								<h3>{title}</h3>
+								<p>{body}</p>
+							</article>
+						))}
 					</div>
 				</section>
 
@@ -482,6 +433,25 @@ export default function Landing() {
 					</div>
 				</section>
 
+				<section className={styles.blockers} aria-labelledby="stellar-title">
+					<div className={styles.sectionHead}>
+						<h2 id="stellar-title">What stops a team from keeping its treasury on Stellar</h2>
+						<p>
+							Partners, a board or an auditor ask these questions before funds go
+							on-chain. The account answers them.
+						</p>
+					</div>
+					<ol className={styles.questions}>
+						{HOLD_BLOCKERS.map(({ icon, question, answer }) => (
+							<li key={question}>
+								<Icon name={icon} className={styles.questionIcon} />
+								<h3>{question}</h3>
+								<p>{answer}</p>
+							</li>
+						))}
+					</ol>
+				</section>
+
 				<section id="architecture" className={styles.architecture} aria-labelledby="arch-title">
 					<div className={styles.sectionHead}>
 						<h2 id="arch-title">What it is built on</h2>
@@ -579,17 +549,7 @@ export default function Landing() {
 				</section>
 			</main>
 
-			<footer className={styles.footer}>
-				<div className={styles.footerInner}>
-					<p>© 2026 Arqueo. Built by Maker-Checker for HackMeridian 2026.</p>
-					<nav className={styles.footerNav} aria-label="Footer">
-						<a href="#architecture">Docs</a>
-						<a href={REPO_URL} target="_blank" rel="noreferrer">
-							Source code
-						</a>
-					</nav>
-				</div>
-			</footer>
+			<SiteFooter docsHref="#architecture" />
 		</div>
 	)
 }

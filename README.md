@@ -1,10 +1,7 @@
 <!--
 PENDING before submission (R10). Each gap is marked TODO(R10) below. Remove this block when done.
-- Failed on-chain tx hashes for scenes 2 and 3, and testnet verification of scene 3: from B and A.
-- Scene 4 screenshot or video timestamp: from C.
-- Smart account ID: from B (R3 creates it in each browser; the repo does not record it).
-- control-policy contract ID: from A (no deployment recorded in the repo or scaffold.yml).
-- App URL (C, R15), video URL (D) and design screenshots (C).
+- App URL (R15, needs the team's Vercel account), video URL (D) and design screenshots (C).
+- Optional: a deliberately sent, failed on-chain transaction for scenes 2 and 3 (B).
 - Final pass after the 20:00 freeze (D).
 -->
 
@@ -46,39 +43,43 @@ The MVP is done when these four scenes run on testnet from start to finish.
 Amounts depend on the limits the admin sets. With the defaults (500 XLM per
 payment, 1,000 XLM per 30 days) the demo uses 200, 800 and 100 XLM.
 
-| #   | Scene                                                                                    | What happens                                                                                                                                            | Proof (stellar.expert, testnet)                                                                                                                               |
-| --- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Payment below the per-payment maximum, to an authorized supplier, signed by the employee | Accepted by rule `ordinary`                                                                                                                             | [`f7af3add…7ee12a8e`](https://stellar.expert/explorer/testnet/tx/f7af3add0b4141f5caf9ced34c718e5ba7848265dcdb9fbc9520d7077ee12a8e), 200 XLM, ledger 5,385,825 |
-| 2   | Payment above the maximum, signed only by the employee                                   | Rejected by `control-policy` with error 2 (`AmountOverLimit`): the simulation fails, and one rejected transaction is sent on purpose and fails on chain | Simulation rejected with error 2 (800 XLM, employee only; reported in `AGENTS.md` R7). <!-- TODO(R10): failed tx hash (B) -->                                 |
-| 2b  | Same payment, signed by employee and manager                                             | Accepted by rule `large`                                                                                                                                | [`03784fdb…63f711d2`](https://stellar.expert/explorer/testnet/tx/03784fdb5d38537fc92f82e30754a942af5204b740b4335937ddd45763f711d2), 800 XLM, ledger 5,386,036 |
-| 3   | Payment to an account that is not on the supplier list                                   | Rejected by `control-policy` with error 1 (`SupplierNotAllowed`), with its failed transaction                                                           | <!-- TODO(R10): failed tx hash; scene 3 still needs end-to-end testnet verification (B) -->                                                                   |
-| 4   | The auditor opens the payment list                                                       | Sees every payment, including rejected attempts, and downloads a CSV                                                                                    | <!-- TODO(R10): screenshot or video timestamp (C, after R9/R11) -->                                                                                           |
+| #   | Scene                                                                                    | What happens                                                                               | Proof (testnet)                                                                                                                                                          |
+| --- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Payment below the per-payment maximum, to an authorized supplier, signed by the employee | Accepted by rule `ordinary`                                                                | [`f7af3add…7ee12a8e`](https://stellar.expert/explorer/testnet/tx/f7af3add0b4141f5caf9ced34c718e5ba7848265dcdb9fbc9520d7077ee12a8e), 200 XLM, ledger 5,385,825            |
+| 2   | Payment above the maximum, signed only by the employee                                   | Refused by `control-policy` with error 2 (`AmountOverLimit`): "manager approval required"  | Refused when the transaction is simulated, so it has no hash (800 XLM, reported in `AGENTS.md` R7). <!-- TODO(R10): optional failed on-chain tx, sent on purpose (B) --> |
+| 2b  | Same payment, signed by employee and manager                                             | Accepted by rule `large`                                                                   | [`03784fdb…63f711d2`](https://stellar.expert/explorer/testnet/tx/03784fdb5d38537fc92f82e30754a942af5204b740b4335937ddd45763f711d2), 800 XLM, ledger 5,386,036            |
+| 3   | Payment to an account that is not on the supplier list                                   | Refused by `control-policy` with error 1 (`SupplierNotAllowed`)                            | [docs/evidence-R6-scene3.md](docs/evidence-R6-scene3.md): 100 XLM refused, recipient balance unchanged. No hash, because a refused payment never reaches the chain       |
+| 4   | The auditor opens the payment list                                                       | Sees every payment, including refused attempts, with signers and rule, and downloads a CSV | <!-- TODO(R10): screenshot or video timestamp (C) -->                                                                                                                    |
 
-The rejection in scenes 2 and 3 happens when the transaction is simulated
-against the account's rules. If it were sent anyway, the network would reject
-it.
+Also checked on testnet: changing limits and suppliers from Settings
+([evidence](docs/evidence-R17-settings.md)) and the remaining 30-day cap on the
+payment screen ([evidence](docs/evidence-R23-cap.md)).
 
-| Contract              | Testnet ID                                                                                              |
-| --------------------- | ------------------------------------------------------------------------------------------------------- |
-| Company smart account | <!-- TODO(R10): C... address of the demo account (B; R3 creates it but the repo does not record it) --> |
-| `control-policy`      | <!-- TODO(R10): C... contract ID (A; no deployment is recorded in the repo yet) -->                     |
+A refusal happens when the transaction is simulated against the account's rules.
+If it were sent anyway, the network would reject it.
 
-Not built yet: the admin Settings screen (R17), the demo script (R14) and a
-hosted URL (R15). Scene 3 and the failed on-chain transactions of scenes 2 and 3
-still need end-to-end testnet verification. The table is filled in as each one
-lands.
+| Contract                                                  | Testnet ID                                                                                                                                                              |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `control-policy`                                          | [`CBPCC6AT3756K43DGTRKLIZFOY5TODHZXGBJS4X4KZ64TFWUQDPEWU4L`](https://stellar.expert/explorer/testnet/contract/CBPCC6AT3756K43DGTRKLIZFOY5TODHZXGBJS4X4KZ64TFWUQDPEWU4L) |
+| Company smart account used in the Settings and cap checks | [`CBUNXLPEKPDGZOEJB4PRBZHXTZ6JOXCH7RAVW6LJTDY62BI2G2LXMUH6`](https://stellar.expert/explorer/testnet/contract/CBUNXLPEKPDGZOEJB4PRBZHXTZ6JOXCH7RAVW6LJTDY62BI2G2LXMUH6) |
+
+Each browser creates its own company account, so scenes 1 and 2b come from an
+earlier rehearsal account.
+<!-- TODO(R10): record the final demo account ID after the last rehearsal (B) -->
+
+Not built yet: the demo script (R14) and a hosted URL (R15).
 
 ## How Stellar is composed
 
-| Piece                                                                                                    | What it gives Arqueo                                                                                                                                           |
-| -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [OpenZeppelin Stellar Contracts](https://docs.openzeppelin.com/stellar-contracts/accounts/context-rules) | The smart account, context rules (`admin`, `ordinary`, `large`), the threshold policy (how many signatures a rule needs) and `spending_limit` (the 30-day cap) |
-| [`smart-account-kit`](https://cdn.jsdelivr.net/npm/smart-account-kit@0.6.1/README.md) 0.6.1              | Creates the account, WebAuthn passkey signers (admin, manager), an Ed25519 signer (employee) and multi-signer transactions                                     |
-| [Scaffold Stellar](https://developers.stellar.org/docs/tools/scaffold-stellar)                           | Project template, contract build and generated TypeScript clients                                                                                              |
-| `contracts/control-policy` (ours, Rust/Soroban)                                                          | A custom policy: only `transfer` calls, only to listed suppliers, up to a maximum per payment                                                                  |
-| Native XLM through its Stellar Asset Contract                                                            | The token that moves. Amounts are in stroops (1 XLM = 10,000,000)                                                                                              |
-| Friendbot                                                                                                | Funds the testnet accounts                                                                                                                                     |
-| stellar.expert                                                                                           | Public proof of every transaction                                                                                                                              |
+| Piece                                                                                                    | What it gives Arqueo                                                                                                                                    |
+| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [OpenZeppelin Stellar Contracts](https://docs.openzeppelin.com/stellar-contracts/accounts/context-rules) | The smart account, context rules (`admin`, `ordinary`, `large`), the threshold policy (how many signatures a rule needs) and the account's rule engine  |
+| [`smart-account-kit`](https://cdn.jsdelivr.net/npm/smart-account-kit@0.6.1/README.md) 0.6.1              | Creates the account, WebAuthn passkey signers (admin, manager), an Ed25519 signer (employee) and multi-signer transactions                              |
+| [Scaffold Stellar](https://developers.stellar.org/docs/tools/scaffold-stellar)                           | Project template, contract build and generated TypeScript clients                                                                                       |
+| `contracts/control-policy` (ours, Rust/Soroban)                                                          | A custom policy: only `transfer` calls, only to listed suppliers, up to a maximum per payment and a 30-day cap whose spent amount survives rule changes |
+| Native XLM through its Stellar Asset Contract                                                            | The token that moves. Amounts are in stroops (1 XLM = 10,000,000)                                                                                       |
+| Friendbot                                                                                                | Funds the testnet accounts                                                                                                                              |
+| stellar.expert                                                                                           | Public proof of every transaction                                                                                                                       |
 
 ## Controls matrix
 
@@ -92,19 +93,16 @@ lands.
 | Rule              | Signers            | Policies                                                                                              |
 | ----------------- | ------------------ | ----------------------------------------------------------------------------------------------------- |
 | `admin` (default) | admin              | none (all signers must sign)                                                                          |
-| `ordinary`        | employee           | threshold 1 · `control-policy` {suppliers, max per payment, default 500} · 30-day cap (default 1,000) |
-| `large`           | employee + manager | threshold 2 · `control-policy` {suppliers, no maximum}                                                |
+| `ordinary`        | employee           | threshold 1 · `control-policy` {suppliers, max per payment (default 500), 30-day cap (default 1,000)} |
+| `large`           | employee + manager | threshold 2 · `control-policy` {suppliers; no maximum, no cap}                                        |
 
 The app picks the rule from who signs. The admin decides the limits and
-suppliers, not the code. Changes are never made in place: the old rule or policy
-is removed and a new one is added, and the account stays closed (nobody can pay)
-while that happens. Every change is recorded for the auditor with the old value,
-the new value and the transaction hashes. The 30-day cap keeps what was already
-spent and cannot be set below it.
-
-Open decision: OpenZeppelin's `spending_limit` restarts from zero when it is
-reinstalled, so the cap may move into `control-policy` (see `AGENTS.md` §3.1).
-The settings screen is planned (R17).
+suppliers, not the code, from the Settings screen. A change adds the new rule
+before it removes the old one, so `ordinary` is never open without its controls.
+The spent amount and the start of the 30-day period belong to the account, so
+they survive the change, and the cap cannot be set below what was already spent.
+Every change is recorded for the auditor with the old value, the new value and
+the transaction hashes.
 
 The matrix also exists as tested code:
 [app/src/controls](app/src/controls/README.md).
@@ -135,8 +133,9 @@ From the Scaffold Stellar template (not ours): the app shell, the `Home` and
 (`guess-the-number`, `fungible-allowlist`, `nft-enumerable`) and the inherited
 CI workflows.
 
-Ours: `contracts/control-policy`, `app/src/controls`, `app/src/lib/stellar.ts`
-(account creation, funding, balance), the CSV export and the documentation.
+Ours: `contracts/control-policy`, `app/src/controls`, `app/src/lib/stellar.ts`,
+the Payments, Auditor and Settings screens, the landing page and the
+documentation.
 
 <!-- TODO(R10): final pass after 20:00 freeze -->
 
@@ -168,7 +167,7 @@ Requirements: Node.js 22+, Rust (see `rust-toolchain.toml`), the Stellar CLI and
 the Scaffold Stellar plugin (`cargo install --locked stellar-scaffold-cli`).
 
 ```bash
-cp app/.env.example app/.env.local   # kit addresses are filled in; set PUBLIC_CONTROL_POLICY_ADDRESS and PUBLIC_SUPPLIERS
+cp app/.env.example app/.env.local   # testnet addresses, including control-policy, are filled in; add your funded suppliers to PUBLIC_SUPPLIERS
 npm install
 npm start              # set STELLAR_NETWORK=testnet in app/.env.local first
 ```

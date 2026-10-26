@@ -1,115 +1,78 @@
+/* Payment screen: a form card on the left, the account's rule preview and result on the right. */
+
 .screen {
-	--paper: #ede8df;
-	--stock: #fbfaf6;
-	--ink: #0f3b30;
-	--ink-deep: #0a2a22;
-	--muted: #46645a;
-	--rule: rgb(15 59 48 / 22%);
-	--reject: #8a2a1e;
-	max-width: 1120px;
-	margin: clamp(2rem, 5vw, 4rem) auto;
-	color: var(--ink);
-	font-family: Jost, Futura, system-ui, sans-serif;
+	display: grid;
+	gap: 20px;
 }
 
 .heading {
-	display: flex;
-	align-items: end;
-	justify-content: space-between;
-	gap: 1.5rem;
-	margin: 0 0 2rem;
+	display: grid;
+	gap: 6px;
 }
 
-.heading h2 {
-	margin: 0 0 0.55rem;
-	font-size: clamp(1.8rem, 3vw, 2.5rem);
-	font-weight: 500;
-	letter-spacing: -0.025em;
-	line-height: 1.12;
-}
-
-.network,
-.formTopline,
-.receiptHead,
-.slip dl dt,
-.quickAmounts > span {
-	font-family: "Spline Sans Mono", ui-monospace, monospace;
-	font-size: 0.72rem;
-	letter-spacing: 0.045em;
-	text-transform: uppercase;
-}
-
-.intro {
-	max-width: 62ch;
+.heading p {
 	margin: 0;
+	max-width: 62ch;
 	color: var(--muted);
-	font-size: 1rem;
-}
-
-.network {
-	flex: 0 0 auto;
-	padding: 0.4rem 0.6rem;
-	border: 1px solid var(--rule);
-	border-radius: 4px;
-	color: var(--muted);
-	white-space: nowrap;
+	font-size: 0.9375rem;
 }
 
 .workspace {
 	display: grid;
-	grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.75fr);
+	grid-template-columns: minmax(0, 1.4fr) minmax(300px, 0.9fr);
 	align-items: start;
-	gap: clamp(2rem, 5vw, 5rem);
-	border-top: 1px solid var(--ink);
+	gap: 24px;
 }
 
 .form {
+	display: grid;
+	gap: 20px;
 	min-width: 0;
-	padding: 1rem 0 1.75rem;
-}
-
-.formTopline {
-	display: flex;
-	justify-content: space-between;
-	padding-bottom: 1.25rem;
-	color: var(--muted);
 }
 
 .field {
+	display: grid;
+	gap: 6px;
 	min-width: 0;
 }
 
 .field > label,
 .signers legend {
-	display: block;
-	margin-bottom: 0.5rem;
-	font-size: 0.94rem;
-	font-weight: 500;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--ink);
 }
 
-.field input,
-.field select {
+.screen .field input,
+.screen .field select {
 	width: 100%;
-	min-height: 48px;
-	padding: 0.7rem 0.8rem;
-	border: 1px solid rgb(15 59 48 / 35%);
-	border-radius: 6px;
+	min-height: 44px;
+	padding: 10px 14px;
+	border: 1px solid var(--outline);
+	border-radius: 10px;
 	background: var(--stock);
 	color: var(--ink);
-	font: inherit;
+	font-family: var(--font-body);
+	font-size: 0.9375rem;
 	font-variant-numeric: tabular-nums;
+	transition: border-color 150ms ease;
 }
 
-.field input::placeholder {
-	color: #61766d;
-	opacity: 1;
+.screen .field input::placeholder {
+	color: var(--muted);
+	opacity: 0.75;
 }
 
-.field input:focus-visible,
-.field select:focus-visible,
-.signers input:focus-visible + .signerSeal {
+.screen .field input:hover,
+.screen .field select:hover {
+	border-color: var(--ink);
+}
+
+.screen .field input:focus,
+.screen .field select:focus {
 	outline: 2px solid var(--ink);
-	outline-offset: 3px;
+	outline-offset: 1px;
+	border-color: var(--ink);
 }
 
 .supplierSelect,
@@ -118,461 +81,466 @@
 	position: relative;
 	display: flex;
 	align-items: center;
+	gap: 8px;
 }
 
-.supplierSelect select {
+.screen .supplierSelect select {
+	padding-right: 40px;
 	appearance: none;
-	padding-right: 2.6rem;
+	cursor: pointer;
 }
 
 .selectMark {
 	position: absolute;
-	right: 1rem;
-	width: 0.5rem;
-	height: 0.5rem;
-	border-right: 1px solid var(--ink);
-	border-bottom: 1px solid var(--ink);
-	transform: translateY(-2px) rotate(45deg);
+	right: 14px;
+	color: var(--muted);
 	pointer-events: none;
 }
 
-.addressInput {
-	gap: 0.75rem;
+.addressInput input {
+	flex: 1;
 }
 
-.subtleButton {
-	flex: 0 0 auto;
-	padding: 0.55rem 0;
-	border: 0;
-	background: transparent;
-	color: var(--ink);
-	font: inherit;
-	font-size: 0.82rem;
-	text-decoration: underline;
-	text-underline-offset: 0.2em;
-	cursor: pointer;
+.addressInput button {
+	flex: none;
 }
 
-.hint {
-	min-height: 1.4em;
-	margin: 0.45rem 0 0;
-	color: var(--muted);
-	font-size: 0.82rem;
-}
-
-.amountConcept {
-	display: grid;
-	grid-template-columns: minmax(120px, 0.65fr) minmax(0, 1.35fr);
-	gap: 1.25rem;
-	margin-top: 1.35rem;
-}
-
-.amountInput input {
-	padding-right: 4rem;
+.screen .amountInput input {
+	padding-right: 56px;
 }
 
 .amountInput > span {
 	position: absolute;
-	right: 0.8rem;
+	right: 14px;
+	font-family: var(--font-mono);
+	font-size: 0.75rem;
+	font-weight: 600;
+	letter-spacing: 0.06em;
 	color: var(--muted);
-	font-family: "Spline Sans Mono", ui-monospace, monospace;
-	font-size: 0.78rem;
+	pointer-events: none;
 }
 
+.amountConcept {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+	gap: 16px;
+}
+
+.hint,
+.actionNote,
+.previewNote,
+.foot {
+	margin: 0;
+	color: var(--muted);
+	font-size: 0.8125rem;
+}
+
+.inlineError {
+	margin: 0;
+	color: var(--alert-ink);
+	font-size: 0.8125rem;
+	font-weight: 600;
+}
+
+/* Signers */
+
 .signers {
+	display: grid;
+	gap: 8px;
 	min-width: 0;
-	margin: 1.6rem 0 0;
+	margin: 0;
 	padding: 0;
 	border: 0;
 }
 
 .signers legend {
 	padding: 0;
+	margin-bottom: 8px;
 }
 
-.signers label {
+.signerOptions {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 12px;
+}
+
+.signerOptions label {
 	position: relative;
 	display: flex;
 	align-items: center;
-	gap: 0.8rem;
-	min-height: 58px;
-	padding: 0.55rem 0.8rem;
-	border: 1px solid var(--rule);
-	background: rgb(251 250 246 / 48%);
+	gap: 12px;
+	padding: 14px 40px 14px 14px;
+	border: 1px solid var(--outline);
+	border-radius: 12px;
+	background: var(--stock);
 	cursor: pointer;
 	transition:
-		background-color 160ms ease-out,
-		border-color 160ms ease-out;
+		border-color 150ms ease,
+		background-color 150ms ease;
 }
 
-.signers label + label {
-	margin-top: 0.5rem;
-}
-
-.signers label:hover,
-.signers .signerActive {
+.signerOptions label:hover {
 	border-color: var(--ink);
-	background: var(--stock);
 }
 
-.signers input {
+.signerOptions label:has(input:focus-visible) {
+	outline: 2px solid var(--ink);
+	outline-offset: 2px;
+}
+
+.signerOptions input {
 	position: absolute;
-	width: 1px;
-	height: 1px;
-	clip-path: inset(50%);
-	white-space: nowrap;
+	opacity: 0;
+	pointer-events: none;
 }
 
-.signerSeal {
-	display: grid;
-	flex: 0 0 30px;
-	width: 30px;
-	height: 30px;
-	place-items: center;
-	border: 1px solid rgb(15 59 48 / 55%);
-	border-radius: 50%;
-	font-family: "Spline Sans Mono", ui-monospace, monospace;
-	font-size: 0.73rem;
+.signerActive {
+	border-color: var(--ink-container) !important;
+	background: var(--surface-low) !important;
+	box-shadow: inset 0 0 0 1px var(--ink-container);
 }
 
-.managerSeal {
-	border-radius: 5px;
-	transform: rotate(45deg);
+.signerIcon {
+	display: flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	border-radius: 10px;
+	background: var(--surface);
+	color: var(--ink);
+	transition:
+		background-color 150ms ease,
+		color 150ms ease;
 }
 
-.managerSeal > span {
-	display: inline-block;
-	transform: rotate(-45deg);
+.signerActive .signerIcon {
+	background: var(--ink-container);
+	color: var(--background);
 }
 
 .signerCopy {
 	display: grid;
-	gap: 0.12rem;
+	min-width: 0;
 }
 
 .signerCopy strong {
-	font-size: 0.92rem;
-	font-weight: 500;
+	font-size: 0.9375rem;
 }
 
 .signerCopy small {
 	color: var(--muted);
-	font-size: 0.78rem;
+	font-size: 0.8125rem;
 }
 
 .signerCheck {
-	width: 0.55rem;
-	height: 0.55rem;
-	margin-left: auto;
-	border: 1px solid var(--rule);
-	border-radius: 50%;
+	position: absolute;
+	top: 12px;
+	right: 12px;
+	color: var(--ink-container);
+	opacity: 0;
+	transition: opacity 150ms ease;
 }
 
 .signerActive .signerCheck {
-	border: 3px solid var(--ink);
+	opacity: 1;
 }
+
+/* Scenes and actions */
 
 .quickAmounts {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: 0.5rem;
-	margin: 1.5rem 0 1.75rem;
-}
-
-.quickAmounts > span {
-	margin-right: 0.25rem;
-	color: var(--muted);
-}
-
-.quickAmounts button {
-	padding: 0.4rem 0.55rem;
-	border: 1px solid var(--rule);
-	border-radius: 4px;
-	background: transparent;
-	color: var(--ink);
-	font: inherit;
-	font-size: 0.78rem;
-	cursor: pointer;
-}
-
-.quickAmounts button:hover {
-	background: var(--stock);
-	border-color: var(--ink);
+	gap: 8px;
 }
 
 .quickAmounts b {
-	margin-left: 0.25rem;
-	font-family: "Spline Sans Mono", ui-monospace, monospace;
-	font-weight: 500;
-	font-variant-numeric: tabular-nums;
+	font-family: var(--font-mono);
+	font-weight: 600;
+	color: var(--muted);
 }
 
 .actions {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: 1rem;
+	gap: 12px 16px;
 }
 
-.primary {
-	min-height: 46px;
-	padding: 0.75rem 1.15rem;
-	border: 0;
-	border-radius: 8px;
-	background: var(--ink);
-	color: var(--paper);
-	font: inherit;
-	font-weight: 500;
-	cursor: pointer;
-	transition: background-color 160ms ease-out;
+/* Preview and result */
+
+.preview {
+	position: sticky;
+	top: 96px;
+	display: grid;
+	gap: 16px;
 }
 
-.primary:hover:not(:disabled) {
-	background: var(--ink-deep);
+/* The panel is a ticket: white stock, notches on both edges and a dashed tear line under the summary. */
+.screen .preview {
+	background: var(--stock);
+	border-color: var(--outline);
 }
 
-.primary:focus-visible,
-.quickAmounts button:focus-visible,
-.subtleButton:focus-visible {
-	outline: 2px solid var(--ink);
-	outline-offset: 3px;
-}
-
-.primary:disabled {
-	cursor: not-allowed;
-	opacity: 0.55;
-}
-
-.actionNote {
-	max-width: 34ch;
-	color: var(--muted);
-	font-size: 0.82rem;
-}
-
-.inlineError {
-	margin: 1rem 0 0;
-	color: var(--reject);
-	font-size: 0.9rem;
-}
-
-.receipt {
+.tear {
 	position: relative;
-	margin: 1.25rem 0 0;
+	height: 20px;
+	margin: 4px -24px;
 }
 
-.receiptHead {
-	position: relative;
-	z-index: 1;
+.tear::before {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 18px;
+	right: 18px;
+	border-top: 2px dashed var(--outline);
+}
+
+.tear span {
+	position: absolute;
+	top: 0;
+	width: 20px;
+	height: 20px;
+	border: 1px solid var(--outline);
+	border-radius: 50%;
+	background: var(--background);
+}
+
+.tear span:first-child {
+	left: -11px;
+	clip-path: inset(-1px -1px -1px 50%);
+}
+
+.tear span:last-child {
+	right: -11px;
+	clip-path: inset(-1px 50% -1px -1px);
+}
+
+.previewHead {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 0.5rem;
-	min-height: 48px;
-	padding: 0.6rem 1rem;
-	border-radius: 12px 12px 4px 4px;
-	background: var(--ink);
-	color: var(--paper);
-	box-shadow: 0 10px 24px -12px rgb(15 59 48 / 55%);
-	font-size: 0.64rem;
+	gap: 12px;
 }
 
-.receiptLight {
-	width: 0.48rem;
-	height: 0.48rem;
-	border-radius: 50%;
-	background: #d9b56e;
-	box-shadow: 0 0 0 3px rgb(251 250 246 / 12%);
+.previewHead h3 {
+	margin: 0;
+	font-family: var(--font-display);
+	font-size: 1.0625rem;
+	font-weight: 600;
+	letter-spacing: -0.01em;
 }
 
-.slip {
-	position: relative;
-	margin: 0 0.55rem;
-	padding: 1.2rem 1.25rem 1.15rem;
-	background: var(--stock);
-	box-shadow: 0 18px 32px -20px rgb(15 59 48 / 45%);
-}
-
-.slip::before,
-.slip::after {
-	position: absolute;
-	top: 0;
-	bottom: 0;
-	width: 4px;
-	background: radial-gradient(circle, var(--paper) 1.25px, transparent 1.5px)
-		center top / 4px 16px repeat-y;
-	content: "";
-}
-
-.slip::before {
-	left: 0;
-}
-
-.slip::after {
-	right: 0;
-}
-
-.slipTitle {
-	display: flex;
-	align-items: baseline;
-	justify-content: space-between;
-	gap: 0.75rem;
-	padding-bottom: 0.85rem;
-	border-bottom: 1px dashed var(--rule);
-	font-family: "Spline Sans Mono", ui-monospace, monospace;
-	font-size: 0.78rem;
-	text-transform: uppercase;
-}
-
-.slipTitle strong {
-	font-size: 0.93rem;
-	font-weight: 700;
-}
-
-.slip dl {
+.summary {
 	display: grid;
-	gap: 0.6rem;
-	margin: 1rem 0;
+	gap: 2px;
+}
+
+.amountFigure {
+	font-family: var(--font-display);
+	font-size: 2rem;
+	font-weight: 600;
+	letter-spacing: -0.02em;
+	line-height: 1.1;
+	color: var(--ink);
 	font-variant-numeric: tabular-nums;
 }
 
-.slip dl > div {
-	display: flex;
-	justify-content: space-between;
-	gap: 0.8rem;
-}
-
-.slip dl dt {
+.amountFigure small {
+	margin-left: 8px;
+	font-family: var(--font-mono);
+	font-size: 0.8125rem;
+	font-weight: 600;
+	letter-spacing: 0.06em;
 	color: var(--muted);
-	font-size: 0.64rem;
 }
 
-.slip dl dd {
-	margin: 0;
-	font-family: "Spline Sans Mono", ui-monospace, monospace;
-	font-size: 0.72rem;
-	text-align: right;
-	text-transform: uppercase;
+.summaryTo {
+	color: var(--body);
+	font-size: 0.875rem;
+	overflow-wrap: anywhere;
 }
 
-.ruleNote {
-	margin: 0;
-	padding-top: 0.75rem;
-	border-top: 1px solid var(--rule);
+.summaryConcept {
 	color: var(--muted);
-	font-size: 0.82rem;
-	line-height: 1.5;
+	font-size: 0.8125rem;
 }
 
-.perforation {
-	height: 1px;
-	margin: 1.1rem 0 0.9rem;
-	border-top: 2px dotted var(--rule);
-}
+/* The rule's checks, live: green passes, red fails, grey is decided on-chain. */
 
-.resultEmpty,
-.result {
+.checks {
 	display: grid;
-	gap: 0.4rem;
-	padding: 0.8rem 0.65rem;
-	font-size: 0.83rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
 }
 
-.resultEmpty strong,
+.checks li {
+	display: grid;
+	grid-template-columns: 20px minmax(0, 1fr);
+	gap: 10px;
+	padding: 10px 0;
+	border-top: 1px solid var(--line);
+	font-size: 0.875rem;
+	line-height: 1.4;
+}
+
+.checks li:first-child {
+	border-top: 0;
+}
+
+.checkIcon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	margin-top: 1px;
+	border-radius: 50%;
+	background: var(--surface-high);
+	color: var(--muted);
+	transition:
+		background-color 150ms ease,
+		color 150ms ease;
+}
+
+.checks li[data-state="pass"] .checkIcon {
+	background: var(--ok-soft);
+	color: var(--ok-ink);
+}
+
+.checks li[data-state="fail"] .checkIcon {
+	background: var(--alert-soft);
+	color: var(--alert-ink);
+}
+
+.checkText {
+	display: grid;
+	gap: 2px;
+	min-width: 0;
+	color: var(--ink);
+	font-weight: 600;
+}
+
+.checkDetail {
+	color: var(--muted);
+	font-size: 0.8125rem;
+	font-weight: 400;
+}
+
+.checks li[data-state="fail"] .checkDetail {
+	color: var(--alert-ink);
+}
+
+.result,
+.resultEmpty {
+	display: grid;
+	gap: 6px;
+	padding: 14px;
+	border-radius: 12px;
+	font-size: 0.875rem;
+}
+
+.result {
+	animation: arrive 220ms var(--ease-out) both;
+}
+
 .result strong {
-	font-family: "Spline Sans Mono", ui-monospace, monospace;
-	font-size: 0.72rem;
-	letter-spacing: 0.035em;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 0.9375rem;
+}
+
+.accepted {
+	background: var(--ok-soft);
+	color: #0b3b2c;
+}
+
+.rejected,
+.error {
+	background: var(--alert-soft);
+	color: var(--alert-ink);
+}
+
+.result details {
+	margin-top: 4px;
+}
+
+.result summary {
+	cursor: pointer;
+	font-weight: 600;
+}
+
+.result code {
+	display: block;
+	margin-top: 6px;
+	padding: 8px 10px;
+	border: 0;
+	border-radius: 8px;
+	background: rgb(255 255 255 / 60%);
+	font-family: var(--font-mono);
+	font-size: 0.75rem;
+	overflow-wrap: anywhere;
 }
 
 .resultEmpty {
+	border: 1px dashed var(--outline);
 	color: var(--muted);
 }
 
-.result a {
-	width: fit-content;
+.resultEmpty strong {
+	color: var(--ink);
+}
+
+.resultLink {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 0.8125rem;
+	font-weight: 600;
 	color: var(--ink);
 	text-underline-offset: 0.2em;
 }
 
-.rejected {
-	color: var(--reject);
-}
-
-.rejected strong {
-	color: var(--reject);
-}
-
-.error {
-	color: var(--muted);
-}
-
-.setupLink {
-	display: block;
-	margin-top: 0.5rem;
-	color: var(--ink);
-	font-size: 0.8rem;
-	text-underline-offset: 0.2em;
-}
-
-.receiptFoot {
-	margin: 0.85rem 0 0;
-	color: var(--muted);
-	font-size: 0.78rem;
-	text-align: center;
-}
-
-@media (max-width: 820px) {
-	.workspace {
-		grid-template-columns: minmax(0, 1fr);
-		gap: 1.5rem;
+@keyframes arrive {
+	from {
+		opacity: 0;
+		transform: translateY(6px);
 	}
 
-	.receipt {
-		max-width: 460px;
-		margin: 0 auto 1rem;
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@media (max-width: 960px) {
+	.workspace {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.preview {
+		position: static;
 	}
 }
 
 @media (max-width: 560px) {
-	.heading {
-		align-items: start;
-		flex-direction: column;
-		gap: 0.8rem;
-	}
-
-	.amountConcept {
+	.amountConcept,
+	.signerOptions {
 		grid-template-columns: minmax(0, 1fr);
-		gap: 1rem;
 	}
 
 	.addressInput {
-		align-items: stretch;
-		flex-direction: column;
-	}
-
-	.subtleButton {
-		align-self: flex-start;
-	}
-
-	.actions {
-		align-items: flex-start;
-		flex-direction: column;
-		gap: 0.65rem;
-	}
-
-	.primary {
-		width: 100%;
-	}
-
-	.receiptHead {
-		font-size: 0.58rem;
+		flex-wrap: wrap;
 	}
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.signers label,
-	.primary {
-		transition: none;
+	.result {
+		animation: none;
 	}
 }

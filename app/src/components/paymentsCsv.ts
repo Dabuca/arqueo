@@ -1,8 +1,11 @@
+import { describeApproval } from "../controls/approval"
+import { type Role, type RuleName } from "../controls/types"
+
 export interface PaymentCsvRow {
 	to: string
 	amount: number
 	concept: string
-	signers: readonly string[]
+	signers: readonly Role[]
 	rule: string
 	status: "ok" | "rejected"
 	hash?: string
@@ -16,6 +19,8 @@ const columns = [
 	"concept",
 	"signers",
 	"rule",
+	"required_signers",
+	"missing_signers",
 	"status",
 	"hash",
 	"reason",
@@ -28,17 +33,25 @@ const escapeCell = (value: string): string => {
 }
 
 export function buildPaymentsCsv(payments: readonly PaymentCsvRow[]): string {
-	const rows = payments.map((payment) => [
-		payment.to,
-		String(payment.amount),
-		payment.concept,
-		payment.signers.join("; "),
-		payment.rule,
-		payment.status,
-		payment.hash ?? "",
-		payment.reason ?? "",
-		payment.at,
-	])
+	const rows = payments.map((payment) => {
+		const approval = describeApproval({
+			...payment,
+			rule: payment.rule as RuleName,
+		})
+		return [
+			payment.to,
+			String(payment.amount),
+			payment.concept,
+			payment.signers.join("; "),
+			payment.rule,
+			approval.required.join("; "),
+			approval.missing.join("; "),
+			payment.status,
+			payment.hash ?? "",
+			payment.reason ?? "",
+			payment.at,
+		]
+	})
 
 	return [columns, ...rows]
 		.map((row) => row.map((cell) => escapeCell(String(cell))).join(","))

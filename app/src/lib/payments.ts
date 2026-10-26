@@ -6,14 +6,13 @@ import {
 	xdr,
 } from "@stellar/stellar-sdk"
 import {
-	LEDGERS_PER_DAY,
 	createEd25519Signer,
-	createSpendingLimitParams,
 	createThresholdParams,
 	createWebAuthnSigner,
 	type ContractSigner,
 	type SelectedSigner,
 } from "smart-account-kit"
+import { type ControlParamValues } from "../controls/params"
 import { type Payment, type Role, type RuleName } from "./stellar"
 
 // Network-free payment logic used by stellar.ts. Values follow the control
@@ -31,11 +30,6 @@ const compareBytes = (a: Uint8Array, b: Uint8Array): number => {
 	return a.length - b.length
 }
 
-const STROOPS_PER_XLM = 10_000_000n
-const ORDINARY_SPENDING_LIMIT_XLM = 1_000n
-const ORDINARY_PERIOD_DAYS = 30
-export const ORDINARY_MAX_PER_PAYMENT_XLM = 500n
-
 /** The rule that authorizes a payment, chosen by who signs (AGENTS.md §3). */
 export function ruleFor(signers: Role[]): RuleName | undefined {
 	const set = [...signers].sort().join(",")
@@ -44,15 +38,13 @@ export function ruleFor(signers: Role[]): RuleName | undefined {
 	return undefined
 }
 
-/** Install params of the ordinary rule's OpenZeppelin policies. */
+/**
+ * Install params of the ordinary rule's threshold policy: 1 signer. The
+ * 30-day cap lives in `control-policy` (AGENTS.md §3.1), so that changing it
+ * keeps what was already spent.
+ */
 export function ordinaryRuleParams() {
-	return {
-		threshold: createThresholdParams(1),
-		spendingLimit: createSpendingLimitParams(
-			ORDINARY_SPENDING_LIMIT_XLM * STROOPS_PER_XLM,
-			ORDINARY_PERIOD_DAYS * LEDGERS_PER_DAY,
-		),
-	}
+	return { threshold: createThresholdParams(1) }
 }
 
 /** Install params of the large rule's threshold policy: 2 of 2 signers (AGENTS.md §3). */
@@ -71,7 +63,9 @@ export function managerSigner(
 ): ContractSigner {
 	const raw = Uint8Array.from(atob(publicKeyBase64), (c) => c.charCodeAt(0))
 	if (raw.length !== 65 || raw[0] !== 0x04) {
-		throw new Error("Manager public key must be an uncompressed key of 65 bytes")
+		throw new Error(
+			"Manager public key must be an uncompressed key of 65 bytes",
+		)
 	}
 	return createWebAuthnSigner(webauthnVerifierAddress, raw, credentialId)
 }
@@ -85,7 +79,11 @@ export function managerSelectedSigner(
 	return {
 		type: "passkey",
 		credentialId,
-		signer: managerSigner(webauthnVerifierAddress, publicKeyBase64, credentialId),
+		signer: managerSigner(
+			webauthnVerifierAddress,
+			publicKeyBase64,
+			credentialId,
+		),
 		label: "manager",
 	}
 }
@@ -94,28 +92,59 @@ export function managerSelectedSigner(
  * Install params of `control-policy` (AGENTS.md §6.2) as the `ScVal` the kit
  * expects for a custom policy. `ControlParams` is a `#[contracttype]` struct,
  * so on chain it is a map with symbol keys in alphabetical order; the optional
- * maximum is `Void` for "no maximum".
+ * maximum and cap are `Void` for "none". Amounts are in stroops.
  */
-export function controlPolicyParams(
-	allowlist: string[],
-	maxPerPaymentXlm?: bigint,
-): xdr.ScVal {
+export function controlPolicyParams(values: ControlParamValues): xdr.ScVal {
 	const entry = (key: string, val: xdr.ScVal) =>
 		new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol(key), val })
+	const optionalAmount = (stroops: bigint | null) =>
+		stroops === null
+			? xdr.ScVal.scvVoid()
+			: nativeToScVal(stroops, { type: "i128" })
 	return xdr.ScVal.scvMap([
 		entry(
 			"allowlist",
 			xdr.ScVal.scvVec(
-				allowlist.map((address) => Address.fromString(address).toScVal()),
+				values.allowlist.map((address) =>
+					Address.fromString(address).toScVal(),
+				),
 			),
 		),
+		entry("cap_per_period", optionalAmount(values.capPerPeriod)),
+		entry("max_per_payment", optionalAmount(values.maxPerPayment)),
 		entry(
-			"max_per_payment",
-			maxPerPaymentXlm === undefined
-				? xdr.ScVal.scvVoid()
-				: nativeToScVal(maxPerPaymentXlm * STROOPS_PER_XLM, { type: "i128" }),
+			"period_ledgers",
+			nativeToScVal(values.periodLedgers, { type: "u32" }),
 		),
 	])
+}
+
+/** What `get_params` returns once decoded with `scValToNative`. */
+export function decodeControlParams(
+	native: unknown,
+): ControlParamValues | null {
+	if (native === null || native === undefined) return null
+	const raw = native as {
+		allowlist: string[]
+		cap_per_period: bigint | null
+		max_per_payment: bigint | null
+		period_ledgers: number
+	}
+	return {
+		allowlist: raw.allowlist,
+		capPerPeriod: raw.cap_per_period,
+		maxPerPayment: raw.max_per_payment,
+		periodLedgers: raw.period_ledgers,
+	}
+}
+
+/** What `spend_state` returns once decoded with `scValToNative`. */
+export function decodeSpendState(native: unknown): {
+	spentStroops: bigint
+	periodStart: number
+} {
+	const raw = native as { spent: bigint; period_start: number }
+	return { spentStroops: raw.spent, periodStart: raw.period_start }
 }
 
 /**
@@ -198,18 +227,20 @@ export function paymentLog(storage: KeyValueStorage) {
 	}
 }
 
-// Messages from AGENTS.md §6.3. Codes 1-3 come from control-policy.
+// Messages from AGENTS.md §6.3. Codes 1-5 come from control-policy.
 const CONTROL_POLICY_MESSAGES: Record<number, string> = {
 	1: "Supplier not authorized",
 	2: "Amount exceeds the per-payment limit: manager approval required",
 	3: "Operation not allowed by the account rules",
+	4: "The 30-day cap cannot be set below the amount already spent",
+	5: "Amount exceeds what is left of the 30-day cap: manager approval required",
 }
 const GENERIC_REJECTION = "Rejected by the account rules"
 const CONTRACT_CODE = /Error\(Contract,\s*#(\d+)\)/
 
 /**
  * The reason to show for a rejected payment. The kit does not decode codes
- * 1-3 (they are not in its registry), so the code is read from the error text.
+ * 1-5 (they are not in its registry), so the code is read from the error text.
  * Any other failure keeps its original text in `details`.
  */
 export function rejectionReason(error: unknown): {
