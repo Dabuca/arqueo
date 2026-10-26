@@ -70,6 +70,8 @@
 	display: grid;
 	gap: 4px;
 	align-content: start;
+	/* Let a long figure shrink inside its grid cell instead of spilling out. */
+	min-width: 0;
 }
 
 .figures dt {
@@ -366,6 +368,7 @@
 
 .num {
 	font-variant-numeric: tabular-nums;
+	overflow-wrap: anywhere;
 }
 
 .txLinks {
