@@ -193,7 +193,7 @@ The rules below are already implemented and tested as code in `app/src/controls/
 |---|---|
 | Mainnet, real funds | Testnet only |
 | USDC instead of XLM (R18, P2) | Only if time remains |
-| Passkey for the manager on a phone (R20, P2) | Not needed for the four scenes |
+| Remote approval link for the manager (R20 follow-up) | R20 covers a phone near the computer (QR); approving from another place needs a relay |
 | 2-of-3 recovery rule (R21, P2) | Not needed for the four scenes |
 | Supplier payout through a bank anchor (R22, P2) | Not needed for the four scenes |
 | GitHub Actions CI (R19, P2) | Nice to have |

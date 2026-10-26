@@ -140,9 +140,14 @@ environment variable, never part of the browser bundle.
 
 The employee signing key is stored in this browser as a demo shortcut. In
 production, every person should sign with their own passkey on their own device.
-The kit's default deployer key is derived from a public seed and is for testnet
-use only; this app uses a separate random testnet deployer key stored in browser
-storage.
+The manager already can: when creating the company account, tick "Register the
+manager's passkey on a phone" and the browser shows a QR code (the WebAuthn
+cross-device flow). The manager's passkey is created on their phone, and the
+second signature of a large payment is a QR scan confirmed with a fingerprint or
+face. The phone has to be near the computer (Bluetooth); there is no remote
+approval link yet. The kit's default deployer key is derived from a public seed
+and is for testnet use only; this app uses a separate random testnet deployer
+key stored in browser storage.
 
 ## Run the app on testnet
 
