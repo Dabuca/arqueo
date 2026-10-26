@@ -41,8 +41,8 @@ import styles from "./Settings.module.css"
 // replaces the affected rules and the admin passkey signs every step.
 
 const FIELD_LABELS: Record<ControlField, string> = {
-	maxPerPayment: "Max per payment (USDC)",
-	cap30d: "30-day cap (USDC)",
+	maxPerPayment: "Max per payment",
+	cap30d: "30-day cap",
 	suppliers: "Suppliers",
 }
 
@@ -68,9 +68,9 @@ function Steps({ pending }: { pending: PendingChange }) {
 	return (
 		<ol className={styles.steps}>
 			{pending.swaps.flatMap((swap) => [
-				<li key={`${swap.rule}-add`} data-done={swap.newId !== undefined}>
+				<li key={`${swap.asset}-${swap.rule}-add`} data-done={swap.newId !== undefined}>
 					<span>
-						Add the new <strong>{swap.rule}</strong> rule
+						Add the new <strong>{swap.asset} {swap.rule}</strong> rule
 					</span>
 					{swap.addHash && (
 						<a href={txUrl(swap.addHash)} target="_blank" rel="noreferrer">
@@ -79,11 +79,11 @@ function Steps({ pending }: { pending: PendingChange }) {
 					)}
 				</li>,
 				<li
-					key={`${swap.rule}-remove`}
+					key={`${swap.asset}-${swap.rule}-remove`}
 					data-done={swap.removeHash !== undefined}
 				>
 					<span>
-						Retire the old <strong>{swap.rule}</strong> rule
+						Retire the old <strong>{swap.asset} {swap.rule}</strong> rule
 					</span>
 					{swap.removeHash && (
 						<a href={txUrl(swap.removeHash)} target="_blank" rel="noreferrer">
@@ -98,6 +98,7 @@ function Steps({ pending }: { pending: PendingChange }) {
 
 export default function Settings() {
 	const [state, setState] = useState<ControlState>()
+	const [xlmState, setXlmState] = useState<ControlState>()
 	const [loading, setLoading] = useState(true)
 	const [pending, setPending] = useState<PendingChange | null>(() =>
 		loadPendingChange(),
@@ -123,8 +124,12 @@ export default function Settings() {
 
 	const load = useCallback(async () => {
 		setLoading(true)
-		const next = await readControlState()
+		const [next, nextXlm] = await Promise.all([
+			readControlState("USDC"),
+			readControlState("XLM"),
+		])
 		setState(next)
+		setXlmState(nextXlm)
 		setMaxText(String(next.config.limits.maxPerPayment))
 		setCapText(String(next.config.limits.cap30d))
 		setSuppliers(next.config.suppliers)
@@ -154,9 +159,9 @@ export default function Settings() {
 	const check = useMemo(
 		() =>
 			state && draft
-				? validateSettings(draft, state.spentXlm)
+				? validateSettings(draft, Math.max(state.spentXlm, xlmState?.spentXlm ?? 0))
 				: ({ ok: false, reason: "Enter the two limits as numbers" } as const),
-		[state, draft],
+		[state, draft, xlmState],
 	)
 
 	const plan = useMemo(
@@ -165,11 +170,22 @@ export default function Settings() {
 				? startChange({
 						prev: state.config,
 						next: draft,
-						existingRules: state.rules,
-						spentAtChange: state.spentXlm,
+						existingRules: {
+							USDC: state.rules,
+							XLM: xlmState?.rules ?? {},
+						},
+						assets: ["USDC", "XLM"],
+						spentAtChangeByAsset: {
+							USDC: state.spentXlm,
+							XLM: xlmState?.spentXlm ?? 0,
+						},
+						periodStartByAsset: {
+							USDC: state.periodStart,
+							XLM: xlmState?.periodStart,
+						},
 					})
 				: null,
-		[state, draft, check],
+		[state, draft, check, xlmState],
 	)
 	const fields = state && draft ? changedFields(state.config, draft) : []
 
@@ -434,36 +450,36 @@ export default function Settings() {
 					<div>
 						<dt>Max per payment</dt>
 						<dd>
-							<Amount usdc={limits.maxPerPayment} />
+							<Amount value={limits.maxPerPayment} asset="USDC" />
 							<span className={styles.unit}>
-								<AmountUnit />
+								<AmountUnit asset="USDC" />
 							</span>
 						</dd>
 					</div>
 					<div>
 						<dt>{limits.periodDays}-day cap</dt>
 						<dd>
-							<Amount usdc={limits.cap30d} />
+							<Amount value={limits.cap30d} asset="USDC" />
 							<span className={styles.unit}>
-								<AmountUnit />
+								<AmountUnit asset="USDC" />
 							</span>
 						</dd>
 					</div>
 					<div>
 						<dt>Spent this period</dt>
 						<dd>
-							<Amount usdc={state.spentXlm} />
+							<Amount value={state.spentXlm} asset="USDC" />
 							<span className={styles.unit}>
-								<AmountUnit />
+								<AmountUnit asset="USDC" />
 							</span>
 						</dd>
 					</div>
 					<div>
 						<dt>Left this period</dt>
 						<dd>
-							<Amount usdc={remaining} />
+							<Amount value={remaining} asset="USDC" />
 							<span className={styles.unit}>
-								<AmountUnit />
+								<AmountUnit asset="USDC" />
 							</span>
 						</dd>
 					</div>
@@ -499,7 +515,7 @@ export default function Settings() {
 						<h2 className={ui.sectionTitle}>Limits</h2>
 						<div className={styles.fields}>
 							<label className={styles.field}>
-								Max per payment (USDC)
+								Max per payment (same numeric value in XLM and USDC)
 								<input
 									type="number"
 									min="0"
@@ -510,7 +526,7 @@ export default function Settings() {
 								/>
 							</label>
 							<label className={styles.field}>
-								{limits.periodDays}-day cap (USDC)
+								{limits.periodDays}-day cap (same numeric value in XLM and USDC)
 								<input
 									type="number"
 									min="0"
@@ -523,9 +539,9 @@ export default function Settings() {
 						</div>
 						<p className={styles.hint}>
 							A payment above the maximum needs the manager&apos;s second
-							signature. The cap cannot be set below what was already spent in
-							the period (<Amount usdc={state.spentXlm} /> <AmountUnit /> now), and what was spent carries
-							over when it changes.
+							signature. These values apply independently to each asset. Spend is
+							tracked separately and carries over when a rule changes. Current USDC
+							spend: <Amount value={state.spentXlm} asset="USDC" /> <AmountUnit asset="USDC" />; XLM spend: <Amount value={xlmState?.spentXlm ?? 0} asset="XLM" /> <AmountUnit asset="XLM" />.
 						</p>
 					</section>
 
@@ -730,8 +746,9 @@ export default function Settings() {
 							<thead>
 								<tr>
 									<th>Date</th>
-									<th>Setting</th>
-									<th>Rule</th>
+										<th>Setting</th>
+										<th>Asset</th>
+										<th>Rule</th>
 									<th>Previous</th>
 									<th>New</th>
 									<th>Spent then</th>
@@ -745,6 +762,7 @@ export default function Settings() {
 										<td data-label="Setting">
 											{FIELD_LABELS[change.field] ?? change.field}
 										</td>
+										<td data-label="Asset">{change.asset ?? "—"}</td>
 										<td data-label="Rule">{change.rule ?? "—"}</td>
 										<td data-label="Previous" className={styles.num}>
 											{shownChangeValue(change.field, change.previous)}
@@ -753,7 +771,7 @@ export default function Settings() {
 											{shownChangeValue(change.field, change.next)}
 										</td>
 										<td data-label="Spent then" className={styles.num}>
-											{change.spentAtChange === undefined ? "—" : formatUsdc(change.spentAtChange)}
+											{change.spentAtChange === undefined ? "—" : `${formatUsdc(change.spentAtChange)} ${change.asset ?? "USDC"}`}
 										</td>
 										<td data-label="Transactions">
 											<span className={styles.txLinks}>

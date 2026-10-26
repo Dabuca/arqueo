@@ -1,7 +1,8 @@
 import { describeApproval } from "../controls/approval"
-import { type Role, type RuleName } from "../controls/types"
+import { type PaymentAsset, type Role, type RuleName } from "../controls/types"
 
 export interface PaymentCsvRow {
+	asset: PaymentAsset
 	to: string
 	amount: number
 	concept: string
@@ -15,6 +16,7 @@ export interface PaymentCsvRow {
 
 const columns = [
 	"to",
+	"asset",
 	"amount",
 	"concept",
 	"signers",
@@ -40,6 +42,7 @@ export function buildPaymentsCsv(payments: readonly PaymentCsvRow[]): string {
 		})
 		return [
 			payment.to,
+			payment.asset,
 			String(payment.amount),
 			payment.concept,
 			payment.signers.join("; "),

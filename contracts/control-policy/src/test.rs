@@ -44,6 +44,13 @@ fn transfer_context(e: &Env, to: &Address, amount: i128) -> Context {
     })
 }
 
+fn rule_token(rule: &ContextRule) -> Address {
+    match &rule.context_type {
+        ContextRuleType::CallContract(address) => address.clone(),
+        _ => panic!("expected token context"),
+    }
+}
+
 fn params(e: &Env, supplier: &Address, max: Option<i128>) -> ControlParams {
     let mut allowlist = Vec::new(e);
     allowlist.push_back(supplier.clone());
@@ -76,6 +83,18 @@ fn rule_with_id(e: &Env, id: u32) -> ContextRule {
     }
 }
 
+fn rule_transfer_context(e: &Env, rule: &ContextRule, to: &Address, amount: i128) -> Context {
+    let Context::Contract(mut call) = transfer_context(e, to, amount) else {
+        unreachable!()
+    };
+    call.contract = rule_token(rule);
+    Context::Contract(call)
+}
+
+fn replacement_rule(rule: &ContextRule, id: u32) -> ContextRule {
+    ContextRule { id, ..rule.clone() }
+}
+
 fn advance_ledgers(e: &Env, ledgers: u32) {
     e.ledger().with_mut(|l| l.sequence_number += ledgers);
 }
@@ -93,6 +112,13 @@ fn uninstall(e: &Env, policy: &Address, rule: &ContextRule, sa: &Address) {
 }
 
 fn enforce(e: &Env, policy: &Address, rule: &ContextRule, sa: &Address, context: Context) {
+    let context = match context {
+        Context::Contract(mut call) => {
+            call.contract = rule_token(rule);
+            Context::Contract(call)
+        }
+        other => other,
+    };
     e.as_contract(policy, || {
         ControlPolicy::enforce(e, context, Vec::<Signer>::new(e), rule.clone(), sa.clone());
     });
@@ -349,8 +375,8 @@ fn enforce_after_uninstall_is_rejected() {
     );
 }
 
-// Cap per period (AGENTS.md §3.1). Spent is kept per smart account, not per
-// rule, so a replacement rule keeps counting from it.
+// Cap per period (AGENTS.md §3.1). Spent is kept per smart account and token,
+// not per rule, so a replacement rule keeps counting from it.
 
 const PERIOD: u32 = 1_000;
 
@@ -386,7 +412,10 @@ fn payments_within_the_cap_accumulate() {
         transfer_context(&e, &supplier, 400),
     );
 
-    assert_eq!(view.spend_state(&sa, &PERIOD).spent, 800);
+    assert_eq!(
+        view.spend_state(&sa, &rule_token(&rule), &PERIOD).spent,
+        800
+    );
 }
 
 #[test]
@@ -484,7 +513,7 @@ fn a_rejected_payment_is_not_counted() {
         &rule,
         &sa,
     );
-    assert_eq!(view.spend_state(&sa, &PERIOD).spent, 0);
+    assert_eq!(view.spend_state(&sa, &rule_token(&rule), &PERIOD).spent, 0);
 }
 
 #[test]
@@ -518,10 +547,13 @@ fn the_period_resets_when_it_ends() {
         &sa,
         transfer_context(&e, &supplier, 500),
     );
-    assert_eq!(view.spend_state(&sa, &PERIOD).spent, 1_000);
+    assert_eq!(
+        view.spend_state(&sa, &rule_token(&rule), &PERIOD).spent,
+        1_000
+    );
 
     advance_ledgers(&e, PERIOD);
-    assert_eq!(view.spend_state(&sa, &PERIOD).spent, 0);
+    assert_eq!(view.spend_state(&sa, &rule_token(&rule), &PERIOD).spent, 0);
     enforce(
         &e,
         &policy,
@@ -529,7 +561,10 @@ fn the_period_resets_when_it_ends() {
         &sa,
         transfer_context(&e, &supplier, 500),
     );
-    assert_eq!(view.spend_state(&sa, &PERIOD).spent, 500);
+    assert_eq!(
+        view.spend_state(&sa, &rule_token(&rule), &PERIOD).spent,
+        500
+    );
 }
 
 #[test]
@@ -541,7 +576,7 @@ fn spent_survives_replacing_the_rule() {
     let sa = Address::generate(&e);
     let supplier = Address::generate(&e);
     let old_rule = rule_with_id(&e, 1);
-    let new_rule = rule_with_id(&e, 2);
+    let new_rule = replacement_rule(&old_rule, 2);
 
     install(
         &e,
@@ -557,7 +592,7 @@ fn spent_survives_replacing_the_rule() {
         &sa,
         transfer_context(&e, &supplier, 500),
     );
-    let before = view.spend_state(&sa, &PERIOD);
+    let before = view.spend_state(&sa, &rule_token(&old_rule), &PERIOD);
 
     // Raise the cap: add the replacement first, then retire the old rule.
     install(
@@ -570,13 +605,9 @@ fn spent_survives_replacing_the_rule() {
     uninstall(&e, &policy, &old_rule, &sa);
 
     // 500 spent and 1,500 allowed leaves 1,000, and the period did not restart.
-    assert_eq!(view.spend_state(&sa, &PERIOD), before);
-    enforce(
-        &e,
-        &policy,
-        &new_rule,
-        &sa,
-        transfer_context(&e, &supplier, 500),
+    assert_eq!(
+        view.spend_state(&sa, &rule_token(&old_rule), &PERIOD),
+        before
     );
     enforce(
         &e,
@@ -585,7 +616,17 @@ fn spent_survives_replacing_the_rule() {
         &sa,
         transfer_context(&e, &supplier, 500),
     );
-    assert_eq!(view.spend_state(&sa, &PERIOD).spent, 1_500);
+    enforce(
+        &e,
+        &policy,
+        &new_rule,
+        &sa,
+        transfer_context(&e, &supplier, 500),
+    );
+    assert_eq!(
+        view.spend_state(&sa, &rule_token(&new_rule), &PERIOD).spent,
+        1_500
+    );
 }
 
 #[test]
@@ -598,7 +639,7 @@ fn both_rules_count_against_the_same_cap_while_they_overlap() {
     let sa = Address::generate(&e);
     let supplier = Address::generate(&e);
     let old_rule = rule_with_id(&e, 1);
-    let new_rule = rule_with_id(&e, 2);
+    let new_rule = replacement_rule(&old_rule, 2);
 
     for rule in [&old_rule, &new_rule] {
         install(
@@ -625,13 +666,16 @@ fn both_rules_count_against_the_same_cap_while_they_overlap() {
     );
     // The cap is 1,000 in total, not 1,000 per rule.
     let third = client.try_enforce(
-        &transfer_context(&e, &supplier, 1),
+        &rule_transfer_context(&e, &old_rule, &supplier, 1),
         &Vec::new(&e),
         &old_rule,
         &sa,
     );
     assert_eq!(third, Err(Ok(soroban_sdk::Error::from_contract_error(5))));
-    assert_eq!(view.spend_state(&sa, &PERIOD).spent, 1_000);
+    assert_eq!(
+        view.spend_state(&sa, &rule_token(&old_rule), &PERIOD).spent,
+        1_000
+    );
 }
 
 #[test]
@@ -643,7 +687,7 @@ fn a_cap_below_what_was_spent_cannot_be_installed() {
     let sa = Address::generate(&e);
     let supplier = Address::generate(&e);
     let old_rule = rule_with_id(&e, 1);
-    let new_rule = rule_with_id(&e, 2);
+    let new_rule = replacement_rule(&old_rule, 2);
 
     install(
         &e,
@@ -690,7 +734,7 @@ fn a_cap_below_what_was_spent_is_allowed_once_the_period_ended() {
     let sa = Address::generate(&e);
     let supplier = Address::generate(&e);
     let old_rule = rule_with_id(&e, 1);
-    let new_rule = rule_with_id(&e, 2);
+    let new_rule = replacement_rule(&old_rule, 2);
 
     install(
         &e,
@@ -744,7 +788,43 @@ fn spent_is_kept_per_account() {
         &sa,
         transfer_context(&e, &supplier, 500),
     );
-    assert_eq!(view.spend_state(&other, &PERIOD).spent, 0);
+    assert_eq!(
+        view.spend_state(&other, &rule_token(&rule), &PERIOD).spent,
+        0
+    );
+}
+
+#[test]
+fn spend_is_independent_for_each_token_contract() {
+    let e = Env::default();
+    e.mock_all_auths();
+    let policy = e.register(ControlPolicy, ());
+    let view = ControlPolicyClient::new(&e, &policy);
+    let sa = Address::generate(&e);
+    let supplier = Address::generate(&e);
+    let xlm_rule = rule_with_id(&e, 1);
+    let usdc_rule = rule_with_id(&e, 2);
+
+    for rule in [&xlm_rule, &usdc_rule] {
+        install(
+            &e,
+            &policy,
+            capped_params(&e, &supplier, Some(800), 1_000, PERIOD),
+            rule,
+            &sa,
+        );
+        enforce(&e, &policy, rule, &sa, transfer_context(&e, &supplier, 600));
+    }
+
+    assert_eq!(
+        view.spend_state(&sa, &rule_token(&xlm_rule), &PERIOD).spent,
+        600
+    );
+    assert_eq!(
+        view.spend_state(&sa, &rule_token(&usdc_rule), &PERIOD)
+            .spent,
+        600
+    );
 }
 
 #[test]
@@ -765,7 +845,7 @@ fn a_rule_without_a_cap_does_not_touch_the_spend_state() {
         &sa,
         transfer_context(&e, &supplier, 10_000),
     );
-    assert_eq!(view.spend_state(&sa, &PERIOD).spent, 0);
+    assert_eq!(view.spend_state(&sa, &rule_token(&rule), &PERIOD).spent, 0);
 }
 
 #[test]

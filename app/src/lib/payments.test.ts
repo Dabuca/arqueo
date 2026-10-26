@@ -132,6 +132,7 @@ describe("managerSelectedSigner", () => {
 
 describe("paymentRecord", () => {
 	const input = {
+		asset: "USDC" as const,
 		to: "GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H",
 		amount: 200,
 		concept: "Office supplies",
@@ -184,6 +185,7 @@ describe("paymentLog", () => {
 			const log = paymentLog(storage)
 			expect(log.list()).toEqual([])
 			const payment = {
+				asset: "USDC" as const,
 				to: "GABC",
 				amount: 1,
 				concept: "c",
@@ -201,6 +203,7 @@ describe("paymentLog", () => {
 	it("keeps accepted and rejected payments in order across instances", () => {
 		const storage = memoryStorage()
 		const ok = {
+			asset: "USDC" as const,
 			to: "G1",
 			amount: 200,
 			concept: "a",

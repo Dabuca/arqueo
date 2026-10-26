@@ -4,8 +4,8 @@
 //! allowlist of suppliers, whose `amount` does not exceed an optional
 //! per-payment maximum, and whose running total does not pass an optional cap
 //! per period. Parameters are stored per (smart account, context rule). What
-//! was spent is stored per smart account only, so it survives retiring a rule
-//! and installing its replacement (AGENTS.md §3.1).
+//! was spent is stored per (smart account, token contract), so it survives
+//! retiring a rule while keeping different assets' caps independent.
 
 use soroban_sdk::{
     Address, Env, TryFromVal, Vec,
@@ -59,8 +59,8 @@ pub enum ControlError {
 pub enum ControlStorageKey {
     /// Parameters of one context rule of one smart account.
     AccountContext(Address, u32),
-    /// Spend state of one smart account, shared by all of its rules.
-    Spent(Address),
+    /// Spend state of one smart account and one token contract.
+    Spent(Address, Address),
 }
 
 /// Events, so the account's history can be rebuilt from the chain (R9, P1).
@@ -123,8 +123,13 @@ fn load(e: &Env, context_rule_id: u32, smart_account: &Address) -> ControlParams
 
 /// The spend state of the current period: the stored one, or a fresh one when
 /// nothing was spent yet or the stored period has ended.
-fn current_spend(e: &Env, smart_account: &Address, period_ledgers: u32) -> SpendState {
-    let key = ControlStorageKey::Spent(smart_account.clone());
+fn current_spend(
+    e: &Env,
+    smart_account: &Address,
+    token_contract: &Address,
+    period_ledgers: u32,
+) -> SpendState {
+    let key = ControlStorageKey::Spent(smart_account.clone(), token_contract.clone());
     let now = e.ledger().sequence();
     let stored: Option<SpendState> = e.storage().persistent().get(&key);
     match stored {
@@ -141,8 +146,8 @@ fn current_spend(e: &Env, smart_account: &Address, period_ledgers: u32) -> Spend
     }
 }
 
-fn save_spend(e: &Env, smart_account: &Address, state: &SpendState) {
-    let key = ControlStorageKey::Spent(smart_account.clone());
+fn save_spend(e: &Env, smart_account: &Address, token_contract: &Address, state: &SpendState) {
+    let key = ControlStorageKey::Spent(smart_account.clone(), token_contract.clone());
     e.storage().persistent().set(&key, state);
     e.storage()
         .persistent()
@@ -166,7 +171,12 @@ impl Policy for ControlPolicy {
         smart_account.require_auth();
         let params = load(e, context_rule.id, &smart_account);
 
-        let Context::Contract(ContractContext { fn_name, args, .. }) = context else {
+        let Context::Contract(ContractContext {
+            contract,
+            fn_name,
+            args,
+        }) = context
+        else {
             panic_with_error!(e, ControlError::NotATransfer)
         };
         if fn_name != symbol_short!("transfer") {
@@ -191,7 +201,7 @@ impl Policy for ControlPolicy {
 
         let mut spent = 0;
         if let Some(cap) = params.cap_per_period {
-            let mut state = current_spend(e, &smart_account, params.period_ledgers);
+            let mut state = current_spend(e, &smart_account, &contract, params.period_ledgers);
             let Some(total) = state.spent.checked_add(amount) else {
                 panic_with_error!(e, ControlError::CapExceeded)
             };
@@ -199,7 +209,7 @@ impl Policy for ControlPolicy {
                 panic_with_error!(e, ControlError::CapExceeded)
             }
             state.spent = total;
-            save_spend(e, &smart_account, &state);
+            save_spend(e, &smart_account, &contract, &state);
             spent = total;
         }
 
@@ -222,9 +232,9 @@ impl Policy for ControlPolicy {
         smart_account.require_auth();
 
         // Pin the policy to one token contract, so amounts always share a unit.
-        if !matches!(context_rule.context_type, ContextRuleType::CallContract(_)) {
+        let ContextRuleType::CallContract(token_contract) = context_rule.context_type else {
             panic!("control policy requires a CallContract rule");
-        }
+        };
         if install_params.allowlist.len() > MAX_ALLOWLIST {
             panic!("allowlist cannot have more than 50 suppliers");
         }
@@ -246,7 +256,12 @@ impl Policy for ControlPolicy {
             }
             // A new cap can never be set below what is already spent in the
             // current period, so changing limits cannot get around the cap.
-            let state = current_spend(e, &smart_account, install_params.period_ledgers);
+            let state = current_spend(
+                e,
+                &smart_account,
+                &token_contract,
+                install_params.period_ledgers,
+            );
             if cap < state.spent {
                 panic_with_error!(e, ControlError::CapBelowSpent)
             }
@@ -276,8 +291,8 @@ impl Policy for ControlPolicy {
         if !e.storage().persistent().has(&key) {
             panic!("control policy not installed");
         }
-        // Only the rule's parameters go. The spend state belongs to the
-        // account and stays, so the replacement rule keeps counting from it.
+        // Only the rule's parameters go. Spend state is keyed by token, so the
+        // replacement rule keeps counting from it without mixing assets.
         e.storage().persistent().remove(&key);
 
         PolicyUninstalled {
@@ -302,7 +317,12 @@ impl ControlPolicy {
 
     /// What the smart account has spent in the current period of
     /// `period_ledgers` ledgers. A finished period reads as zero spent.
-    pub fn spend_state(e: &Env, smart_account: Address, period_ledgers: u32) -> SpendState {
-        current_spend(e, &smart_account, period_ledgers)
+    pub fn spend_state(
+        e: &Env,
+        smart_account: Address,
+        token_contract: Address,
+        period_ledgers: u32,
+    ) -> SpendState {
+        current_spend(e, &smart_account, &token_contract, period_ledgers)
     }
 }

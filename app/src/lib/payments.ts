@@ -13,7 +13,12 @@ import {
 	type SelectedSigner,
 } from "smart-account-kit"
 import { type ControlParamValues } from "../controls/params"
-import { type Payment, type Role, type RuleName } from "./stellar"
+import {
+	type Payment,
+	type PaymentAsset,
+	type Role,
+	type RuleName,
+} from "./stellar"
 
 // Network-free payment logic used by stellar.ts. Values follow the control
 // matrix in AGENTS.md §3. Bytes are plain Uint8Arrays: the app has no Node
@@ -186,6 +191,7 @@ export function employeeSelectedSigner(
 }
 
 export type PayInput = {
+	asset: PaymentAsset
 	to: string
 	amount: number
 	concept: string
@@ -218,7 +224,12 @@ export function paymentLog(storage: KeyValueStorage) {
 	const list = (): Payment[] => {
 		try {
 			const parsed: unknown = JSON.parse(storage.getItem(PAYMENTS_KEY) ?? "[]")
-			return Array.isArray(parsed) ? (parsed as Payment[]) : []
+			return Array.isArray(parsed)
+				? (parsed as Array<Payment & { asset?: PaymentAsset }>).map((payment) => ({
+						...payment,
+						asset: payment.asset ?? "USDC",
+					}))
+				: []
 		} catch {
 			// A corrupt log must not hide a payment that already settled.
 			return []
@@ -249,7 +260,7 @@ const CONTRACT_CODE = /Error\(Contract,\s*#(\d+)\)/
  * Any other failure keeps its original text in `details`.
  */
 export const NO_TRUSTLINE =
-	"The supplier cannot receive USDC yet: its account needs a USDC trustline"
+	"The supplier cannot receive this asset yet: its account needs the matching trustline"
 
 export function rejectionReason(error: unknown): {
 	reason: string

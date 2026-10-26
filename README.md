@@ -6,9 +6,8 @@ Arqueo turns a treasury approval matrix into rules on a Stellar smart account.
 The account checks who signed, which supplier receives the payment, and whether
 the amount fits its policy before the transaction can settle.
 
-> **Testnet only.** This demo uses test USDC with no real value: a test asset
-> issued by Arqueo on testnet, not Circle's USDC. Do not use it to hold or move
-> real funds.
+> **Testnet only.** This demo uses Circle USDC on Stellar testnet and test XLM.
+> They have no real value. Do not use it to hold or move real funds.
 
 **Live app:** [arqueo-arqueo2.vercel.app](https://arqueo-arqueo2.vercel.app)
 (testnet only).
@@ -34,7 +33,7 @@ boundary.
 
 ```mermaid
 flowchart LR
-    Issuer["Test USDC issuer<br/>server only · api/fund-usdc"]
+    Faucet["Circle testnet USDC faucet<br/>manual request"]
 
     subgraph App["Web app · React + Vite · testnet only"]
         direction TB
@@ -57,7 +56,7 @@ flowchart LR
             Thr["threshold policy<br/>ordinary 1 of 1 · large 2 of 2"]
             CP["control-policy (ours)<br/>suppliers · per-payment max · 30-day cap<br/>max and cap on ordinary only"]
         end
-        SAC["Test USDC Stellar Asset Contract<br/>transfer(from, to, amount)"]
+        SAC["XLM or Circle USDC Stellar Asset Contract<br/>transfer(from, to, amount)"]
         Account --- Admin
         Account --- Ord
         Account --- Large
@@ -66,7 +65,7 @@ flowchart LR
         Pol -->|"all checks pass"| SAC
     end
 
-    Issuer -.->|"test USDC for funding"| Account
+    Faucet -.->|"test USDC for funding"| Account
     Pay --> Ctl
     Set --> Ctl
     Pay -.->|"every attempt"| Logs
@@ -93,11 +92,13 @@ it is not yet reconstructed from chain history.
 | `large`    | Employee + manager | Authorized supplier and two signatures                               |
 | `admin`    | Admin passkey      | Adds or removes account rules and signers                            |
 
-The app's default demo amounts are 200 USDC, 800 USDC, and 100 USDC. The
-on-chain account remains authoritative. Amounts are converted to stroops
-(`1 USDC = 10,000,000 stroops`) before contract calls. The issuer signs test
-USDC into the company account through `api/fund-usdc`; its secret is a server
-environment variable, never part of the browser bundle.
+The app's default demo amounts are 200, 800, and 100 in the selected asset.
+The same numeric limits apply independently to XLM and USDC, with a separate
+on-chain spend total for each asset. Amounts are converted to seven-decimal
+stroops before contract calls. For USDC, request Circle testnet tokens from its
+faucet to the treasury's Circle USDC trustline. The app includes an optional
+funding account and transfer flow when the faucet cannot fund the smart account
+directly; it never holds an issuer key.
 
 ## What is in this repository
 
@@ -166,10 +167,11 @@ CLI.
    Copy-Item app/.env.example app/.env.local
    ```
 
-3. In `app/.env.local`, configure `PUBLIC_CONTROL_POLICY_ADDRESS` and
-   `PUBLIC_SUPPLIERS` with the deployed testnet policy contract and funded
-   testnet supplier addresses. Keep any private keys in local-only environment
-   files; never commit them.
+3. In `app/.env.local`, configure `PUBLIC_CONTROL_POLICY_ADDRESS` (the new
+   per-token deployment used for XLM), `PUBLIC_USDC_CONTROL_POLICY_ADDRESS`
+   (the existing USDC deployment), and `PUBLIC_SUPPLIERS` with funded testnet
+   supplier addresses. Keep any private keys in local-only environment files;
+   never commit them.
 
 4. Start the app:
 
