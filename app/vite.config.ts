@@ -32,6 +32,7 @@ export default defineConfig(({ mode }) => {
 				include: ["buffer"],
 				globals: {
 					Buffer: true,
+					global: true,
 				},
 			}),
 			wasm(),

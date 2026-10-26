@@ -21,8 +21,12 @@ describe("sortedPolicies", () => {
 	// Soroban rejects maps whose keys are not sorted, and the SDK keeps the
 	// insertion order of a JS Map.
 	it("orders policy addresses by their contract id bytes", () => {
-		const low = StrKey.encodeContract(new Uint8Array(32).fill(0x01))
-		const high = StrKey.encodeContract(new Uint8Array(32).fill(0xf0))
+		const low = StrKey.encodeContract(
+			new Uint8Array(32).fill(0x01) as Parameters<typeof StrKey.encodeContract>[0],
+		)
+		const high = StrKey.encodeContract(
+			new Uint8Array(32).fill(0xf0) as Parameters<typeof StrKey.encodeContract>[0],
+		)
 
 		const sorted = sortedPolicies(
 			new Map<string, unknown>([
@@ -218,7 +222,11 @@ describe("paymentLog", () => {
 })
 
 describe("controlPolicyParams", () => {
-	const supplier = StrKey.encodeEd25519PublicKey(new Uint8Array(32).fill(0x07))
+	const supplier = StrKey.encodeEd25519PublicKey(
+		new Uint8Array(32).fill(0x07) as Parameters<
+			typeof StrKey.encodeEd25519PublicKey
+		>[0],
+	)
 
 	const ordinary = {
 		allowlist: [supplier],
@@ -263,7 +271,11 @@ describe("controlPolicyParams", () => {
 })
 
 describe("decodeControlParams", () => {
-	const supplier = StrKey.encodeEd25519PublicKey(new Uint8Array(32).fill(0x07))
+	const supplier = StrKey.encodeEd25519PublicKey(
+		new Uint8Array(32).fill(0x07) as Parameters<
+			typeof StrKey.encodeEd25519PublicKey
+		>[0],
+	)
 
 	it("reads back what controlPolicyParams wrote", () => {
 		const values = {

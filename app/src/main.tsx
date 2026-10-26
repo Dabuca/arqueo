@@ -6,6 +6,7 @@ import "@stellar-scaffold/app-lib/styles.css"
 import "./styles/tokens.css"
 import App from "./App.tsx"
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx"
+import "./lib/wallets"
 import { NotificationProvider } from "./providers/NotificationProvider.tsx"
 import { WalletProvider } from "./providers/WalletProvider.tsx"
 
