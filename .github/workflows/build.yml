@@ -140,10 +140,6 @@ jobs:
             http://localhost:8000/rpc | jq -e '.result.protocolVersion == 29'
       # Generate a throwaway identity on the CI's local network and fund it with
       # friendbot. No key is stored in the repo.
-      # The identity step below calls the `stellar` CLI. Pin the version that
-      # the team uses locally (scripts/dev-guard.mjs installs it the same way).
-      - name: Install stellar-cli
-        run: cargo binstall -y --locked stellar-cli@28.1.0
       - name: Add funded local identity as default
         run: |
           stellar keys generate me --network local --fund --overwrite
