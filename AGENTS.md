@@ -205,7 +205,7 @@ P0 bloquea la demo · P1 completa el MVP · P2 solo si sobra tiempo. **Marcad la
 
 ### P2 — si sobra tiempo
 
-- [x] **R18** USDC de testnet en vez de XLM. Token de prueba emitido por el emisor de Arqueo (no es el USDC de Circle). El fondeo pasa por `api/fund-usdc.ts`, con la clave del emisor solo en el servidor. Ver `docs/deploy.md`.
+- [x] **R18** USDC de testnet en vez de XLM. Token de prueba emitido por el emisor de Arqueo (no es el USDC de Circle). El fondeo pasa por `api/fund-usdc.ts`, con la clave del emisor solo en el servidor. Ver `docs/deploy.md`. **Pendiente:** (1) añadir `USDC_ISSUER_SECRET` en Vercel (sale de `stellar keys secret usdc-issuer`) y redesplegar; (2) llevar `develop` a `main`, que es la rama que despliega Vercel; (3) probar en la URL pública el flujo completo con passkey: crear cuenta, fondear con USDC y las 4 escenas; (4) ejecutar el script de R14 (`scripts/demo-setup.mjs`) con USDC; (5) que B y C validen el mensaje nuevo de rechazo por falta de trustline (no está en §6.3).
 - [x] **R19** GitHub Actions con `cargo test` y `npm run build`. El workflow `build.yml` ejecuta `npm test --workspace app`, `cargo test -p control-policy` y el build de todos los workspaces.
 - [ ] **R20** Passkey del manager en el móvil.
 - [ ] **R21** Regla de recuperación 2 de 3.
