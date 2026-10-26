@@ -11,6 +11,7 @@ export default defineConfig({
 			include: ["buffer"],
 			globals: {
 				Buffer: true,
+				global: true,
 			},
 		}),
 		wasm(),
