@@ -575,14 +575,14 @@ export function CompanyBalance() {
 									<dt className={ui.label}>{asset} spent, 30 days</dt>
 									<dd>
 										<span className={styles.spent}>
-											{state?.source === "chain" ? "" : "� "}
+											{state?.source === "chain" ? "" : "≈ "}
 											<Amount value={amount} asset={asset} /> /{" "}
 											<Amount value={limits.cap30d} asset={asset} /> {asset}
 										</span>
 										<span className={styles.caption}>
 											{state?.source === "chain"
 												? "Ordinary rule, read from the chain"
-												: "Ordinary rule, from this browser�s journal"}
+												: "Ordinary rule, from this browser\u2019s journal"}
 										</span>
 									</dd>
 								</div>
