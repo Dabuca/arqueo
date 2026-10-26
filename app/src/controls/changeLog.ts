@@ -7,6 +7,7 @@ const STORAGE_KEY = "arqueo.controlChanges"
 const CSV_COLUMNS = [
 	"at",
 	"field",
+	"asset",
 	"previous",
 	"next",
 	"spentAtChange",

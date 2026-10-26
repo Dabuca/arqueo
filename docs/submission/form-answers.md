@@ -20,7 +20,7 @@ Arqueo configures a Stellar smart account with named payment rules. Ordinary pay
 
 ## Stellar integration
 
-The treasury is an OpenZeppelin smart account on Stellar testnet. The React app uses Stellar's `smart-account-kit` to create and call that account. The account evaluates context rules and policies for calls to the native XLM Stellar Asset Contract. A custom Soroban `control-policy` checks the supplier allowlist and per-payment maximum. Accepted testnet transfers settle on Stellar and link to their transaction hashes.
+The treasury is an OpenZeppelin smart account on Stellar testnet. The React app uses Stellar's `smart-account-kit` to create and call that account. The payment screen selects native XLM or Circle USDC testnet SAC. A custom Soroban `control-policy` checks the supplier allowlist and per-payment maximum. Both assets use the same numeric limits while their 30-day spend totals remain independent by token contract. Accepted testnet transfers settle on Stellar and link to their transaction hashes.
 
 ## Track fit — Genesis / Stellar Composed
 

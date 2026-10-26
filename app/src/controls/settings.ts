@@ -5,6 +5,7 @@ import {
 	type ControlChange,
 	type ControlField,
 	type ControlsConfig,
+	type PaymentAsset,
 	type RuleName,
 	type Supplier,
 } from "./types"
@@ -159,6 +160,7 @@ export function ledgerToDate(
 
 /** The step of retiring `oldId` and installing its replacement `newId`. */
 export interface RuleSwap {
+	asset: PaymentAsset
 	rule: RuleName
 	oldId: number
 	/** Set once the replacement rule is on chain. */
@@ -177,10 +179,27 @@ export interface PendingChange {
 	swaps: RuleSwap[]
 	/** Cap context for the audit trail, read before the first step. */
 	spentAtChange?: number
+	spentAtChangeByAsset?: Partial<Record<PaymentAsset, number>>
 	periodStart?: string
+	periodStartByAsset?: Partial<Record<PaymentAsset, string | undefined>>
 }
 
-export type Step = { rule: RuleName; action: "add" | "remove" }
+export type RuleMap = Partial<Record<RuleName, number>>
+export type RuleMapsByAsset = Partial<Record<PaymentAsset, RuleMap>>
+export type Step = {
+	asset: PaymentAsset
+	rule: RuleName
+	action: "add" | "remove"
+}
+
+function rulesForAsset(
+	rules: RuleMap | RuleMapsByAsset,
+	asset: PaymentAsset,
+): RuleMap {
+	const map = rules as RuleMap & RuleMapsByAsset
+	if (map.ordinary !== undefined || map.large !== undefined) return map
+	return map[asset] ?? {}
+}
 
 /**
  * Plans a change. Only rules that exist are swapped: a rule created later is
@@ -189,17 +208,22 @@ export type Step = { rule: RuleName; action: "add" | "remove" }
 export function startChange(input: {
 	prev: ControlsConfig
 	next: ControlsConfig
-	existingRules: Partial<Record<RuleName, number>>
+	existingRules: RuleMap | RuleMapsByAsset
+	assets?: PaymentAsset[]
 	spentAtChange?: number
+	spentAtChangeByAsset?: Partial<Record<PaymentAsset, number>>
+	periodStartByAsset?: Partial<Record<PaymentAsset, string | undefined>>
 	periodStart?: string
 	now?: Date
 }): PendingChange | null {
 	const fields = changedFields(input.prev, input.next)
 	if (fields.length === 0) return null
 	const swaps: RuleSwap[] = []
-	for (const rule of rulesToSwap(fields)) {
-		const oldId = input.existingRules[rule]
-		if (oldId !== undefined) swaps.push({ rule, oldId })
+	for (const asset of input.assets ?? ["USDC"]) {
+		for (const rule of rulesToSwap(fields)) {
+			const oldId = rulesForAsset(input.existingRules, asset)[rule]
+			if (oldId !== undefined) swaps.push({ asset, rule, oldId })
+		}
 	}
 	return {
 		startedAt: (input.now ?? new Date()).toISOString(),
@@ -208,6 +232,8 @@ export function startChange(input: {
 		fields,
 		swaps,
 		spentAtChange: input.spentAtChange,
+		spentAtChangeByAsset: input.spentAtChangeByAsset,
+		periodStartByAsset: input.periodStartByAsset,
 		periodStart: input.periodStart,
 	}
 }
@@ -219,15 +245,18 @@ export function startChange(input: {
  */
 export function startMigration(input: {
 	config: ControlsConfig
-	existingRules: Partial<Record<RuleName, number>>
+	existingRules: RuleMap | RuleMapsByAsset
 	rules: RuleName[]
+	asset?: PaymentAsset
 	now?: Date
 }): PendingChange {
 	const swaps: RuleSwap[] = []
-	for (const rule of RULE_ORDER) {
-		const oldId = input.existingRules[rule]
-		if (input.rules.includes(rule) && oldId !== undefined) {
-			swaps.push({ rule, oldId })
+	for (const asset of [input.asset ?? "USDC"]) {
+		for (const rule of RULE_ORDER) {
+			const oldId = rulesForAsset(input.existingRules, asset)[rule]
+			if (input.rules.includes(rule) && oldId !== undefined) {
+				swaps.push({ asset, rule, oldId })
+			}
 		}
 	}
 	return {
@@ -242,9 +271,10 @@ export function startMigration(input: {
 /** The next transaction to send, or undefined when the change is complete. */
 export function nextStep(pending: PendingChange): Step | undefined {
 	for (const swap of pending.swaps) {
-		if (swap.newId === undefined) return { rule: swap.rule, action: "add" }
+		if (swap.newId === undefined)
+			return { asset: swap.asset, rule: swap.rule, action: "add" }
 		if (swap.removeHash === undefined) {
-			return { rule: swap.rule, action: "remove" }
+			return { asset: swap.asset, rule: swap.rule, action: "remove" }
 		}
 	}
 	return undefined
@@ -254,9 +284,10 @@ export function nextStep(pending: PendingChange): Step | undefined {
 export function remainingSteps(pending: PendingChange): Step[] {
 	return pending.swaps.flatMap((swap) => {
 		const steps: Step[] = []
-		if (swap.newId === undefined) steps.push({ rule: swap.rule, action: "add" })
+		if (swap.newId === undefined)
+			steps.push({ asset: swap.asset, rule: swap.rule, action: "add" })
 		if (swap.removeHash === undefined) {
-			steps.push({ rule: swap.rule, action: "remove" })
+			steps.push({ asset: swap.asset, rule: swap.rule, action: "remove" })
 		}
 		return steps
 	})
@@ -268,11 +299,14 @@ export function withAdded(
 	rule: RuleName,
 	newId: number,
 	hash: string,
+	asset: PaymentAsset = "USDC",
 ): PendingChange {
 	return {
 		...pending,
 		swaps: pending.swaps.map((swap) =>
-			swap.rule === rule ? { ...swap, newId, addHash: hash } : swap,
+			swap.rule === rule && swap.asset === asset
+				? { ...swap, newId, addHash: hash }
+				: swap,
 		),
 	}
 }
@@ -282,11 +316,14 @@ export function withRemoved(
 	pending: PendingChange,
 	rule: RuleName,
 	hash: string,
+	asset: PaymentAsset = "USDC",
 ): PendingChange {
 	return {
 		...pending,
 		swaps: pending.swaps.map((swap) =>
-			swap.rule === rule ? { ...swap, removeHash: hash } : swap,
+			swap.rule === rule && swap.asset === asset
+				? { ...swap, removeHash: hash }
+				: swap,
 		),
 	}
 }
@@ -312,13 +349,17 @@ export function changeRecords(
 			if (!rulesForField(field).includes(swap.rule)) continue
 			records.push({
 				field,
+				asset: swap.asset,
 				rule: swap.rule,
 				previous: describeValue(field, pending.prev),
 				next: describeValue(field, pending.next),
 				...(field === "cap30d"
 					? {
-							spentAtChange: pending.spentAtChange,
-							periodStart: pending.periodStart,
+							spentAtChange:
+								pending.spentAtChangeByAsset?.[swap.asset] ??
+								pending.spentAtChange,
+							periodStart:
+								pending.periodStartByAsset?.[swap.asset] ?? pending.periodStart,
 						}
 					: {}),
 				addTxHash: swap.addHash,

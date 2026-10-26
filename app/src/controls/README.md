@@ -17,7 +17,7 @@ rules so it can explain them, prepare the parameters, and keep the audit trail.
 | File            | Use it for                                                                                                                                                                                                                                                 |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `types.ts`      | `Limits`, `Supplier`, `ControlsConfig`, `ControlChange`, `CheckResult`. `Role` and `RuleName` are re-exported from `stellar.ts` (one definition for the app).                                                                                              |
-| `defaults.ts`   | `DEFAULT_LIMITS` (500 XLM per payment, 1,000 XLM every 30 days), `DEFAULT_CONFIG` (no suppliers), `DEMO_AMOUNTS` (200 / 800 / 100).                                                                                                                        |
+| `defaults.ts`   | `DEFAULT_LIMITS` (500 units per payment, 1,000 units every 30 days), `DEFAULT_CONFIG` (no suppliers), `DEMO_AMOUNTS` (200 / 800 / 100). The same values apply to XLM and USDC. |
 | `units.ts`      | `xlmToStroops` (exact, `bigint`; use it for anything that goes on chain), `stroopsToXlm`, `roundToStroops` (only to compare amounts held as floats).                                                                                                       |
 | `rules.ts`      | `signersFor(rule)`, `ruleForSigners(signers)`, `requiredRule(amount, limits, spentInPeriod)`.                                                                                                                                                              |
 | `validation.ts` | `looksLikeStellarAddress` (format only), `isSupplier`, `validateLimitsChange(next, spentInPeriod)`.                                                                                                                                                        |
@@ -33,8 +33,9 @@ rules so it can explain them, prepare the parameters, and keep the audit trail.
 - **`requiredRule` is a hint, not a gate.** Show "Needs manager approval" when
   it returns `large`, but still let the employee try alone: scene 2 must show
   the account itself rejecting the payment.
-- **What was spent belongs to the account, not to a rule.** A change adds the
-  new rule first and retires the old one after, so the cap keeps counting.
+- **What was spent belongs to the account and asset, not to a rule.** XLM and
+  USDC have independent counters. A change adds the new rule first and retires
+  the old one after, so that asset's cap keeps counting.
 - **The 30-day cap can never go below what was spent**, and the per-payment
   maximum can never be above the cap. `validateLimitsChange` checks both; call
   it before sending any change.
@@ -54,7 +55,7 @@ rules so it can explain them, prepare the parameters, and keep the audit trail.
   `xdr.ScVal` with `controlPolicyParams` in `payments.ts`.
 - Settings (R17): `settings.ts` plans the steps; `applyControlChange` in
   `stellar.ts` runs them and saves its progress after each one.
-- Payments: `xlmToStroops` for the transfer amount.
+- Payments: `xlmToStroops` for either asset's seven-decimal transfer amount.
 - R17 / R14: implement `SupplierDeps` in `stellar.ts` (`isValidAddress` with the
   SDK's StrKey, `accountExists` against testnet, `createFundedAccount` with
   Friendbot). This extends the §6.1 interface: agree it in the PR.
@@ -80,6 +81,6 @@ real `localStorage`.
 ## Still open
 
 - The 30-day cap lives inside `control-policy` (R17, `AGENTS.md` §3.1), and
-  what was spent is kept per account on chain. A and B confirm this in the R17
-  PR; the contract must be redeployed and `PUBLIC_CONTROL_POLICY_ADDRESS`
-  updated before a change can be tried on testnet.
+  spend is keyed by account and token contract. The old USDC deployment remains
+  configured to preserve its counter; XLM uses the R18 deployment in
+  `PUBLIC_CONTROL_POLICY_ADDRESS`.

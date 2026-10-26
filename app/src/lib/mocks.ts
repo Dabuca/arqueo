@@ -1,9 +1,9 @@
-import { type Payment, type Role } from "./stellar"
+import { type Payment, type PaymentAsset, type Role } from "./stellar"
 
 // Fake version of stellar.ts with the same exports, so the UI can be built
 // before the real network layer is ready. Keep the signatures in sync.
 
-export type { Payment, Role, RuleName } from "./stellar"
+export type { Payment, PaymentAsset, Role, RuleName } from "./stellar"
 
 const COMPANY_ACCOUNT =
 	"CMOCKCOMPANYACCOUNTFORDEVELOPMENTONLY0000000000000000000"
@@ -16,7 +16,7 @@ export async function createCompanyAccount(
 	return { address: COMPANY_ACCOUNT }
 }
 
-export async function getBalance(): Promise<number> {
+export async function getBalance(_asset: PaymentAsset = "USDC"): Promise<number> {
 	return 10_000
 }
 
@@ -52,6 +52,7 @@ export async function installControlPolicy(): Promise<{ hash: string }> {
 }
 
 export async function pay(p: {
+	asset: PaymentAsset
 	to: string
 	amount: number
 	concept: string

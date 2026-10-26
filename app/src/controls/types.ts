@@ -1,9 +1,9 @@
 // One definition for the whole app: stellar.ts owns these (AGENTS.md §6.1).
 // Type-only, so nothing from the network layer is loaded at runtime.
-import type { RuleName } from "../lib/stellar"
-export type { Role, RuleName } from "../lib/stellar"
+import type { PaymentAsset, RuleName } from "../lib/stellar"
+export type { PaymentAsset, Role, RuleName } from "../lib/stellar"
 
-/** Limits set by the admin. Amounts in XLM. They apply to the `ordinary` rule. */
+/** Limits set by the admin. Amounts use the selected asset's 7-decimal unit. */
 export interface Limits {
 	maxPerPayment: number
 	cap30d: number
@@ -31,7 +31,8 @@ export interface ControlChange {
 	previous: string
 	next: string
 	rule?: RuleName // the rule that was retired and replaced
-	spentAtChange?: number // XLM, only for cap30d
+	asset?: PaymentAsset
+	spentAtChange?: number // asset units, only for cap30d
 	periodStart?: string // ISO date, only for cap30d
 	removeTxHash?: string
 	addTxHash?: string

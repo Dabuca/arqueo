@@ -15,7 +15,7 @@ export const DEFAULT_CONFIG: ControlsConfig = {
 }
 
 /**
- * Amounts (XLM) for the demo scenes, tuned to the default limits.
+ * Amounts in either selected asset for the demo scenes, tuned to the default limits.
  * 800 exceeds the 500 per-payment maximum without exceeding the 1,000
  * 30-day cap (not even after the 200 of scene 1 is spent), so scene 2 is
  * rejected because of the maximum and the "manager approval required"
