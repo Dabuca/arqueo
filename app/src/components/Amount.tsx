@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { useCurrency } from "../providers/CurrencyProvider"
-import { formatUsd, formatXlm } from "./format"
+import { formatUsd, formatXlm } from "../controls/format"
 
 /** Converts an XLM amount to the chosen display currency, falling back to XLM without a price. */
 export function useDisplayAmount() {

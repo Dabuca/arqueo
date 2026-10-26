@@ -196,7 +196,7 @@ P0 bloquea la demo · P1 completa el MVP · P2 solo si sobra tiempo. **Marcad la
 
 - [x] **R11 [C]** CSV del auditor. `/auditor` descarga el CSV de pagos y el de cambios de Ajustes; el segundo lleva BOM, neutraliza fórmulas y guarda la dirección completa de cada proveedor.
 - [x] **R12 [A+C]** Errores legibles (§6.3).
-- [ ] **R13 [C]** El auditor ve también los firmantes y la regla aplicada.
+- [x] **R13 [C]** El auditor ve también los firmantes y la regla aplicada. La tabla y el CSV muestran la regla («Ordinary · 1 of 1», «Large · 2 of 2»), los firmantes requeridos y, en un rechazo por límite, el que faltaba (`controls/approval.ts`).
 - [ ] **R14 [B]** Script de demo reproducible que crea cuenta, firmantes, reglas y proveedores de una vez. Cada ensayo gasta el tope mensual: cuenta nueva por ensayo.
 - [ ] **R15 [C]** App publicada en una URL con aviso «testnet only».
 - [ ] **R16 [D]** Diagrama de arquitectura para el README y el deck.

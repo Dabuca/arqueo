@@ -1,5 +1,6 @@
 import { type CheckResult, type ControlsConfig, type Limits } from "./types"
-import { roundToStroops, stroopsToXlm, xlmToStroops } from "./units"
+import { formatXlm } from "./format"
+import { roundToStroops, xlmToStroops } from "./units"
 
 /**
  * Format check only (G + 55 base32 characters). The full checksum is checked
@@ -39,6 +40,7 @@ const rejected = (reason: string): CheckResult => ({ ok: false, reason })
 export function validateLimitsChange(
 	next: Limits,
 	spentInPeriod: number,
+	priceUsd?: number,
 ): CheckResult {
 	if (!isPositive(next.maxPerPayment)) {
 		return rejected("The per-payment maximum must be a positive number")
@@ -68,9 +70,8 @@ export function validateLimitsChange(
 		return rejected("The amount already spent must be a number of zero or more")
 	}
 	if (roundToStroops(next.cap30d) < roundToStroops(spentInPeriod)) {
-		const spent = stroopsToXlm(BigInt(roundToStroops(spentInPeriod)))
 		return rejected(
-			`The 30-day cap cannot be below the amount already spent (${spent} XLM)`,
+			`The 30-day cap cannot be below the amount already spent (${formatXlm(spentInPeriod, priceUsd)} XLM)`,
 		)
 	}
 	if (roundToStroops(next.maxPerPayment) > roundToStroops(next.cap30d)) {

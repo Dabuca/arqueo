@@ -189,3 +189,23 @@ describe("validateLimitsChange", () => {
 		).toEqual({ ok: true })
 	})
 })
+
+describe("the spent amount in the cap message", () => {
+	it("uses the same decimals as the other amounts", () => {
+		expect(validateLimitsChange({ ...DEFAULT_LIMITS, cap30d: 1000 }, 1422.2345178)).toEqual({
+			ok: false,
+			reason:
+				"The 30-day cap cannot be below the amount already spent (1,422.23 XLM)",
+		})
+	})
+
+	it("follows the USD price when there is one", () => {
+		expect(
+			validateLimitsChange({ ...DEFAULT_LIMITS, cap30d: 1000 }, 1422.2345178, 0.12),
+		).toEqual({
+			ok: false,
+			reason:
+				"The 30-day cap cannot be below the amount already spent (1,422.2345 XLM)",
+		})
+	})
+})

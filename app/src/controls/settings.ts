@@ -72,8 +72,9 @@ export function rulesToSwap(fields: ControlField[]): RuleName[] {
 export function validateSettings(
 	next: ControlsConfig,
 	spentInPeriod: number,
+	priceUsd?: number,
 ): CheckResult {
-	const limits = validateLimitsChange(next.limits, spentInPeriod)
+	const limits = validateLimitsChange(next.limits, spentInPeriod, priceUsd)
 	if (!limits.ok) return limits
 	if (next.suppliers.length === 0) {
 		return {
