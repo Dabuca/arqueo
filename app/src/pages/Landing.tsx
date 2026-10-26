@@ -49,6 +49,42 @@ const WITH_ARQUEO = [
 	"Every payment and every refused attempt is recorded with its transaction.",
 ]
 
+const BENEFITS: { icon: IconName; title: string; body: string }[] = [
+	{
+		icon: "ruleDualControl",
+		title: "No single person moves it all",
+		body: "Limits and approved suppliers live in the account. An employee pays within them, and a manager signs what goes above.",
+	},
+	{
+		icon: "rules",
+		title: "Rules instead of chat approvals",
+		body: "The account decides whether a payment has the signatures and the limits it needs, before it executes.",
+	},
+	{
+		icon: "audit",
+		title: "An audit trail with the refusals",
+		body: "The auditor reads paid and refused attempts, each with its transaction, and exports them as CSV.",
+	},
+]
+
+const HOLD_BLOCKERS: { icon: IconName; question: string; answer: string }[] = [
+	{
+		icon: "ruleDualControl",
+		question: "Can one person move everything?",
+		answer: "No. Limits and approved suppliers sit in the account, and larger payments need a second signature.",
+	},
+	{
+		icon: "verified",
+		question: "Who approved this payment?",
+		answer: "The signers are part of each transaction, so the approval is on the record instead of in a chat.",
+	},
+	{
+		icon: "audit",
+		question: "Where is the evidence?",
+		answer: "Paid and refused attempts are logged with their transactions, and the auditor exports them as CSV.",
+	},
+]
+
 const ROLES: { role: string; signs: string; icon: IconName; does: string }[] = [
 	{ role: "Admin", signs: "Passkey", icon: "admin", does: "Creates the account, rules, signers and suppliers. Sets the limits." },
 	{ role: "Employee", signs: "Ed25519 key", icon: "badge", does: "Makes ordinary payments within the per-payment limit." },
@@ -248,11 +284,12 @@ export default function Landing() {
 					<BrandOrbit className={styles.heroOrbit} />
 					<div className={styles.heroInner}>
 						<div className={styles.pitch}>
-							<h1>Payment governance, programmed into your account.</h1>
+							<h1>A stablecoin treasury that enforces its own payment rules.</h1>
 							<p className={styles.lead}>
-								Your approval matrix becomes rules on a Stellar smart account. A
-								payment that breaks them is refused before it executes, and every
-								attempt is recorded.
+								Arqueo turns your approval rules into controls on a Stellar smart
+								account. Payments follow your limits and approved suppliers, and
+								every attempt, paid or refused, leaves a record the auditor can
+								check.
 							</p>
 							<div className={styles.actions}>
 								<Link to="/app" className={styles.primary}>
@@ -314,6 +351,25 @@ export default function Landing() {
 								))}
 							</ul>
 						</article>
+					</div>
+				</section>
+
+				<section className={styles.diagnostic} aria-labelledby="audience-title">
+					<div className={styles.sectionHead}>
+						<h2 id="audience-title">Built for teams that share a treasury</h2>
+						<p>
+							SMEs, startups and associations that hold stablecoins and need
+							more than one person in control of them.
+						</p>
+					</div>
+					<div className={styles.threeCols}>
+						{BENEFITS.map(({ icon, title, body }) => (
+							<article key={title} className={styles.card}>
+								<Icon name={icon} className={styles.cardIcon} />
+								<h3>{title}</h3>
+								<p>{body}</p>
+							</article>
+						))}
 					</div>
 				</section>
 
@@ -416,6 +472,25 @@ export default function Landing() {
 								<h3>{role}</h3>
 								<p className={styles.signs}>Signs with {signs}</p>
 								<p>{does}</p>
+							</article>
+						))}
+					</div>
+				</section>
+
+				<section className={styles.diagnostic} aria-labelledby="stellar-title">
+					<div className={styles.sectionHead}>
+						<h2 id="stellar-title">What stops a team from keeping its treasury on Stellar</h2>
+						<p>
+							Partners, a board or an auditor ask these questions before funds go
+							on-chain. The account answers them.
+						</p>
+					</div>
+					<div className={styles.threeCols}>
+						{HOLD_BLOCKERS.map(({ icon, question, answer }) => (
+							<article key={question} className={styles.card}>
+								<Icon name={icon} className={styles.cardIcon} />
+								<h3>{question}</h3>
+								<p>{answer}</p>
 							</article>
 						))}
 					</div>
