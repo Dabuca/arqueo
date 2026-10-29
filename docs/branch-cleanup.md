@@ -15,21 +15,21 @@ deletion time.
 
 | Branch | Tip | Merged | Recoverable from |
 |---|---|---|---|
-| `a-b/R6-install-policy` | `a36cd4e` | yes | `origin/*` |
-| `a/R5-control-policy` | `5381168` | yes | `origin/*` |
-| `b/R2-scaffold-testnet` | `bf6dd8a` | yes | `origin/*` |
-| `b/R20-manager-phone` | `4c2a70c` | yes | `origin/*` |
-| `b/R24-landing` | `ddd2da6` | yes | `origin/*` |
-| `b/R25-wallets` | `2c2cfd5` | yes | `origin/*` |
-| `b/R3-company-account` | `0d751fd` | yes | `origin/*` |
-| `b/R4-first-payment` | `0d6f831` | yes | `origin/*` |
-| `b/R7-large-payment` | `8755a95` | yes | `origin/*` |
-| `b/fix-sdk-16` | `68b7534` | yes | `origin/*` |
-| `b/landing` | `3334921` | yes | `origin/*` |
-| `c/R8-payment-screen` | `5381168` | yes | `origin/*` |
-| `d/R1-docs-base` | `5381168` | yes | `origin/*` |
-| `d/R17-settings-layout` | `b8d8917` | yes | `origin/*` |
-| `feat/auth` | `5cd88df` | yes | `origin/*` |
+| `a-b/R6-install-policy` | `a36cd4e` | yes | `origin/develop` |
+| `a/R5-control-policy` | `5381168` | yes | `origin/develop` |
+| `b/R2-scaffold-testnet` | `bf6dd8a` | yes | `origin/develop` |
+| `b/R20-manager-phone` | `4c2a70c` | yes | `origin/develop` |
+| `b/R24-landing` | `ddd2da6` | yes | `origin/develop` |
+| `b/R25-wallets` | `2c2cfd5` | yes | `origin/develop` |
+| `b/R3-company-account` | `0d751fd` | yes | `origin/develop` |
+| `b/R4-first-payment` | `0d6f831` | yes | `origin/develop` |
+| `b/R7-large-payment` | `8755a95` | yes | `origin/develop` |
+| `b/fix-sdk-16` | `68b7534` | yes | `origin/develop` |
+| `b/landing` | `3334921` | yes | `origin/develop` |
+| `c/R8-payment-screen` | `5381168` | yes | `origin/develop` |
+| `d/R1-docs-base` | `5381168` | yes | `origin/develop` |
+| `d/R17-settings-layout` | `b8d8917` | yes | `origin/develop` |
+| `feat/auth` | `5cd88df` | yes | `origin/develop` |
 | `backup/origin-main-before-reset` | `8753bda` | **no** | local reflog only |
 
 ## Remote branches deleted from `origin`
