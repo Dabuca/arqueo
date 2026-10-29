@@ -1,12 +1,12 @@
 # Branch cleanup — 30 Oct 2026
 
-Local branch clutter removed after the hackathon submission, then the merged remote
-branches pruned. Nothing with unreachable commits was deleted.
+Branch clutter removed after the hackathon submission, locally and on GitHub.
 
-- Kept: `main`, `develop` (locally and on `origin`)
+- Kept: `main`, `develop` (local and on `origin`)
 - Deleted locally: 16 branches
-- Deleted on `origin`: 50 branches, all already merged into `origin/develop`
-- Left on `origin`: 11 unmerged teammate branches and 5 Dependabot branches (open-PR risk)
+- Deleted on `origin`: 66 branches — 2 heads remain (`main`, `develop`)
+- Commit loss: none. Every tip, merged or not, is recorded below and pinned locally
+  under `refs/backup/origin/`
 
 ## Local branches deleted
 
@@ -88,29 +88,39 @@ reachable from `develop`. Any of them can be recreated with `git branch <name> <
 | `feat/auth` | `5cd88df0` |
 | `feat/pani` | `573cc704` |
 
-## Remote branches left on `origin`
+## Remote branches deleted from `origin` (unmerged)
 
-| Branch | Why it stays |
-|---|---|
-| `a/claude-skills-copies` | unmerged |
-| `b/landing-evidence` | unmerged |
-| `b/stellar-build-skills` | unmerged |
-| `c/R11-auditor-csv` | unmerged |
-| `d/R10-pitch-deck` | unmerged |
-| `d/R10-submission` | unmerged |
-| `d/R10-team-allocation` | unmerged |
-| `d/R16-architecture-diagram` | unmerged |
-| `d/R8-pay-button-fix` | unmerged |
-| `d/agents-sync` | unmerged |
-| `d/team-status` | unmerged |
-| `dependabot/npm_and_yarn/dotenv-18.0.8` | unmerged, likely an open Dependabot PR |
-| `dependabot/npm_and_yarn/lint-staged-17.6.0` | unmerged, likely an open Dependabot PR |
-| `dependabot/npm_and_yarn/npm-minor-276ab44e4e` | unmerged, likely an open Dependabot PR |
-| `dependabot/npm_and_yarn/simplewebauthn/browser-14.0.0` | unmerged, likely an open Dependabot PR |
-| `dependabot/npm_and_yarn/typescript-7.0.2` | unmerged, likely an open Dependabot PR |
+These had commits that were **not** in `origin/develop`. Deleting them on GitHub closes
+any PR they backed, so each tip is pinned in this clone first (see below).
 
-Deleting a remote branch closes any open PR that used it and makes the PR
-unreopenable, so these were left alone. Review them with the GitHub UI before removing.
+| Branch | Tip | Local recovery ref |
+|---|---|---|
+| `a/claude-skills-copies` | `2a0292ebf5f313fab17f706e88b96e2aec883e97` | `refs/backup/origin/a/claude-skills-copies` |
+| `b/landing-evidence` | `60e7959ce6e9f0b5335800060d6a38fb5a7d0b5c` | `refs/backup/origin/b/landing-evidence` |
+| `b/stellar-build-skills` | `06d044102d08056cf515f566a8e7d6feb1e98bfd` | `refs/backup/origin/b/stellar-build-skills` |
+| `c/R11-auditor-csv` | `ca6f631ae7a80380a9909182bd375c6ed6e51565` | `refs/backup/origin/c/R11-auditor-csv` |
+| `d/R10-pitch-deck` | `04fa115e71509112e44144b2f854be0dd3ae0bf6` | `refs/backup/origin/d/R10-pitch-deck` |
+| `d/R10-submission` | `07c021a921846292e5688bb8543979df6829a8fc` | `refs/backup/origin/d/R10-submission` |
+| `d/R10-team-allocation` | `d94c54134da56b6989b5ea3c7ed7a0371b342d1d` | `refs/backup/origin/d/R10-team-allocation` |
+| `d/R16-architecture-diagram` | `865d9e886bd67d3406a753ed60b1359f9a1c91db` | `refs/backup/origin/d/R16-architecture-diagram` |
+| `d/R8-pay-button-fix` | `e59cdf5f62c434df1d4703dfc19bf889ae1a7757` | `refs/backup/origin/d/R8-pay-button-fix` |
+| `d/agents-sync` | `e0e2e44022fd0c6b3b6a3c2853cb2d1ad4892166` | `refs/backup/origin/d/agents-sync` |
+| `d/team-status` | `b2334b1569854b23e103d35adef5257fa937ec0a` | `refs/backup/origin/d/team-status` |
+| `dependabot/npm_and_yarn/dotenv-18.0.8` | `21f34d0c4f997241843ee967b270d89ff0269f9e` | `refs/backup/origin/dependabot/npm_and_yarn/dotenv-18.0.8` |
+| `dependabot/npm_and_yarn/lint-staged-17.6.0` | `5fb28084d2af44b989e901ec766353f39440f66a` | `refs/backup/origin/dependabot/npm_and_yarn/lint-staged-17.6.0` |
+| `dependabot/npm_and_yarn/npm-minor-276ab44e4e` | `c1c8ed5beed4d9ccf04bdcbdba0941b400650fe1` | `refs/backup/origin/dependabot/npm_and_yarn/npm-minor-276ab44e4e` |
+| `dependabot/npm_and_yarn/simplewebauthn/browser-14.0.0` | `92338801183ee67a0fff83da4bd521461f8b0f0c` | `refs/backup/origin/dependabot/npm_and_yarn/simplewebauthn/browser-14.0.0` |
+| `dependabot/npm_and_yarn/typescript-7.0.2` | `7005bb83a68e39833775f33897bc307195c59aae` | `refs/backup/origin/dependabot/npm_and_yarn/typescript-7.0.2` |
+
+Recover any of them into a normal branch:
+
+```bash
+git branch b/landing-evidence refs/backup/origin/b/landing-evidence
+git push origin b/landing-evidence      # only if it should go back to GitHub
+```
+
+`refs/backup/*` is local only — it is not pushed, so it survives as long as this clone
+exists (and is not affected by `git gc`).
 
 ## Notes
 
