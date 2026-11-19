@@ -1,6 +1,6 @@
 .Home {
 	display: grid;
-	gap: 24px;
+	gap: clamp(20px, 3vw, 36px);
 	max-width: 1200px;
 	margin: 0 auto;
 }
@@ -8,8 +8,6 @@
 .Home > header {
 	margin-bottom: 8px;
 }
-
-
 .Home > * {
 	min-width: 0;
 }

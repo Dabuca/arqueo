@@ -1,18 +1,33 @@
-/* Thin strip above the app header: this demo only ever runs on Stellar testnet. */
-
 .banner {
-	position: relative;
-	z-index: 2;
-	padding: 6px clamp(16px, 4vw, 48px);
-	background: var(--ink);
-	color: var(--background);
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 4px 10px;
+	color: var(--muted);
 	font-family: var(--font-body);
 	font-size: 0.8125rem;
 	line-height: 1.4;
-	text-align: center;
 }
 
 .banner strong {
-	letter-spacing: 0.06em;
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	padding: 3px 9px;
+	border: 1px solid color-mix(in srgb, var(--ink-container) 35%, transparent);
+	border-radius: 999px;
+	background: var(--sand);
+	color: var(--ink-container);
+	font: 600 0.6875rem / 1.4 var(--font-mono);
+	letter-spacing: 0.08em;
 	text-transform: uppercase;
+}
+
+.banner strong::before {
+	content: "";
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: currentColor;
+	box-shadow: 0 0 8px currentColor;
 }

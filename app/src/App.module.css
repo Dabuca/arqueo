@@ -1,20 +1,105 @@
-/* App shell: warm paper ground, one measure shared by the header, the screens and the footer. */
+/* App shell and theme for the working screens. Follows docs/ui-design-concept.md
+   ("Product first"): carbon ground, graphite surfaces, ivory text, amber for
+   focus, selection and approval progress. Red stays a verdict. */
+
+@font-face {
+	font-family: "Arqueo Wordmark";
+	src: url("./styles/jacquard-12.ttf") format("truetype");
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Arqueo Pixel";
+	src: url("./styles/silkscreen.ttf") format("truetype");
+	font-display: swap;
+}
 
 .AppLayout {
+	/* Palette from the design concept: carbon, graphite, ivory, amber. */
+	--background: #101010;
+	--surface-low: #151515;
+	--surface: #1b1b1b;
+	--surface-high: #242424;
+	--stock: #121212;
+	--stone: #191919;
+	--stone-line: #2e2e2d;
+	--ink: #eee8db;
+	--ink-container: #e5aa52;
+	--accent-hover: #f2c27c;
+	--muted: #a9a59c;
+	--body: #cfc9bd;
+	--outline: #4a4947;
+	--line: #2a2a29;
+	--ok: #7cc392;
+	--ok-ink: #a3d9b2;
+	--ok-soft: #16271c;
+	--alert: #ec7b6d;
+	--alert-ink: #f4a69a;
+	--alert-soft: #2f1714;
+	--sand: #2a2117;
+	--glow: #93531c;
+	--sidebar: #0b0b0b;
+	--sidebar-width: 216px;
+	--topbar-height: 64px;
+
+	--font-wordmark: "Arqueo Wordmark", Georgia, serif;
+	--font-pixel: "Arqueo Pixel", ui-monospace, monospace;
+	--font-display: Arial, Helvetica, sans-serif;
+	--font-body: Arial, Helvetica, sans-serif;
+	--font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+	--workspace-gutter: clamp(16px, 3.6vw, 52px);
+
+	/* Scaffold styles also render native controls, address snippets and links. */
+	--color-bg: var(--stock);
+	--color-surface: var(--surface-high);
+	--color-text: var(--ink);
+	--color-text-muted: var(--muted);
+	--color-border: var(--outline);
+	--color-accent: var(--ink-container);
+	--color-success: var(--ok);
+	--color-error: var(--alert);
+	--color-warning: var(--ink-container);
+
 	position: relative;
 	isolation: isolate;
 	min-height: 100vh;
-	display: flex;
-	flex-direction: column;
-	background: var(--background);
+	display: grid;
+	grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+	grid-template-rows: auto 1fr auto;
+	grid-template-areas:
+		"sidebar topbar"
+		"sidebar main"
+		"sidebar footer";
+	/* Top to bottom: the sidebar column (it is sticky and one viewport tall, so
+	   its column is painted to stay dark on long pages), a low amber glow, the
+	   faint vertical grid of the landing, the carbon ground. */
+	background:
+		linear-gradient(
+			to right,
+			var(--sidebar) calc(var(--sidebar-width) - 1px),
+			var(--line) calc(var(--sidebar-width) - 1px) var(--sidebar-width),
+			transparent var(--sidebar-width)
+		),
+		radial-gradient(ellipse 55% 360px at 82% 0, color-mix(in srgb, var(--glow) 28%, transparent), transparent 100%),
+		repeating-linear-gradient(90deg, transparent 0 79px, #ffffff06 79px 80px),
+		var(--background);
 	color: var(--ink);
+	color-scheme: dark;
+	accent-color: var(--ink-container);
+	font-variant-numeric: tabular-nums;
 	font-family: var(--font-body);
 	font-size: 1rem;
 	line-height: 1.6;
 }
 
+.AppLayout > footer {
+	grid-area: footer;
+	border-top: 1px solid var(--line);
+	background: transparent;
+}
+
 .AppLayout :focus-visible {
-	outline: 2px solid var(--ink);
+	outline: 2px solid var(--ink-container);
 	outline-offset: 3px;
 	border-radius: 4px;
 }
@@ -24,37 +109,41 @@
 	color: var(--background);
 }
 
-.main {
-	position: relative;
-	z-index: 1;
-	flex: 1;
-	width: 100%;
-	max-width: 1280px;
-	margin: 0 auto;
-	padding: 48px clamp(16px, 4vw, 48px) 80px;
-}
-
-@media (max-width: 760px) {
-	.main {
-		padding-top: 32px;
-	}
-}
-
-/* Orbit backdrop of the treasury page: fixed to the window, behind the content. */
-.AppLayout .orbitBg {
+.skip {
 	position: fixed;
-	z-index: 0;
+	z-index: 100;
+	top: 12px;
+	left: 16px;
+	transform: translateY(calc(-100% - 16px));
+	padding: 8px 14px;
+	background: var(--ink-container);
+	color: var(--background);
+	transition: transform 200ms var(--ease-out);
 }
 
-/* Route change: the page eases in so moving between Treasury and Auditor reads as one place. */
-.route {
-	animation: routeIn 200ms var(--ease-out) both;
+.skip:focus {
+	transform: none;
 }
 
-@keyframes routeIn {
+.main {
+	grid-area: main;
+	min-width: 0;
+	width: 100%;
+	max-width: 1400px;
+	margin: 0 auto;
+	padding: clamp(24px, 4vw, 54px) var(--workspace-gutter) 64px;
+}
+
+/* Focus lands here from the skip link; it needs no ring around the whole page. */
+.main:focus {
+	outline: none;
+}
+
+/* Route change: the page rises in, its top-level blocks one after another. */
+@keyframes page-rise {
 	from {
 		opacity: 0;
-		transform: translateY(6px);
+		transform: translateY(10px);
 	}
 
 	to {
@@ -63,18 +152,42 @@
 	}
 }
 
+.page > * > * {
+	animation: page-rise 420ms var(--ease-out) both;
+}
+
+.page > * > :nth-child(2) {
+	animation-delay: 60ms;
+}
+
+.page > * > :nth-child(3) {
+	animation-delay: 120ms;
+}
+
+.page > * > :nth-child(n + 4) {
+	animation-delay: 180ms;
+}
+
+/* Each component handles its own reduced motion (the spinner keeps a slow
+   breathe, the chart and approval track show their final state). */
 @media (prefers-reduced-motion: reduce) {
-	.route {
-		animation-name: routeFade;
+	.page > * > * {
+		animation: none;
 	}
 
-	@keyframes routeFade {
-		from {
-			opacity: 0;
-		}
+	.skip {
+		transition: none;
+	}
+}
 
-		to {
-			opacity: 1;
-		}
+@media (max-width: 760px) {
+	.AppLayout {
+		grid-template-columns: minmax(0, 1fr);
+		grid-template-rows: auto auto 1fr auto;
+		grid-template-areas: "sidebar" "topbar" "main" "footer";
+		background:
+			radial-gradient(ellipse 90% 280px at 80% 0, color-mix(in srgb, var(--glow) 24%, transparent), transparent 100%),
+			repeating-linear-gradient(90deg, transparent 0 79px, #ffffff06 79px 80px),
+			var(--background);
 	}
 }

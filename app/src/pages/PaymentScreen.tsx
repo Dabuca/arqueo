@@ -12,6 +12,8 @@ import {
 } from "lucide-react"
 import { useEffect, useState, type FormEvent } from "react"
 import { Link } from "react-router-dom"
+import { approvalProgress } from "../components/approvalProgress"
+import { ApprovalTrack } from "../components/ApprovalTrack"
 import { Spinner, useChanged } from "../components/Spinner"
 import { DEMO_AMOUNTS } from "../controls/defaults"
 import { capShortfall, remainingCap, ruleForSigners } from "../controls/rules"
@@ -185,6 +187,10 @@ export default function PaymentScreen() {
 		fromChain && amountIsValid
 			? capShortfall(numericAmount, limits, fromChain.spentXlm)
 			: undefined
+	const approval = approvalProgress({
+		needsManager: underLimit === false || (overCap ?? 0) > 0,
+		managerSigns: signature === "manager",
+	})
 	const stateOf = (ok: boolean | undefined): CheckState =>
 		ok === undefined ? "idle" : ok ? "pass" : "fail"
 	const checks: { label: string; detail?: string; state: CheckState }[] = [
@@ -483,6 +489,11 @@ export default function PaymentScreen() {
 							{busy && <Spinner />}
 							{busy ? "Checking account rules…" : "Simulate & pay"}
 						</button>
+						{outcome && (
+							<a className={`${ui.button} ${styles.resultJump}`} href="#payment-result">
+								View payment result
+							</a>
+						)}
 						<span className={styles.actionNote}>{actionNote}</span>
 					</div>
 				</form>
@@ -520,11 +531,6 @@ export default function PaymentScreen() {
 						)}
 					</div>
 
-					<div className={styles.tear} aria-hidden="true">
-						<span />
-						<span />
-					</div>
-
 					<ul className={styles.checks} aria-label="Rule checks, preview">
 						{checks.map((check) => (
 							<li key={check.label} data-state={check.state}>
@@ -545,84 +551,91 @@ export default function PaymentScreen() {
 							</li>
 						))}
 					</ul>
+					<ApprovalTrack progress={approval} />
 					<p className={styles.previewNote}>
 						Preview only. The account decides when you submit.
 					</p>
 
-					{!company ? (
-						<div className={styles.resultEmpty}>
-							<strong>Awaiting company account</strong>
-							<span>
-								Create the treasury above to prepare a signed instruction.
-							</span>
-						</div>
-					) : outcome ? (
-						<div
-							className={`${styles.result} ${styles[outcome.kind]}`}
-							aria-live="polite"
-						>
-							<strong>
-								{outcome.kind === "accepted" ? (
-									<CircleCheck size={18} strokeWidth={1.8} aria-hidden="true" />
-								) : outcome.kind === "rejected" ? (
-									<ShieldX size={18} strokeWidth={1.8} aria-hidden="true" />
-								) : (
-									<TriangleAlert
-										size={18}
-										strokeWidth={1.8}
-										aria-hidden="true"
-									/>
-								)}
-								{outcome.kind === "accepted"
-									? "Payment accepted"
-									: outcome.kind === "rejected"
-										? "Refused by the account rules"
-										: "Payment not sent"}
-							</strong>
-							{outcome.kind === "accepted" ? (
-								<a
-									className={styles.resultLink}
-									href={testnetTx(outcome.hash)}
-									target="_blank"
-									rel="noreferrer"
-								>
-									View transaction
-									<ExternalLink
-										size={14}
-										strokeWidth={1.8}
-										aria-hidden="true"
-									/>
-								</a>
-							) : (
-								<>
-									<span>
-										{outcome.kind === "rejected"
-											? outcome.reason
-											: outcome.message}
-									</span>
-									{outcome.kind === "rejected" && outcome.details && (
-										<details>
-											<summary>Details</summary>
-											<code>{outcome.details}</code>
-										</details>
+					<div
+						id="payment-result"
+						className={styles.resultRegion}
+						tabIndex={-1}
+						aria-live="polite"
+					>
+						{!company ? (
+							<div className={styles.resultEmpty}>
+								<strong>Awaiting company account</strong>
+								<span>
+									Create the treasury above to prepare a signed instruction.
+								</span>
+							</div>
+						) : outcome ? (
+							<div
+								className={`${styles.result} ${styles[outcome.kind]}`}
+							>
+								<strong>
+									{outcome.kind === "accepted" ? (
+										<CircleCheck size={18} strokeWidth={1.8} aria-hidden="true" />
+									) : outcome.kind === "rejected" ? (
+										<ShieldX size={18} strokeWidth={1.8} aria-hidden="true" />
+									) : (
+										<TriangleAlert
+											size={18}
+											strokeWidth={1.8}
+											aria-hidden="true"
+										/>
 									)}
-								</>
-							)}
-						</div>
-					) : (
-						<div className={styles.resultEmpty}>
-							<strong>
-								{ordinaryReady
-									? "Ready for account review"
-									: "Ordinary rule needs setup"}
-							</strong>
-							<span>
-								{ordinaryReady
-									? "The simulation result will appear here."
-									: "Set up the ordinary rule in the Company account card."}
-							</span>
-						</div>
-					)}
+									{outcome.kind === "accepted"
+										? "Payment accepted"
+										: outcome.kind === "rejected"
+											? "Refused by the account rules"
+											: "Payment not sent"}
+								</strong>
+								{outcome.kind === "accepted" ? (
+									<a
+										className={styles.resultLink}
+										href={testnetTx(outcome.hash)}
+										target="_blank"
+										rel="noreferrer"
+									>
+										View transaction
+										<ExternalLink
+											size={14}
+											strokeWidth={1.8}
+											aria-hidden="true"
+										/>
+									</a>
+								) : (
+									<>
+										<span>
+											{outcome.kind === "rejected"
+												? outcome.reason
+												: outcome.message}
+										</span>
+										{outcome.kind === "rejected" && outcome.details && (
+											<details>
+												<summary>Details</summary>
+												<code>{outcome.details}</code>
+											</details>
+										)}
+									</>
+								)}
+							</div>
+						) : (
+							<div className={styles.resultEmpty}>
+								<strong>
+									{ordinaryReady
+										? "Ready for account review"
+										: "Ordinary rule needs setup"}
+								</strong>
+								<span>
+									{ordinaryReady
+										? "The simulation result will appear here."
+										: "Set up the ordinary rule in the Company account card."}
+								</span>
+							</div>
+						)}
+					</div>
 					<p className={styles.foot}>
 						Refused attempts are logged in the{" "}
 						<Link className={ui.link} to="/auditor">

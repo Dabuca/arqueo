@@ -1,10 +1,15 @@
-import { Outlet, Route, Routes, useLocation } from "react-router-dom"
+import { useLayoutEffect } from "react"
+import {
+	Outlet,
+	Route,
+	Routes,
+	useLocation,
+	useNavigationType,
+} from "react-router-dom"
 import styles from "./App.module.css"
 import ConnectAccount from "./components/ConnectAccount"
-import { OrbitSystem } from "./components/OrbitField"
 import { SiteFooter } from "./components/SiteFooter"
 import { SiteHeader } from "./components/SiteHeader"
-import { TestnetBanner } from "./components/TestnetBanner"
 import Auditor from "./pages/Auditor"
 import CashOutPage from "./pages/CashOutPage"
 import Debug from "./pages/Debug"
@@ -30,23 +35,32 @@ function App() {
 
 const AppLayout = () => {
 	const { pathname } = useLocation()
+	const navigationType = useNavigationType()
+
+	// The router keeps the window scroll position across navigation, so going
+	// from the landing (scrolled down) to /app would open mid-page. Reset it
+	// before paint on new navigations; Back/Forward (POP) keeps the browser's
+	// restored position.
+	useLayoutEffect(() => {
+		if (navigationType === "POP") return
+		window.scrollTo({ top: 0, behavior: "instant" })
+	}, [pathname, navigationType])
 
 	return (
-	<div className={styles.AppLayout}>
-		{pathname === "/app" && (
-			<OrbitSystem variant="roles" className={styles.orbitBg} x="84%" y="42vh" />
-		)}
-		<TestnetBanner />
-		<SiteHeader wallet={<ConnectAccount />} />
+		<div className={styles.AppLayout}>
+			<a className={styles.skip} href="#app-content">
+				Skip to content
+			</a>
+			<SiteHeader wallet={<ConnectAccount />} />
 
-		<main className={styles.main}>
-			<div key={pathname} className={styles.route}>
-				<Outlet />
-			</div>
-		</main>
+			<main id="app-content" tabIndex={-1} className={styles.main}>
+				<div key={pathname} className={styles.page}>
+					<Outlet />
+				</div>
+			</main>
 
-		<SiteFooter />
-	</div>
+			<SiteFooter />
+		</div>
 	)
 }
 

@@ -45,6 +45,10 @@
 	gap: 12px;
 }
 
+.sectionHead > button {
+	flex: none;
+}
+
 .count {
 	display: block;
 	margin-top: 4px;
@@ -99,7 +103,7 @@
 .segment:focus-visible,
 .field select:focus-visible,
 .field input:focus-visible {
-	outline: 2px solid var(--ink);
+	outline: 2px solid var(--ink-container);
 	outline-offset: 3px;
 }
 

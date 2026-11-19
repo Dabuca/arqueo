@@ -1,0 +1,18 @@
+Run folder: /home/buena/projects/arqueo/cursorcam-output/arqueo-demo-20261026-110514-6804
+✓ 1/14 pause 2500 ms
+✓ 2/14 hover role=heading[name='A stablecoin treasury that enforces its own payment rules.']
+✓ 3/14 scroll
+✓ 4/14 scroll
+✓ 5/14 scroll
+✓ 6/14 scroll
+✓ 7/14 scroll
+✓ 8/14 click role=link[name='Launch Demo (Testnet)'], nth 1
+✓ 9/14 waitFor role=heading[name='Create the company account']
+✓ 10/14 hover role=heading[name='Create the company account']
+✓ 11/14 scroll
+✓ 12/14 click role=button[name='Within limit 200']
+✓ 13/14 click role=button[name='Needs approval 800']
+✓ 14/14 click role=button[name='Unknown supplier 100']
+Video: /home/buena/projects/arqueo/cursorcam-output/arqueo-demo-20261026-110514-6804/video-youtube.mp4 (32.8 MB, 81.5 s, 1920×1080 60 fps)
+Poster: /home/buena/projects/arqueo/cursorcam-output/arqueo-demo-20261026-110514-6804/poster-youtube.jpg
+Run folder: /home/buena/projects/arqueo/cursorcam-output/arqueo-demo-20261026-110514-6804

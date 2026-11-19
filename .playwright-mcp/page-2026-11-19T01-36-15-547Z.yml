@@ -1,0 +1,187 @@
+- generic [ref=f5e3]:
+  - link "Skip to content":
+    - /url: "#main"
+  - banner [ref=f5e4]:
+    - link "Arqueo home" [ref=f5e5] [cursor=pointer]:
+      - /url: /
+      - generic [ref=f5e6]: Arqueo
+    - navigation "Sections" [ref=f5e7]:
+      - link "Payment" [ref=f5e8] [cursor=pointer]:
+        - /url: "#payment"
+      - link "Activity" [ref=f5e9] [cursor=pointer]:
+        - /url: "#activity"
+      - link "Controls" [ref=f5e10] [cursor=pointer]:
+        - /url: "#safeguards"
+    - link "Open demo" [ref=f5e11] [cursor=pointer]:
+      - /url: /app
+  - main [ref=f5e15]:
+    - generic [ref=f5e16]:
+      - region "One payment. Two signatures." [ref=f5e17]:
+        - generic [ref=f5e18]:
+          - paragraph [ref=f5e19]: Stablecoin treasury on Stellar
+          - heading "One payment. Two signatures." [level=1] [ref=f5e20]: One payment.Two signatures.
+          - paragraph [ref=f5e21]: Meridian Studio invoiced 800 USDC. The treasury’s single-signer limit is 500 USDC, so the manager must co-sign.
+          - link "Review payment" [ref=f5e22] [cursor=pointer]:
+            - /url: "#payment"
+        - generic [ref=f5e25]:
+          - generic [aria-hidden]:
+            - generic: "*##%%%%###***++++++= ##%%%%%%%%%%%%###***++++=== %%%%%@@@@@@%%%%%%####***+++===- %%@@@@@@@@@@@%%%%%%%####***+++===-: %%@@@@@@@@@@@@@%%%%%%#####****+++===-: %@@@@@@@@@@@@@@@%%%%%%#####****++++==-- %@@@@@@@@@@@@@@@%%%%%%######****++++===-- %%@@@@@@@@@@@@@@%%%%%%######*****++++===-- #%@@@@@@@@@@@@@@%%%%%%######******++++===-- %%@@@@@@@@@@@@%%%%%%########******++++===- #%@@@@@@@@@@%%%%%%%##########******+++===-- #%%@@@@@%%%%%%%%%###########******++++==-- #%%%%%%%%%%%%###############*****++++==--: ##%%%%%###################******+++===-- #######################******++++== ****###############********++++= =- : +**********************++++ --: ++++**************++++ ===---: =++++++++++++++++++ ===---: -====++++++ ====-----: --== == ===------:: ----------::"
+            - generic: ". = - - -- --- --: + =--: =--:: =--::. ---:: --:::. . + - ...: : :....:- :::....:: ::::...::-- :::::::::-- -:::::::::-- ---:::::::--- -------------- --------------- :::::::---------- :::--======---::::::::--===- :.::-=====--::..:-== + ."
+            - generic: . ...........+o ... O@ + ++ ++ ++ ++ +++ + ++++ + +++ . + + ... ++++ ... + + .. +++++ .. +++ .. +++ .. +++++ . +++ + . +++ +++ +++++++++++++ +
+      - region "Interactive payment preview" [ref=f5e26]:
+        - generic [ref=f5e27]:
+          - paragraph [ref=f5e28]:
+            - generic [ref=f5e29]: Arqueo
+            - generic [ref=f5e30]: / Treasury
+          - generic [ref=f5e31]: Simulated preview
+        - generic [ref=f5e32]:
+          - article [ref=f5e33]:
+            - heading "Supplier payment" [level=2] [ref=f5e34]
+            - paragraph [ref=f5e35]: 800 USDC
+            - paragraph [ref=f5e36]: Meridian Studio
+            - generic [ref=f5e37]:
+              - generic [ref=f5e38]:
+                - term [ref=f5e39]: Invoice
+                - definition [ref=f5e40]: MS–1042
+              - generic [ref=f5e41]:
+                - term [ref=f5e42]: Single-signer limit
+                - definition [ref=f5e43]: 500 USDC
+          - article [ref=f5e44]:
+            - generic [ref=f5e45]:
+              - heading "Payment approval" [level=2] [ref=f5e46]
+              - generic [ref=f5e47]: 1 of 2 signatures
+            - list "Required signers" [ref=f5e48]:
+              - listitem [ref=f5e49]:
+                - generic [ref=f5e53]:
+                  - text: Employee
+                  - generic [ref=f5e54]: Signed
+              - listitem [ref=f5e55]:
+                - generic [ref=f5e57]:
+                  - text: Manager
+                  - generic [ref=f5e58]: Pending
+            - status [ref=f5e59]: Manager signature required.
+            - button "Preview second signature" [ref=f5e60] [cursor=pointer]
+    - region "Ordinary spending" [ref=f5e61]:
+      - generic [ref=f5e62]:
+        - generic [ref=f5e63]:
+          - paragraph [ref=f5e64]: Treasury activity
+          - heading "Ordinary spending" [level=2] [ref=f5e65]
+        - generic [ref=f5e66]: Sample data
+      - generic [ref=f5e67]:
+        - figure "Spent this period 320 USDC 1,000 USDC cap" [ref=f5e68]:
+          - generic [ref=f5e69]:
+            - generic [ref=f5e70]:
+              - text: Spent this period
+              - strong [ref=f5e71]: 320 USDC
+            - generic [ref=f5e72]: 1,000 USDC cap
+          - img "Three ordinary payments increased spending to 320 USDC of a 1,000 USDC cap." [ref=f5e73]
+          - generic [ref=f5e82]:
+            - generic [ref=f5e83]: Day 1
+            - generic [ref=f5e84]: 680 USDC remaining
+            - generic [ref=f5e85]: Day 30
+        - article [ref=f5e86]:
+          - heading "Ordinary payments" [level=3] [ref=f5e87]
+          - list [ref=f5e88]:
+            - listitem [ref=f5e89]:
+              - button "DAY 21 Meridian Studio Design services 100 USDC" [pressed] [ref=f5e90] [cursor=pointer]:
+                - generic [ref=f5e91]:
+                  - generic [ref=f5e92]: DAY
+                  - text: "21"
+                - generic [ref=f5e93]:
+                  - text: Meridian Studio
+                  - generic [ref=f5e94]: Design services
+                - generic [ref=f5e95]: 100 USDC
+            - listitem [ref=f5e96]:
+              - button "DAY 13 Forma Supply Materials 140 USDC" [ref=f5e97] [cursor=pointer]:
+                - generic [ref=f5e98]:
+                  - generic [ref=f5e99]: DAY
+                  - text: "13"
+                - generic [ref=f5e100]:
+                  - text: Forma Supply
+                  - generic [ref=f5e101]: Materials
+                - generic [ref=f5e102]: 140 USDC
+            - listitem [ref=f5e103]:
+              - button "DAY 5 Atlas Hosting Infrastructure 80 USDC" [ref=f5e104] [cursor=pointer]:
+                - generic [ref=f5e105]:
+                  - generic [ref=f5e106]: DAY
+                  - text: "5"
+                - generic [ref=f5e107]:
+                  - text: Atlas Hosting
+                  - generic [ref=f5e108]: Infrastructure
+                - generic [ref=f5e109]: 80 USDC
+          - status [ref=f5e110]: Day 21 · 320 USDC spent by this point
+    - region "Rules the account enforces" [ref=f5e111]:
+      - generic [ref=f5e113]:
+        - paragraph [ref=f5e114]: Account controls
+        - heading "Rules the account enforces" [level=2] [ref=f5e115]
+      - generic [ref=f5e116]:
+        - article [ref=f5e117]:
+          - generic [ref=f5e118]:
+            - heading "Approved suppliers" [level=3] [ref=f5e123]
+            - paragraph [ref=f5e124]: Payments can only go to addresses the admin has approved.
+          - generic [ref=f5e126]:
+            - generic [ref=f5e127]:
+              - generic [ref=f5e128]: Meridian Studio
+              - generic [ref=f5e129]: Allowed
+            - generic [ref=f5e132]:
+              - generic [ref=f5e133]: Unknown address
+              - generic [ref=f5e134]: Refused
+        - article [ref=f5e138]:
+          - generic [ref=f5e139]:
+            - heading "Spending limits" [level=3] [ref=f5e143]
+            - paragraph [ref=f5e144]: The ordinary rule checks each payment and cumulative spending. These are the demo defaults.
+          - generic [ref=f5e155]:
+            - generic [ref=f5e156]:
+              - term [ref=f5e157]: Per payment
+              - definition [ref=f5e158]: 500 USDC
+            - generic [ref=f5e159]:
+              - term [ref=f5e160]: 30-day cap
+              - definition [ref=f5e161]: 1,000 USDC
+        - article [ref=f5e162]:
+          - generic [ref=f5e163]:
+            - heading "Two-person approval" [level=3] [ref=f5e169]
+            - paragraph [ref=f5e170]: When a payment exceeds the employee’s limit, the manager must co-sign.
+          - generic [aria-hidden] [ref=f5e172]:
+            - generic [ref=f5e173]: Employee
+            - generic [ref=f5e174]: +
+            - generic [ref=f5e175]: Manager
+        - article [ref=f5e176]:
+          - generic [ref=f5e177]:
+            - heading "Audit trail" [level=3] [ref=f5e182]
+            - paragraph [ref=f5e183]: Export settled payments and refused attempts as CSV, with the evidence for each outcome.
+          - generic [ref=f5e185]:
+            - generic [ref=f5e186]:
+              - generic [ref=f5e187]: Settled
+              - generic [ref=f5e188]: Stellar transaction
+            - generic [ref=f5e189]:
+              - generic [ref=f5e190]: Refused
+              - generic [ref=f5e191]: Reason recorded
+      - generic [ref=f5e192]:
+        - heading "Who can do what" [level=3] [ref=f5e193]
+        - generic [ref=f5e194]:
+          - generic [ref=f5e195]:
+            - term [ref=f5e196]: Admin
+            - definition [ref=f5e200]: Sets spending limits, authorized suppliers, and signers.
+          - generic [ref=f5e201]:
+            - term [ref=f5e202]: Employee
+            - definition [ref=f5e206]: Signs ordinary payments to approved suppliers.
+          - generic [ref=f5e207]:
+            - term [ref=f5e208]: Manager
+            - definition [ref=f5e212]: Co-signs payments that exceed the employee’s spending limits.
+          - generic [ref=f5e213]:
+            - term [ref=f5e214]: Auditor
+            - definition [ref=f5e219]: Reviews settled payments and refused attempts, and exports CSV.
+    - region "Put the rules to the test." [ref=f5e220]:
+      - generic [ref=f5e221]:
+        - paragraph [ref=f5e222]: Stellar testnet only
+        - heading "Put the rules to the test." [level=2] [ref=f5e223]: Put the rulesto the test.
+        - paragraph [ref=f5e224]: Test the payment rules and review the audit log. Arqueo uses OpenZeppelin smart accounts on Stellar Soroban.
+        - generic [ref=f5e225]:
+          - link "Open testnet demo" [ref=f5e226] [cursor=pointer]:
+            - /url: /app
+          - link "Read the architecture docs" [ref=f5e229] [cursor=pointer]:
+            - /url: https://github.com/Dabuca/arqueo/blob/develop/docs/architecture.md
+  - contentinfo [ref=f5e233]:
+    - paragraph [ref=f5e234]: Built by Maker-Checker for HackMeridian 2026.
+    - link "Source code" [ref=f5e235] [cursor=pointer]:
+      - /url: https://github.com/Dabuca/arqueo

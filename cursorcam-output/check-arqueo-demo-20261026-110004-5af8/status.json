@@ -1,0 +1,6 @@
+{
+  "state": "failed",
+  "message": "Step 16 (click role=link[name='Auditor']): role=link[name='Auditor'] matches 2 elements:\n  0: a._link_ctqdl_51 \"Auditor\"\n  1: a._link_bmzia_101 \"auditor journal\"",
+  "pid": 18656,
+  "updatedAt": "2026-10-26T10:02:18.195Z"
+}

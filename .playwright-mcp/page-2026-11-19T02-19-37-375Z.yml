@@ -1,0 +1,69 @@
+- generic [ref=f26e3]:
+  - link "Skip to content" [ref=f26e4] [cursor=pointer]:
+    - /url: "#app-content"
+  - generic [ref=f26e5]:
+    - link "Arqueo home" [ref=f26e6] [cursor=pointer]:
+      - /url: /
+      - generic [ref=f26e7]: Arqueo
+    - navigation "Workspace" [ref=f26e8]:
+      - link "Treasury" [ref=f26e9] [cursor=pointer]:
+        - /url: /app
+      - link "Audit" [ref=f26e13] [cursor=pointer]:
+        - /url: /auditor
+      - link "Settings" [ref=f26e17] [cursor=pointer]:
+        - /url: /settings
+      - link "Cash out" [ref=f26e21] [cursor=pointer]:
+        - /url: /cashout
+  - banner [ref=f26e24]:
+    - note [ref=f26e25]:
+      - strong [ref=f26e26]: Testnet only
+      - generic [ref=f26e27]: Test USDC with no real value. Do not use real funds.
+    - button "Connect wallet" [ref=f26e30] [cursor=pointer]
+  - main [ref=f26e34]:
+    - generic [ref=f26e36]:
+      - generic [ref=f26e37]:
+        - generic [ref=f26e38]:
+          - heading "Cash out to bank" [level=1] [ref=f26e39]
+          - generic [ref=f26e40]: Simulated
+        - paragraph [ref=f26e41]: How a paid supplier moves test USDC to their bank through Demo Anchor (testnet).
+      - note [ref=f26e42]: This walkthrough uses test USDC and moves no funds.
+      - list "Progress" [ref=f26e43]:
+        - listitem [ref=f26e44]:
+          - generic [ref=f26e45]: "1"
+          - text: Amount
+        - listitem [ref=f26e46]:
+          - generic [ref=f26e47]: "2"
+          - text: Bank details
+        - listitem [ref=f26e48]:
+          - generic [ref=f26e49]: "3"
+          - text: Send to anchor
+        - listitem [ref=f26e50]:
+          - generic [ref=f26e51]: "4"
+          - text: Bank transfer sent
+      - region "Amount" [ref=f26e52]:
+        - heading "Amount" [level=2] [ref=f26e53]
+        - generic [ref=f26e54]:
+          - generic [ref=f26e55]: Amount (USDC)
+          - spinbutton "Amount (USDC)" [ref=f26e56]: "200"
+        - generic [ref=f26e57]:
+          - generic [ref=f26e58]:
+            - term [ref=f26e59]: Fee
+            - definition [ref=f26e60]: 2.00 USDC
+          - generic [ref=f26e61]:
+            - term [ref=f26e62]: Net after fee (USDC)
+            - definition [ref=f26e63]: 198.00 USDC
+          - generic [ref=f26e64]:
+            - term [ref=f26e65]: Paid to your bank (EUR), at 0.92 EUR per USDC, demo rate
+            - definition [ref=f26e66]: 182.16 EUR
+        - button "Continue" [ref=f26e68] [cursor=pointer]
+        - paragraph [ref=f26e69]:
+          - strong [ref=f26e70]: "What a real anchor does:"
+          - text: SEP-24 /info and a quote of fees and rate.
+  - contentinfo [ref=f26e71]:
+    - generic [ref=f26e72]:
+      - paragraph [ref=f26e73]: © 2026 Arqueo. Built by Maker-Checker for HackMeridian 2026.
+      - navigation "Footer" [ref=f26e74]:
+        - link "Docs" [ref=f26e75] [cursor=pointer]:
+          - /url: /#architecture
+        - link "Source code" [ref=f26e76] [cursor=pointer]:
+          - /url: https://github.com/Dabuca/arqueo

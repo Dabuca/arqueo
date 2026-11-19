@@ -1,0 +1,8 @@
+{
+  "ok": false,
+  "exitCode": 4,
+  "error": "Step 16 (click role=link[name='Auditor']): role=link[name='Auditor'] matches 2 elements:\n  0: a._link_ctqdl_51 \"Auditor\"\n  1: a._link_bmzia_101 \"auditor journal\"",
+  "hint": "Add \"nth\", \"within\" or \"near\" to the target, or use a more exact locator.",
+  "failedStep": 16,
+  "frame": "/home/buena/projects/arqueo/cursorcam-output/check-arqueo-demo-20261026-110004-5af8/failure.jpg"
+}

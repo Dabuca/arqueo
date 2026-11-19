@@ -3,24 +3,31 @@
 .card {
 	background: var(--stone);
 	border: 1px solid var(--stone-line);
-	border-radius: 16px;
-	padding: 24px;
+	border-radius: 14px;
+	/* A hairline of light on the top edge lifts graphite off carbon. */
+	box-shadow:
+		inset 0 1px 0 #ffffff08,
+		0 12px 40px #0000004d;
+	padding: clamp(16px, 2.5vw, 24px);
+	transition: border-color 200ms ease;
 }
 
 .pageHead {
 	display: grid;
-	gap: 8px;
-	margin-bottom: 32px;
+	gap: 10px;
+	margin-bottom: 12px;
 }
 
+/* Silkscreen for the one large headline per screen, as in the landing. */
 .pageHead h1 {
 	margin: 0;
-	font-family: var(--font-display);
-	font-size: 2rem;
-	font-weight: 600;
-	line-height: 1.15;
-	letter-spacing: -0.02em;
+	font-family: var(--font-pixel);
+	font-size: clamp(2rem, 4.2vw, 3.25rem);
+	font-weight: 400;
+	line-height: 1;
+	letter-spacing: -0.07em;
 	color: var(--ink);
+	text-wrap: balance;
 }
 
 .pageHead p {
@@ -34,8 +41,8 @@
 	margin: 0;
 	font-family: var(--font-display);
 	font-size: 1.25rem;
-	font-weight: 600;
-	letter-spacing: -0.01em;
+	font-weight: 700;
+	letter-spacing: -0.03em;
 	color: var(--ink);
 }
 
@@ -49,7 +56,7 @@
 	min-height: 44px;
 	padding: 10px 18px;
 	border: 1px solid var(--outline);
-	border-radius: 10px;
+	border-radius: 8px;
 	background: var(--stock);
 	color: var(--ink);
 	font-family: var(--font-body);
@@ -62,12 +69,13 @@
 		background-color 150ms ease,
 		border-color 150ms ease,
 		color 150ms ease,
+		box-shadow 200ms ease,
 		transform 150ms ease;
 }
 
 .button:hover:not(:disabled) {
-	border-color: var(--ink);
-	background: var(--stock);
+	border-color: var(--ink-container);
+	background: var(--surface-high);
 }
 
 .button:active:not(:disabled) {
@@ -86,8 +94,9 @@
 }
 
 .primary:hover:not(:disabled) {
-	border-color: var(--ink-container);
-	background: #143a30;
+	border-color: var(--accent-hover);
+	background: var(--accent-hover);
+	box-shadow: 0 0 0 4px color-mix(in srgb, var(--ink-container) 18%, transparent), 0 6px 24px color-mix(in srgb, var(--glow) 45%, transparent);
 }
 
 .small {
@@ -99,12 +108,12 @@
 
 .button:focus-visible,
 .link:focus-visible {
-	outline: 2px solid var(--ink);
+	outline: 2px solid var(--ink-container);
 	outline-offset: 3px;
 }
 
 .link {
-	color: var(--ink);
+	color: var(--ink-container);
 	font-weight: 600;
 	text-underline-offset: 0.2em;
 	text-decoration-thickness: 1px;
@@ -114,8 +123,6 @@
 	text-decoration-thickness: 2px;
 }
 
-/* Status pills: mono caps, one tone per meaning. */
-
 .pill {
 	display: inline-flex;
 	align-items: center;
@@ -124,9 +131,7 @@
 	border-radius: 999px;
 	background: var(--surface-high);
 	color: var(--body);
-	font-family: var(--font-mono);
-	font-size: 0.6875rem;
-	font-weight: 600;
+	font: 600 0.6875rem / 1.5 var(--font-mono);
 	letter-spacing: 0.06em;
 	text-transform: uppercase;
 	white-space: nowrap;
@@ -134,7 +139,7 @@
 
 .pillOk {
 	background: var(--ok-soft);
-	color: #324c44;
+	color: var(--ok-ink);
 }
 
 .pillError {
@@ -143,18 +148,13 @@
 }
 
 .pillDark {
-	background: var(--ink-container);
-	color: var(--background);
+	background: var(--sand);
+	color: var(--ink-container);
 }
 
-/* Labels over data: mono caps, muted. */
-
 .label {
-	font-family: var(--font-mono);
-	font-size: 0.6875rem;
+	font-size: 0.8125rem;
 	font-weight: 600;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
 	color: var(--muted);
 }
 

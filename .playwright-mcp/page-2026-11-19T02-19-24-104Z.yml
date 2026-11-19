@@ -1,0 +1,53 @@
+- generic [ref=f23e3]:
+  - link "Skip to content" [ref=f23e4] [cursor=pointer]:
+    - /url: "#app-content"
+  - generic [ref=f23e5]:
+    - link "Arqueo home" [ref=f23e6] [cursor=pointer]:
+      - /url: /
+      - generic [ref=f23e7]: Arqueo
+    - navigation "Workspace" [ref=f23e8]:
+      - link "Treasury" [ref=f23e9] [cursor=pointer]:
+        - /url: /app
+      - link "Audit" [ref=f23e13] [cursor=pointer]:
+        - /url: /auditor
+      - link "Settings" [ref=f23e17] [cursor=pointer]:
+        - /url: /settings
+      - link "Cash out" [ref=f23e21] [cursor=pointer]:
+        - /url: /cashout
+  - banner [ref=f23e24]:
+    - note [ref=f23e25]:
+      - strong [ref=f23e26]: Testnet only
+      - generic [ref=f23e27]: Test USDC with no real value. Do not use real funds.
+    - button "Connect wallet" [ref=f23e30] [cursor=pointer]
+  - main [ref=f23e34]:
+    - generic [ref=f23e36]:
+      - generic [ref=f23e37]:
+        - generic [ref=f23e38]:
+          - generic [ref=f23e39]:
+            - heading "Payment journal" [level=1] [ref=f23e40]
+            - generic [ref=f23e41]: Read only
+          - paragraph [ref=f23e42]: Every recorded payment attempt, refused ones included. Settled payments link to Stellar Expert.
+        - generic [ref=f23e43]:
+          - button "Refresh" [ref=f23e44] [cursor=pointer]
+          - button "Download CSV" [disabled] [ref=f23e50]
+      - generic [ref=f23e54]:
+        - heading "No payment attempts yet" [level=2] [ref=f23e58]
+        - paragraph [ref=f23e59]: Run a payment from the treasury and its result appears here, refused attempts too.
+        - link "Prepare a payment" [ref=f23e60] [cursor=pointer]:
+          - /url: /app
+      - region "Settings changes" [ref=f23e61]:
+        - generic [ref=f23e62]:
+          - heading "Settings changes" [level=2] [ref=f23e63]
+          - button "Download CSV" [disabled] [ref=f23e64]
+        - generic [ref=f23e68]:
+          - heading "No settings changes yet" [level=3] [ref=f23e69]
+          - paragraph [ref=f23e70]: Changes to limits and suppliers appear here with the previous and new value and the transactions that applied them.
+      - paragraph [ref=f23e71]: "Read from this browser's payment log. Refused attempts have no transaction: the account rules stopped them during simulation."
+  - contentinfo [ref=f23e72]:
+    - generic [ref=f23e73]:
+      - paragraph [ref=f23e74]: © 2026 Arqueo. Built by Maker-Checker for HackMeridian 2026.
+      - navigation "Footer" [ref=f23e75]:
+        - link "Docs" [ref=f23e76] [cursor=pointer]:
+          - /url: /#architecture
+        - link "Source code" [ref=f23e77] [cursor=pointer]:
+          - /url: https://github.com/Dabuca/arqueo

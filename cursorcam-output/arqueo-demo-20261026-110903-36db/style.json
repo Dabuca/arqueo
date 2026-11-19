@@ -1,0 +1,20 @@
+{
+  "format": "landscape",
+  "background": "aurora",
+  "padding": 0.06,
+  "radius": 14,
+  "shadow": 0.45,
+  "browserBar": true,
+  "cursor": {
+    "show": true,
+    "size": 1,
+    "ripple": true
+  },
+  "zoom": {
+    "enabled": true,
+    "max": 2,
+    "hold": 0
+  },
+  "dialogs": true,
+  "trimIdle": true
+}

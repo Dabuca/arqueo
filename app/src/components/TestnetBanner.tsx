@@ -6,7 +6,8 @@ export const TESTNET_NOTICE =
 export function TestnetBanner() {
 	return (
 		<div className={styles.banner} role="note">
-			<strong>Testnet only</strong> · {TESTNET_NOTICE}
+			<strong>Testnet only</strong>
+			<span>{TESTNET_NOTICE}</span>
 		</div>
 	)
 }

@@ -402,9 +402,8 @@ export default function Auditor() {
 			)}
 
 			<p className={styles.disclosure}>
-				Read from the payment log stored in this browser. Refused attempts have no
-				transaction because the account rules stopped them when the payment was
-				simulated.
+				Read from this browser&apos;s payment log. Refused attempts have no
+				transaction: the account rules stopped them during simulation.
 			</p>
 		</div>
 	)

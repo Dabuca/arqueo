@@ -1,0 +1,137 @@
+- generic [ref=f15e3]:
+  - link "Skip to content" [ref=f15e4] [cursor=pointer]:
+    - /url: "#app-content"
+  - generic [ref=f15e5]:
+    - link "Arqueo home" [ref=f15e6] [cursor=pointer]:
+      - /url: /
+      - generic [ref=f15e7]: Arqueo
+    - navigation "Workspace" [ref=f15e8]:
+      - link "Treasury" [ref=f15e9] [cursor=pointer]:
+        - /url: /app
+      - link "Audit" [ref=f15e13] [cursor=pointer]:
+        - /url: /auditor
+      - link "Settings" [ref=f15e17] [cursor=pointer]:
+        - /url: /settings
+      - link "Cash out" [ref=f15e21] [cursor=pointer]:
+        - /url: /cashout
+  - banner [ref=f15e24]:
+    - note [ref=f15e25]:
+      - strong [ref=f15e26]: Testnet only
+      - generic [ref=f15e27]: Test USDC with no real value. Do not use real funds.
+    - button "Connect wallet" [ref=f15e30] [cursor=pointer]
+  - main [ref=f15e34]:
+    - generic [ref=f15e36]:
+      - generic [ref=f15e37]:
+        - heading "Treasury" [level=1] [ref=f15e38]
+        - paragraph [ref=f15e39]: Fund your company account and pay approved suppliers.
+      - region "Create a company account" [ref=f15e40]:
+        - heading "Create a company account" [level=2] [ref=f15e42]
+        - generic [ref=f15e43]:
+          - generic [ref=f15e44]:
+            - paragraph [ref=f15e45]: Use your passkey to create the account that holds your test tokens and enforces your payment rules.
+            - generic [ref=f15e46] [cursor=pointer]:
+              - checkbox "Register the manager's passkey on a phone Your browser will show a QR code. Scan it with the manager's phone." [ref=f15e47]
+              - generic [ref=f15e48]:
+                - text: Register the manager's passkey on a phone
+                - generic [ref=f15e49]: Your browser will show a QR code. Scan it with the manager's phone.
+          - button "Create company account" [ref=f15e50] [cursor=pointer]
+          - group [ref=f15e51]:
+            - generic "Recover an existing treasury" [ref=f15e52] [cursor=pointer]
+      - region "Prepare a payment" [ref=f15e53]:
+        - generic [ref=f15e54]:
+          - heading "Prepare a payment" [level=2] [ref=f15e55]
+          - paragraph [ref=f15e56]: The account checks the supplier, amount and signatures before anything leaves the treasury.
+        - generic [ref=f15e57]:
+          - generic [ref=f15e58]:
+            - generic [ref=f15e59]:
+              - generic [ref=f15e60]: Payment asset
+              - combobox "Payment asset" [ref=f15e61]:
+                - option "USDC (Circle testnet)" [selected]
+                - option "XLM"
+              - paragraph [ref=f15e62]: Each asset has separate on-chain limits and spend tracking.
+            - generic [ref=f15e63]:
+              - generic [ref=f15e64]: Supplier account
+              - combobox "Supplier account" [ref=f15e66] [cursor=pointer]:
+                - option "Authorized · GDWEBO…BSNIO" [selected]
+                - option "Authorized · GAAZOU…VD2BV"
+                - option "Authorized · GBCHU6…NXYBS"
+                - option "Enter another account…"
+              - paragraph [ref=f15e67]: Only suppliers on the account allowlist can receive a payment.
+            - generic [ref=f15e68]:
+              - generic [ref=f15e69]:
+                - generic [ref=f15e70]: Amount
+                - generic [ref=f15e71]:
+                  - spinbutton "Amount" [ref=f15e72]: "200"
+                  - generic: USDC
+              - generic [ref=f15e73]:
+                - generic [ref=f15e74]: Payment concept
+                - textbox "Payment concept" [ref=f15e75]:
+                  - /placeholder: e.g. Office supplies
+            - group "Who will sign this instruction?" [ref=f15e76]:
+              - generic [ref=f15e78]:
+                - generic [ref=f15e79] [cursor=pointer]:
+                  - radio "Employee Single signature" [checked]
+                  - generic [ref=f15e84]:
+                    - strong [ref=f15e85]: Employee
+                    - generic [ref=f15e86]: Single signature
+                - generic [ref=f15e89] [cursor=pointer]:
+                  - radio "Employee + manager Two signatures required"
+                  - generic [ref=f15e96]:
+                    - strong [ref=f15e97]: Employee + manager
+                    - generic [ref=f15e98]: Two signatures required
+            - generic "Demo scenarios" [ref=f15e101]:
+              - generic [ref=f15e102]: Try a scene
+              - button "Within limit 200" [ref=f15e103] [cursor=pointer]:
+                - text: Within limit
+                - generic [ref=f15e104]: "200"
+              - button "Needs approval 800" [ref=f15e105] [cursor=pointer]:
+                - text: Needs approval
+                - generic [ref=f15e106]: "800"
+              - button "Unknown supplier 100" [ref=f15e107] [cursor=pointer]:
+                - text: Unknown supplier
+                - generic [ref=f15e108]: "100"
+            - generic [ref=f15e109]:
+              - button "Simulate & pay" [disabled] [ref=f15e110]
+              - generic [ref=f15e111]: Create the company account above to enable payments.
+          - complementary "Rule preview" [ref=f15e112]:
+            - generic [ref=f15e113]:
+              - heading "Rule preview" [level=3] [ref=f15e114]
+              - generic [ref=f15e115]: ordinary
+            - generic [ref=f15e116]:
+              - generic [ref=f15e117]: 200USDC
+              - generic [ref=f15e118]: to GDWEBO…BSNIO
+            - list "Rule checks, preview" [ref=f15e119]:
+              - listitem [ref=f15e120]:
+                - generic [ref=f15e124]:
+                  - text: Supplier is on the allowlist
+                  - generic [ref=f15e125]: ": passes"
+              - listitem [ref=f15e126]:
+                - generic [ref=f15e130]:
+                  - text: Within 500 USDC per payment
+                  - generic [ref=f15e131]: ": passes"
+              - listitem [ref=f15e132]:
+                - generic [ref=f15e135]:
+                  - text: Within 1,000 USDC every 30 days
+                  - generic [ref=f15e136]: ": not checked here"
+                  - generic [ref=f15e137]: Spending is checked on-chain.
+              - listitem [ref=f15e138]:
+                - generic [ref=f15e142]:
+                  - text: Signed by employee
+                  - generic [ref=f15e143]: ": passes"
+            - paragraph [ref=f15e144]: Preview only. The account decides when you submit.
+            - generic [ref=f15e146]:
+              - strong [ref=f15e147]: Awaiting company account
+              - generic [ref=f15e148]: Create the treasury above to prepare a signed instruction.
+            - paragraph [ref=f15e149]:
+              - text: Refused attempts are logged in the
+              - link "auditor journal" [ref=f15e150] [cursor=pointer]:
+                - /url: /auditor
+              - text: .
+  - contentinfo [ref=f15e151]:
+    - generic [ref=f15e152]:
+      - paragraph [ref=f15e153]: © 2026 Arqueo. Built by Maker-Checker for HackMeridian 2026.
+      - navigation "Footer" [ref=f15e154]:
+        - link "Docs" [ref=f15e155] [cursor=pointer]:
+          - /url: /#architecture
+        - link "Source code" [ref=f15e156] [cursor=pointer]:
+          - /url: https://github.com/Dabuca/arqueo
