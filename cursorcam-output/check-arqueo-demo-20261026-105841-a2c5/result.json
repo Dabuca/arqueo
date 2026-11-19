@@ -1,8 +1,0 @@
-{
-  "ok": false,
-  "exitCode": 4,
-  "error": "Step 10 (hover text=Create the company account): text=Create the company account matches 3 elements:\n  0: p \"Create the company account, then send pa…\"\n  1: h3 \"Create the company account\"\n  2: span._actionNote_8eo8x_131 \"Create the company account above to enab…\"",
-  "hint": "Add \"nth\", \"within\" or \"near\" to the target, or use a more exact locator.",
-  "failedStep": 10,
-  "frame": "/home/buena/projects/arqueo/cursorcam-output/check-arqueo-demo-20261026-105841-a2c5/failure.jpg"
-}

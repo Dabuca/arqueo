@@ -1,6 +1,0 @@
-{
-  "state": "failed",
-  "message": "Step 10 (hover text=Create the company account): text=Create the company account matches 3 elements:\n  0: p \"Create the company account, then send pa…\"\n  1: h3 \"Create the company account\"\n  2: span._actionNote_8eo8x_131 \"Create the company account above to enab…\"",
-  "pid": 15191,
-  "updatedAt": "2026-10-26T09:59:54.792Z"
-}

@@ -1,8 +1,0 @@
-{
-  "ok": false,
-  "exitCode": 4,
-  "error": "Step 8 (click role=link[name='Launch Demo (Testnet)']): role=link[name='Launch Demo (Testnet)'] matches 2 elements:\n  0: a._primary_1g3mp_147 \"Launch Demo (Testnet)\"\n  1: a._closeAction_1g3mp_149 \"Launch Demo (Testnet)\"",
-  "hint": "Add \"nth\", \"within\" or \"near\" to the target, or use a more exact locator.",
-  "failedStep": 8,
-  "frame": "/home/buena/projects/arqueo/cursorcam-output/check-arqueo-demo-20261026-105720-cf1a/failure.jpg"
-}
