@@ -338,18 +338,16 @@ export default function Settings() {
 			<div className={ui.pageHead}>
 				<h1>Settings</h1>
 				<p>
-					Set who can be paid and how much. The account enforces these on chain:
-					a payment that breaks them is rejected. Each change replaces the
-					affected rules and is signed with the admin passkey. Testnet only.
+					Who can be paid and how much. Every change is signed with the admin
+					passkey.
 				</p>
 			</div>
 
 			<div className={styles.notes}>
 				{!state.hasAccount && (
 					<p className={styles.note} role="status">
-						There is no company account in this browser yet.{" "}
-						<Link to="/app">Create it first</Link>. Changes made now are used
-						when its rules are created.
+						No company account yet. <Link to="/app">Create it</Link> first, or
+						edit now and these settings are used when its rules are created.
 					</p>
 				)}
 				{state.hasAccount && state.rules.ordinary === undefined && (
@@ -440,10 +438,10 @@ export default function Settings() {
 					<p className={styles.source}>
 						{state.source === "chain"
 							? "Read from the chain."
-							: "Saved settings, not read from the chain."}{" "}
+							: "Saved in this browser."}{" "}
 						{state.periodEnds
-							? `The period ends around ${formatDate(state.periodEnds)}.`
-							: "The period starts with the next payment."}
+							? `Period ends ${formatDate(state.periodEnds)}.`
+							: "Period starts with the next payment."}
 					</p>
 				</div>
 				<dl className={styles.figures}>
@@ -500,7 +498,7 @@ export default function Settings() {
 					>
 						<span
 							className={styles.barFill}
-							style={{ width: `${usedPercent}%` }}
+							style={{ transform: `scaleX(${usedPercent / 100})` }}
 						/>
 					</div>
 				</div>
@@ -515,7 +513,7 @@ export default function Settings() {
 						<h2 className={ui.sectionTitle}>Limits</h2>
 						<div className={styles.fields}>
 							<label className={styles.field}>
-								Max per payment (same numeric value in XLM and USDC)
+								Max per payment
 								<input
 									type="number"
 									min="0"
@@ -526,7 +524,7 @@ export default function Settings() {
 								/>
 							</label>
 							<label className={styles.field}>
-								{limits.periodDays}-day cap (same numeric value in XLM and USDC)
+								{limits.periodDays}-day cap
 								<input
 									type="number"
 									min="0"
@@ -538,10 +536,8 @@ export default function Settings() {
 							</label>
 						</div>
 						<p className={styles.hint}>
-							A payment above the maximum needs the manager&apos;s second
-							signature. These values apply independently to each asset. Spend is
-							tracked separately and carries over when a rule changes. Current USDC
-							spend: <Amount value={state.spentXlm} asset="USDC" /> <AmountUnit asset="USDC" />; XLM spend: <Amount value={xlmState?.spentXlm ?? 0} asset="XLM" /> <AmountUnit asset="XLM" />.
+							Above the max, the manager co-signs. The same numbers apply to XLM
+							and USDC, each with its own spend: <Amount value={state.spentXlm} asset="USDC" /> <AmountUnit asset="USDC" /> and <Amount value={xlmState?.spentXlm ?? 0} asset="XLM" /> <AmountUnit asset="XLM" /> so far.
 						</p>
 					</section>
 
@@ -551,9 +547,7 @@ export default function Settings() {
 					>
 						<h2 className={ui.sectionTitle}>Suppliers</h2>
 						<p className={styles.hint}>
-							Only these addresses can be paid. Keep at least one. A supplier
-							must exist on testnet, or the payment would fail for another
-							reason.
+							Only these addresses can be paid. Each one must exist on testnet.
 						</p>
 						<div className={styles.tableWrap}>
 							<table>
@@ -576,7 +570,9 @@ export default function Settings() {
 													{shortAddress(supplier.address)}
 												</code>
 											</td>
-											<td data-label="Type">{supplier.kind}</td>
+											<td data-label="Type">
+												<span className={ui.pill}>{supplier.kind}</span>
+											</td>
 											<td data-label="Action">
 												<button
 													type="button"
@@ -633,9 +629,12 @@ export default function Settings() {
 
 						<div className={styles.subgroup}>
 							<h3>Demo accounts</h3>
+							<p className={styles.hint}>
+								Funded testnet accounts to rehearse the payment scenes.
+							</p>
 							<div className={styles.fields}>
 								<label className={styles.field}>
-									Demo supplier name
+									Name
 									<input
 										type="text"
 										value={demoLabel}
@@ -649,20 +648,20 @@ export default function Settings() {
 									onClick={() => void addDemo()}
 									disabled={locked}
 								>
-									Add a demo supplier
-								</button>
-								<button
-									type="button"
-									className={ui.button}
-									onClick={() => void makeOutsider()}
-									disabled={busy}
-								>
-									Create an account outside the list
+									Add demo supplier
 								</button>
 							</div>
+							<button
+								type="button"
+								className={`${ui.button} ${styles.outsiderButton}`}
+								onClick={() => void makeOutsider()}
+								disabled={busy}
+							>
+								Create an unlisted account
+							</button>
 							{outsider && (
 								<p className={`${styles.hint} ${styles.outsider}`}>
-									Account outside the list (for the rejected-supplier scene):{" "}
+									Unlisted account, for the rejected-supplier scene:{" "}
 									<code className={styles.address}>{outsider}</code>
 								</p>
 							)}
@@ -680,7 +679,10 @@ export default function Settings() {
 							{check.reason}
 						</p>
 					) : fields.length === 0 ? (
-						<p className={styles.hint}>No changes yet.</p>
+						<p className={styles.hint}>
+							Edit a limit or a supplier and the change shows up here before
+							you sign it.
+						</p>
 					) : (
 						<>
 							<ul className={styles.changes}>
@@ -697,8 +699,8 @@ export default function Settings() {
 							</ul>
 							<p className={styles.hint}>
 								{plan && plan.swaps.length > 0
-									? `${plan.swaps.length * 2} transactions, each signed with the admin passkey: for every affected rule the new one is added first, then the old one is retired, so payments are never left uncontrolled. A tighter limit or a removed supplier applies once the old rule is retired, a few seconds after the new one is added.`
-									: "No rule exists on chain yet: these settings are used when the rules are created."}
+									? `${plan.swaps.length * 2} admin-signed transactions. Each rule is replaced new-first, so payments are never left uncontrolled. Tighter limits apply a few seconds later, once the old rule is retired.`
+									: "No rule on chain yet. These settings are used when the rules are created."}
 							</p>
 						</>
 					)}
@@ -716,7 +718,7 @@ export default function Settings() {
 							disabled={locked || !check.ok || fields.length === 0}
 						>
 							{busy
-								? "Waiting for the passkey and the network…"
+								? "Waiting for passkey…"
 								: "Apply changes"}
 						</button>
 						<button

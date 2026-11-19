@@ -4,14 +4,16 @@
 	min-height: 370px;
 	margin: clamp(1rem, 5vh, 3rem) auto;
 	padding: clamp(2rem, 6vw, 4rem);
-	border-top: 1px solid rgb(15 59 48 / 35%);
-	background: linear-gradient(135deg, rgb(15 59 48 / 4%), transparent 68%);
+	border: 1px solid var(--stone-line);
+	border-top-color: var(--ink-container);
+	border-radius: 8px;
+	background: var(--stone);
 }
 
 .label {
 	margin: 0 0 0.75rem;
-	color: #46645a;
-	font-family: "Spline Sans Mono", ui-monospace, monospace;
+	color: var(--muted);
+	font-family: var(--font-mono);
 	font-size: 0.78rem;
 	letter-spacing: 0.08em;
 }
@@ -19,8 +21,9 @@
 .explorer h1 {
 	max-width: 14ch;
 	margin: 0 0 1.25rem;
-	font-size: clamp(2.3rem, 5vw, 3.6rem);
-	font-weight: 500;
+	font-family: var(--font-pixel);
+	font-size: clamp(1.65rem, 4vw, 2.8rem);
+	font-weight: 400;
 	line-height: 1.05;
 	letter-spacing: -0.03em;
 }
@@ -43,20 +46,20 @@
 .mark span {
 	width: 8px;
 	height: 8px;
-	border: 1px solid rgb(15 59 48 / 58%);
+	border: 1px solid var(--outline);
 }
 
 .mark span:nth-child(2) {
 	border-radius: 50%;
-	background: rgb(15 59 48 / 30%);
+	background: var(--ink-container);
 }
 
 .labLink {
 	margin-top: 1.5rem;
 }
 
-.labLink a {
-	color: #0f3b30;
+.explorer a {
+	color: var(--ink-container);
 	text-underline-offset: 0.22em;
 }
 

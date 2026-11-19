@@ -381,7 +381,7 @@ export function CompanyBalance() {
 		>
 			<div className={styles.head}>
 				<h2 id="treasury-title" className={ui.sectionTitle}>
-					Company account
+					{company ? "Company account" : "Create a company account"}
 				</h2>
 				{company && (
 					<span
@@ -395,11 +395,9 @@ export function CompanyBalance() {
 			{!company ? (
 				<div className={styles.first}>
 					<div className={styles.firstCopy}>
-						<h3>Create the company account</h3>
 						<p>
-							A smart account on Stellar testnet with your passkey as admin. It
-							holds the treasury and enforces the payment rules. XLM and Circle
-							USDC test tokens only; no real funds.
+							Use your passkey to create the account that holds your test
+							tokens and enforces your payment rules.
 						</p>
 						<label className={styles.phoneOption}>
 							<input
@@ -430,19 +428,19 @@ export function CompanyBalance() {
 							? "Creating account…"
 							: "Create company account"}
 					</button>
-					<div className={styles.recovery}>
-						<div>
-							<strong>Recover an existing treasury</strong>
+					<details className={styles.recoveryDisclosure}>
+						<summary>Recover an existing treasury</summary>
+						<div className={styles.recoveryBody}>
 							<p className={styles.caption}>
 								Import the public recovery package exported from the original
 								profile.
 							</p>
-							<label className={ui.button}>
+							<label className={`${ui.button} ${styles.fileButton}`}>
 								Import recovery package
 								<input
 									type="file"
 									accept="application/json,.json"
-									hidden
+									className={ui.srOnly}
 									onChange={(event) => {
 										void importRecoveryFile(event.target.files?.[0])
 										event.target.value = ""
@@ -496,7 +494,7 @@ export function CompanyBalance() {
 								</>
 							)}
 						</div>
-					</div>
+					</details>
 				</div>
 			) : (
 				<>

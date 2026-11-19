@@ -5,6 +5,12 @@
 	gap: 20px;
 }
 
+.card:has(.first) {
+	gap: 10px;
+	border-inline-start: 4px solid var(--ink-container);
+	background: var(--surface-low);
+}
+
 .head {
 	display: flex;
 	align-items: center;
@@ -15,28 +21,16 @@
 /* First visit: one clear thing to do. */
 
 .first {
-	display: flex;
-	flex-wrap: wrap;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
 	align-items: center;
-	justify-content: space-between;
-	gap: 20px 40px;
-	padding-top: 20px;
-	border-top: 1px solid var(--line);
+	gap: 16px 32px;
 }
 
 .firstCopy {
 	display: grid;
 	gap: 6px;
 	max-width: 56ch;
-}
-
-.firstCopy h3 {
-	margin: 0;
-	font-family: var(--font-display);
-	font-size: 1.5rem;
-	font-weight: 600;
-	letter-spacing: -0.02em;
-	line-height: 1.2;
 }
 
 .firstCopy p {
@@ -77,11 +71,13 @@
 /* Account, balance and spend */
 
 .summary {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: flex-start;
-	gap: 16px 56px;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+	gap: 16px 24px;
 	margin: 0;
+	padding: 16px;
+	border-radius: 8px;
+	background: var(--surface-low);
 }
 
 .item {
@@ -230,6 +226,42 @@
 	margin-bottom: 0;
 }
 
+.recoveryDisclosure {
+	grid-column: 1 / -1;
+	padding-top: 12px;
+	border-top: 1px solid var(--line);
+	font-size: 0.875rem;
+}
+
+.recoveryDisclosure summary {
+	width: fit-content;
+	color: var(--ink-container);
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.recoveryBody {
+	display: grid;
+	justify-items: start;
+	gap: 8px;
+	margin-top: 8px;
+}
+
+.fileButton {
+	position: relative;
+}
+
+.fileButton:focus-within {
+	outline: 2px solid var(--ink-container);
+	outline-offset: 3px;
+}
+
+.actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
 .guardians {
 	display: flex;
 	flex-wrap: wrap;
@@ -322,6 +354,10 @@
 }
 
 @media (max-width: 640px) {
+	.first {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
 	.summary {
 		gap: 16px 32px;
 	}

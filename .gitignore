@@ -51,3 +51,8 @@ app-lib/clients/*
 # Impeccable local review captures and decision pages
 app/.impeccable/review/
 app/.impeccable/questions/
+
+# Local design and recording scratch (screenshots, cursorcam takes)
+/.impeccable/
+/.playwright-mcp/
+/cursorcam-output/

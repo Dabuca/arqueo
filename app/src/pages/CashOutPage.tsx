@@ -241,8 +241,8 @@ export default function CashOutPage() {
 				<p>How a paid supplier moves test USDC to their bank through {ANCHOR_NAME}.</p>
 			</header>
 
-			<div className={ui.alert} role="note">
-				Simulated anchor flow — no funds move. Roadmap: SEP-24 withdrawal through a Stellar anchor.
+			<div className={styles.simulation} role="note">
+				This walkthrough uses test USDC and moves no funds.
 			</div>
 
 			<ol className={styles.steps} aria-label="Progress">

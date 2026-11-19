@@ -1,0 +1,195 @@
+.chart {
+	display: grid;
+	gap: 14px;
+	min-width: 0;
+}
+
+.head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.meta {
+	margin: 4px 0 0;
+	color: var(--muted);
+	font: 0.75rem / 1.5 var(--font-mono);
+}
+
+.segment {
+	display: inline-flex;
+	padding: 3px;
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	background: var(--stock);
+}
+
+.segment button {
+	min-height: 32px;
+	padding: 4px 14px;
+	border: 0;
+	border-radius: 999px;
+	background: transparent;
+	color: var(--muted);
+	font: 600 0.75rem / 1 var(--font-mono);
+	letter-spacing: 0.06em;
+	cursor: pointer;
+	transition:
+		background-color 180ms ease,
+		color 180ms ease;
+}
+
+.segment button:hover {
+	color: var(--ink);
+}
+
+.segment button[aria-pressed="true"] {
+	background: var(--ink);
+	color: var(--background);
+}
+
+.figures {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 40px;
+	margin: 0;
+}
+
+.figures div {
+	display: grid;
+	gap: 2px;
+}
+
+.figures dt {
+	color: var(--muted);
+	font: 0.6875rem / 1.4 var(--font-mono);
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.figures dd {
+	margin: 0;
+	color: var(--ink);
+	font-size: clamp(1.75rem, 3vw, 2.25rem);
+	letter-spacing: -0.05em;
+	line-height: 1.1;
+	font-variant-numeric: tabular-nums;
+}
+
+.figures small {
+	color: var(--muted);
+	font-size: 0.4em;
+	letter-spacing: 0.02em;
+}
+
+.svg {
+	display: block;
+	width: 100%;
+	height: auto;
+	overflow: visible;
+}
+
+.grid {
+	stroke: var(--line);
+	stroke-width: 0.8;
+	vector-effect: non-scaling-stroke;
+}
+
+.cap {
+	stroke: color-mix(in srgb, var(--ink-container) 70%, var(--muted));
+	stroke-dasharray: 4 6;
+	stroke-width: 1;
+	vector-effect: non-scaling-stroke;
+}
+
+.hatchStroke {
+	stroke: color-mix(in srgb, var(--muted) 45%, transparent);
+	stroke-width: 0.8;
+}
+
+.area {
+	opacity: 0;
+}
+
+.spend {
+	fill: none;
+	stroke: var(--ink);
+	stroke-width: 2.4;
+	stroke-linejoin: round;
+	vector-effect: non-scaling-stroke;
+	/* With pathLength 1 the whole line is one dash: offset 1 hides it. */
+	stroke-dasharray: 1;
+	stroke-dashoffset: 1;
+}
+
+.dot {
+	fill: var(--ink-container);
+	opacity: 0;
+	transform-box: fill-box;
+	transform-origin: center;
+}
+
+/* Drawn once, when the chart first enters the viewport. */
+.draw .spend {
+	animation: trace 1.6s var(--ease-out) forwards;
+}
+
+.draw .area {
+	animation: appear 700ms ease 900ms forwards;
+}
+
+.draw .dot {
+	animation: land 400ms var(--ease-out) 1.4s forwards;
+}
+
+@keyframes trace {
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+
+@keyframes appear {
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes land {
+	from {
+		opacity: 0;
+		transform: scale(0.3);
+	}
+
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+.axis {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	gap: 4px 12px;
+	color: var(--muted);
+	font: 0.6875rem / 1.4 var(--font-mono);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.spend {
+		stroke-dashoffset: 0;
+	}
+
+	.area,
+	.dot {
+		opacity: 1;
+	}
+
+	.draw .spend,
+	.draw .area,
+	.draw .dot {
+		animation: none;
+	}
+}

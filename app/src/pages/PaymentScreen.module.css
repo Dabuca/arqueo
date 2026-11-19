@@ -71,7 +71,7 @@
 
 .screen .field input:focus,
 .screen .field select:focus {
-	outline: 2px solid var(--ink);
+	outline: 2px solid var(--ink-container);
 	outline-offset: 1px;
 	border-color: var(--ink);
 }
@@ -185,7 +185,7 @@
 }
 
 .signerOptions label:has(input:focus-visible) {
-	outline: 2px solid var(--ink);
+	outline: 2px solid var(--ink-container);
 	outline-offset: 2px;
 }
 
@@ -274,50 +274,14 @@
 
 .preview {
 	position: sticky;
-	top: 96px;
+	top: calc(var(--topbar-height) + 24px);
 	display: grid;
 	gap: 16px;
 }
 
-/* The panel is a ticket: white stock, notches on both edges and a dashed tear line under the summary. */
 .screen .preview {
 	background: var(--stock);
-	border-color: var(--outline);
-}
-
-.tear {
-	position: relative;
-	height: 20px;
-	margin: 4px -24px;
-}
-
-.tear::before {
-	content: "";
-	position: absolute;
-	top: 50%;
-	left: 18px;
-	right: 18px;
-	border-top: 2px dashed var(--outline);
-}
-
-.tear span {
-	position: absolute;
-	top: 0;
-	width: 20px;
-	height: 20px;
-	border: 1px solid var(--outline);
-	border-radius: 50%;
-	background: var(--background);
-}
-
-.tear span:first-child {
-	left: -11px;
-	clip-path: inset(-1px -1px -1px 50%);
-}
-
-.tear span:last-child {
-	right: -11px;
-	clip-path: inset(-1px 50% -1px -1px);
+	border-top-color: var(--ink-container);
 }
 
 .previewHead {
@@ -338,6 +302,8 @@
 .summary {
 	display: grid;
 	gap: 2px;
+	padding-bottom: 16px;
+	border-bottom: 1px dashed var(--outline);
 }
 
 .amountFigure {
@@ -458,7 +424,7 @@
 
 .accepted {
 	background: var(--ok-soft);
-	color: #0b3b2c;
+	color: var(--ok-ink);
 }
 
 .rejected,
@@ -482,7 +448,7 @@
 	padding: 8px 10px;
 	border: 0;
 	border-radius: 8px;
-	background: rgb(255 255 255 / 60%);
+	background: var(--stock);
 	font-family: var(--font-mono);
 	font-size: 0.75rem;
 	overflow-wrap: anywhere;
@@ -507,6 +473,14 @@
 	text-underline-offset: 0.2em;
 }
 
+.resultRegion {
+	scroll-margin-top: 88px;
+}
+
+.resultJump {
+	display: none;
+}
+
 @keyframes arrive {
 	from {
 		opacity: 0;
@@ -526,6 +500,10 @@
 
 	.preview {
 		position: static;
+	}
+
+	.resultJump {
+		display: inline-flex;
 	}
 }
 
