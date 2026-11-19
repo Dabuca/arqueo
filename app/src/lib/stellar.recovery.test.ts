@@ -25,7 +25,7 @@ function validPackage(): RecoveryPackage {
 	return {
 		version: 1,
 		network: "testnet",
-		companyAddress: StrKey.encodeContract(new Uint8Array(32).fill(7)),
+		companyAddress: StrKey.encodeContract(Buffer.alloc(32, 7)),
 		adminRuleId: 0,
 		recovery: {
 			ruleId: 3,

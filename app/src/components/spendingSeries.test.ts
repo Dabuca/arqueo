@@ -29,8 +29,8 @@ describe("spendingSeries", () => {
 
 		expect(series.points.map((p) => p.total)).toEqual([80, 220])
 		expect(series.spent).toBe(220)
-		expect(series.points[0].day).toBeCloseTo(25)
-		expect(series.points[1].day).toBeCloseTo(28)
+		expect(series.points[0]?.day).toBeCloseTo(25)
+		expect(series.points[1]?.day).toBeCloseTo(28)
 	})
 
 	it("ignores refused, large, other-asset and out-of-period payments", () => {
