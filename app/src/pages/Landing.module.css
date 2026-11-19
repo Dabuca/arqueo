@@ -1212,8 +1212,9 @@
 	.header {
 		min-height: 88px;
 		flex-wrap: wrap;
+		align-items: center;
 		gap: 0 12px;
-		padding-top: 10px;
+		padding-block: 10px 6px;
 	}
 
 	.brand {
@@ -1223,10 +1224,15 @@
 	.nav {
 		order: 1;
 		flex-basis: 100%;
+		justify-content: space-between;
+		margin-inline: -8px;
 	}
 
 	.nav a {
-		padding-block: 6px;
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+		padding-block: 0;
 	}
 
 	.landing .headerCta {
